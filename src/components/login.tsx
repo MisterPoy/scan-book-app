@@ -1,11 +1,11 @@
 // src/components/Login.tsx
-import { useEffect } from 'react';
+import { useEffect } from "react";
 import {
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult
-} from 'firebase/auth';
-import { auth, provider } from '../firebase';
+  getRedirectResult,
+} from "firebase/auth";
+import { auth, provider } from "../firebase";
 
 export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -26,9 +26,13 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const handleLogin = async () => {
     try {
       if (isMobile) {
+          console.log("📱 isMobile =", isMobile);
         // ✅ Sur mobile, redirection (plus fiable)
-        await signInWithRedirect(auth, provider);
+        setTimeout(() => {
+          signInWithRedirect(auth, provider);
+        }, 100);
       } else {
+        console.log("🪟 Tentative de popup...");
         // ✅ Sur desktop, popup classique
         const result = await signInWithPopup(auth, provider);
         onLogin(result.user);
