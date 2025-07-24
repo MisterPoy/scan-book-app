@@ -37,7 +37,7 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
         <BarcodeScannerComponent
           width={300}
           height={300}
-          onUpdate={(err, result) => {
+          onUpdate={(_, result) => {
             if (result) {
               setError(null);
               const code = result.getText();
