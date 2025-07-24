@@ -14,7 +14,10 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
     <div className="flex flex-col items-center">
       <div className="mb-4 flex gap-2">
         <button
-          onClick={() => setCameraActive(!cameraActive)}
+          onClick={() => {
+            setCameraActive(!cameraActive);
+            setError(null); // Reset l'erreur lors du toggle
+          }}
           className={`px-4 py-2 rounded font-medium ${
             cameraActive 
               ? 'bg-orange-500 hover:bg-orange-600 text-white' 
@@ -36,8 +39,12 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           height={300}
           onUpdate={(err, result) => {
             if (err) {
-              setError('Erreur caméra');
+              // Ignore les erreurs d'initialisation normales
+              if (err.name !== 'NotAllowedError' && err.name !== 'NotFoundError') {
+                setError('Erreur caméra');
+              }
             } else if (result) {
+              setError(null); // Reset l'erreur quand ça marche
               const code = result.getText();
               onDetected(code);
             }
