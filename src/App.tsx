@@ -3,7 +3,7 @@ import ISBNScanner from "./components/ISBNScanner";
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
 import { auth, db } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
 import {
   doc,
   setDoc,
@@ -67,6 +67,18 @@ function App() {
   };
 
   useEffect(() => {
+    // 🌀 Gérer le retour de redirection avant onAuthStateChanged
+    getRedirectResult(auth)
+      .then((result) => {
+        console.log("🔄 App - Redirect result:", result);
+        if (result?.user) {
+          console.log("✅ App - Utilisateur trouvé via redirect:", result.user.displayName);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ App - Erreur de redirection:", err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       console.log("🔄 Auth state changed:", u ? u.displayName : "Déconnecté");
       setUser(u);
@@ -93,7 +105,7 @@ function App() {
       <h1 className="text-2xl font-bold mb-4">📚 Ajoute un livre</h1>
 
       {!user ? (
-        <Login onLogin={setUser} />
+        <Login onLogin={() => {}} />
       ) : (
         <div className="mb-4 flex flex-col items-center gap-2">
           <p>Bienvenue, {user.displayName}</p>
