@@ -67,17 +67,43 @@ function App() {
   };
 
   useEffect(() => {
-    // 🌀 Gérer le retour de redirection avant onAuthStateChanged
-    getRedirectResult(auth)
-      .then((result) => {
+    const isChromeMobile = /Chrome/.test(navigator.userAgent) && 
+      (/Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth <= 768);
+    
+    console.log("🔍 Chrome Mobile detected:", isChromeMobile);
+
+    // 🌀 Gérer le retour de redirection avec retry pour Chrome mobile
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
         console.log("🔄 App - Redirect result:", result);
+        
         if (result?.user) {
           console.log("✅ App - Utilisateur trouvé via redirect:", result.user.displayName);
+          return;
         }
-      })
-      .catch((err) => {
+        
+        // Retry spécifique pour Chrome mobile après 500ms
+        if (isChromeMobile) {
+          console.log("📱 Chrome mobile - Retry après 500ms...");
+          setTimeout(async () => {
+            try {
+              const retryResult = await getRedirectResult(auth);
+              console.log("🔄 Chrome mobile retry result:", retryResult);
+              if (retryResult?.user) {
+                console.log("✅ Chrome mobile retry success:", retryResult.user.displayName);
+              }
+            } catch (retryErr) {
+              console.error("❌ Chrome mobile retry error:", retryErr);
+            }
+          }, 500);
+        }
+      } catch (err) {
         console.error("❌ App - Erreur de redirection:", err);
-      });
+      }
+    };
+
+    handleRedirectResult();
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       console.log("🔄 Auth state changed:", u ? u.displayName : "Déconnecté");
@@ -87,6 +113,7 @@ function App() {
         fetchCollection(u.uid);
       }
     });
+    
     return () => unsubscribe();
   }, []);
 
