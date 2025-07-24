@@ -83,20 +83,33 @@ function App() {
           return;
         }
         
-        // Retry spécifique pour Chrome mobile après 500ms
+        // Chrome mobile fallback - forcer la vérification de l'état auth
         if (isChromeMobile) {
-          console.log("📱 Chrome mobile - Retry après 500ms...");
-          setTimeout(async () => {
-            try {
-              const retryResult = await getRedirectResult(auth);
-              console.log("🔄 Chrome mobile retry result:", retryResult);
-              if (retryResult?.user) {
-                console.log("✅ Chrome mobile retry success:", retryResult.user.displayName);
-              }
-            } catch (retryErr) {
-              console.error("❌ Chrome mobile retry error:", retryErr);
+          console.log("📱 Chrome mobile - Fallback avec multiple checks...");
+          
+          // Check immédiat
+          setTimeout(() => {
+            console.log("🔄 Chrome mobile check 1 - currentUser:", auth.currentUser);
+            if (auth.currentUser) {
+              console.log("✅ Chrome mobile success via currentUser!");
             }
-          }, 500);
+          }, 100);
+          
+          // Check après 1 seconde
+          setTimeout(() => {
+            console.log("🔄 Chrome mobile check 2 - currentUser:", auth.currentUser);
+            if (auth.currentUser) {
+              console.log("✅ Chrome mobile success via currentUser (delayed)!");
+            }
+          }, 1000);
+          
+          // Check après 2 secondes
+          setTimeout(() => {
+            console.log("🔄 Chrome mobile check 3 - currentUser:", auth.currentUser);
+            if (auth.currentUser) {
+              console.log("✅ Chrome mobile success via currentUser (final)!");
+            }
+          }, 2000);
         }
       } catch (err) {
         console.error("❌ App - Erreur de redirection:", err);
