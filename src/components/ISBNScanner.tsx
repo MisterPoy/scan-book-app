@@ -38,16 +38,12 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           width={300}
           height={300}
           onUpdate={(err, result) => {
-            if (err) {
-              // Ignore les erreurs d'initialisation normales
-              if (err.name !== 'NotAllowedError' && err.name !== 'NotFoundError') {
-                setError('Erreur caméra');
-              }
-            } else if (result) {
-              setError(null); // Reset l'erreur quand ça marche
+            if (result) {
+              setError(null);
               const code = result.getText();
               onDetected(code);
             }
+            // On ignore complètement les erreurs pour éviter l'affichage permanent
           }}
         />
       ) : (
