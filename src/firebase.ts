@@ -3,7 +3,9 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword 
+  signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -21,6 +23,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+
+// Force la persistance locale (important pour Chrome mobile)
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error('Erreur persistance Firebase:', error);
+});
+
 export const provider = new GoogleAuthProvider();
 
 // Configuration pour mobile
