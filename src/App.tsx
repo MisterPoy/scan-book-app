@@ -110,7 +110,10 @@ function App() {
           Scanner un livre
         </button>
       ) : (
-        <ISBNScanner onDetected={handleDetected} />
+        <ISBNScanner 
+          onDetected={handleDetected} 
+          onClose={() => setScanning(false)}
+        />
       )}
 
       <input
