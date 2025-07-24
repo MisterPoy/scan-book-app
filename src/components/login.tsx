@@ -17,20 +17,32 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
 
   // 🌀 Gérer le retour après redirection (mobile)
   useEffect(() => {
+    const isChromeMobile = /Chrome/.test(navigator.userAgent) && isMobile;
+    console.log("🔍 Chrome Mobile detected:", isChromeMobile);
+    
     getRedirectResult(auth)
       .then((result) => {
         console.log("🔄 Redirect result:", result);
+        console.log("🔄 Current auth state:", auth.currentUser);
+        
         if (result?.user) {
-          console.log("✅ Utilisateur trouvé:", result.user.displayName);
+          console.log("✅ Utilisateur trouvé via redirect:", result.user.displayName);
           onLogin(result.user);
+        } else if (auth.currentUser && isChromeMobile) {
+          console.log("📱 Chrome mobile fallback - utilisateur persisté:", auth.currentUser.displayName);
+          onLogin(auth.currentUser);
         } else {
           console.log("ℹ️ Pas de résultat de redirection");
         }
       })
       .catch((err) => {
         console.error("❌ Erreur de redirection Google :", err);
+        if (auth.currentUser && isChromeMobile) {
+          console.log("🔄 Fallback après erreur - utilisateur persisté:", auth.currentUser.displayName);
+          onLogin(auth.currentUser);
+        }
       });
-  }, [onLogin]);
+  }, [onLogin, isMobile]);
 
   const handleGoogleLogin = async () => {
     try {
