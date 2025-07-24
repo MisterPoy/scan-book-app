@@ -8,7 +8,7 @@ import {
 import { auth, provider } from "../firebase";
 
 export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth <= 768;
 
   // 🌀 Gérer le retour après redirection (mobile)
   useEffect(() => {
@@ -26,11 +26,9 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const handleLogin = async () => {
     try {
       if (isMobile) {
-          console.log("📱 isMobile =", isMobile);
+        console.log("📱 isMobile =", isMobile);
         // ✅ Sur mobile, redirection (plus fiable)
-        setTimeout(() => {
-          signInWithRedirect(auth, provider);
-        }, 100);
+        await signInWithRedirect(auth, provider);
       } else {
         console.log("🪟 Tentative de popup...");
         // ✅ Sur desktop, popup classique
