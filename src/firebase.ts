@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword 
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 
@@ -24,3 +29,10 @@ provider.setCustomParameters({
 });
 
 export const db = getFirestore(app);
+
+// Fonctions d'authentification
+export const registerWithEmail = (email: string, password: string) => 
+  createUserWithEmailAndPassword(auth, email, password);
+
+export const loginWithEmail = (email: string, password: string) => 
+  signInWithEmailAndPassword(auth, email, password);
