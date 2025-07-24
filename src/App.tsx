@@ -68,8 +68,12 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
+      console.log("🔄 Auth state changed:", u ? u.displayName : "Déconnecté");
       setUser(u);
-      if (u) fetchCollection(u.uid);
+      if (u) {
+        console.log("📚 Récupération collection pour:", u.displayName);
+        fetchCollection(u.uid);
+      }
     });
     return () => unsubscribe();
   }, []);

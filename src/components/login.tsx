@@ -14,14 +14,18 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
+        console.log("🔄 Redirect result:", result);
         if (result?.user) {
+          console.log("✅ Utilisateur trouvé:", result.user.displayName);
           onLogin(result.user);
+        } else {
+          console.log("ℹ️ Pas de résultat de redirection");
         }
       })
       .catch((err) => {
-        console.error("Erreur de redirection Google :", err);
+        console.error("❌ Erreur de redirection Google :", err);
       });
-  }, []);
+  }, [onLogin]);
 
   const handleLogin = async () => {
     try {
