@@ -25,6 +25,7 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
   const [expanded, setExpanded] = useState(false);
   const [bookDetails, setBookDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
   
   useEffect(() => {
     const testImage = new Image();
@@ -118,9 +119,19 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
                 {bookDetails.description && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">📖 Résumé</h4>
-                    <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
+                    <p className={`text-xs text-gray-600 leading-relaxed ${
+                      showFullDescription ? '' : 'line-clamp-4'
+                    }`}>
                       {bookDetails.description.replace(/<[^>]*>/g, '')}
                     </p>
+                    {bookDetails.description.length > 200 && (
+                      <button
+                        onClick={() => setShowFullDescription(!showFullDescription)}
+                        className="text-blue-600 hover:text-blue-700 text-xs mt-1 font-medium"
+                      >
+                        {showFullDescription ? "Lire moins" : "Lire plus"}
+                      </button>
+                    )}
                   </div>
                 )}
                 
