@@ -377,37 +377,42 @@ function App() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-900">📚 Ma Bibliothèque</h1>
-            <nav>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">📚 Ma Bibliothèque</h1>
+            <nav className="flex-shrink-0">
               {user ? (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 sm:gap-4">
                   <button
                     onClick={() => setShowCollectionModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-2"
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2"
                   >
-                    📚 Ma Collection
+                    <span className="hidden sm:inline">📚 Ma Collection</span>
+                    <span className="sm:hidden">📚</span>
                     {collectionBooks.length > 0 && (
-                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      <span className="bg-blue-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {collectionBooks.length}
                       </span>
                     )}
                   </button>
-                  <span className="text-gray-600 text-sm">Bonjour, {user.displayName}</span>
+                  <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
+                    Bonjour, {user.displayName}
+                  </span>
                   <button
                     onClick={() => signOut(auth)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                   >
-                    Se déconnecter
+                    <span className="hidden sm:inline">Se déconnecter</span>
+                    <span className="sm:hidden">↗️</span>
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                  className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                 >
-                  Se connecter
+                  <span className="hidden sm:inline">Se connecter</span>
+                  <span className="sm:hidden">Connexion</span>
                 </button>
               )}
             </nav>
@@ -416,19 +421,19 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
             Découvrez et gérez votre collection de livres
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto px-4">
             Scannez, recherchez et organisez vos livres préférés en quelques clics
           </p>
         </div>
 
         {/* Scanner Section */}
-        <div className="bg-white rounded-xl shadow-md border p-8 mb-8">
+        <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
           {!scanning ? (
             <div className="flex flex-col items-center space-y-6">
               <button
@@ -469,7 +474,7 @@ function App() {
 
         {/* Book Result */}
         {book && (
-          <div className="bg-white rounded-xl shadow-md border p-8 mb-8">
+          <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
             <div className="text-center">
               <BookCard
                 title={book.title}
