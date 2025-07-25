@@ -119,17 +119,27 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
                 {bookDetails.description && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">📖 Résumé</h4>
-                    <p className={`text-xs text-gray-600 leading-relaxed ${
-                      showFullDescription ? '' : 'line-clamp-4'
+                    <div className={`${
+                      showFullDescription 
+                        ? 'max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400' 
+                        : 'max-h-none'
                     }`}>
-                      {bookDetails.description.replace(/<[^>]*>/g, '')}
-                    </p>
+                      <p className={`text-xs text-gray-600 leading-relaxed ${
+                        showFullDescription ? '' : 'line-clamp-4'
+                      }`}>
+                        {bookDetails.description.replace(/<[^>]*>/g, '')}
+                      </p>
+                    </div>
                     {bookDetails.description.length > 200 && (
                       <button
                         onClick={() => setShowFullDescription(!showFullDescription)}
-                        className="text-blue-600 hover:text-blue-700 text-xs mt-1 font-medium"
+                        className="text-blue-600 hover:text-blue-700 text-xs mt-2 font-medium inline-flex items-center gap-1"
                       >
-                        {showFullDescription ? "Lire moins" : "Lire plus"}
+                        {showFullDescription ? (
+                          <>📖 Lire moins</>
+                        ) : (
+                          <>📖 Lire plus</>
+                        )}
                       </button>
                     )}
                   </div>
