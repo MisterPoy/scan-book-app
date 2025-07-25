@@ -18,9 +18,10 @@ interface CollectionBook {
   title: string;
   authors: string[];
   addedAt: string;
+  isRead: boolean;
 }
 
-function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove: () => void }) {
+function CollectionBookCard({ book, onRemove, onToggleRead }: { book: CollectionBook; onRemove: () => void; onToggleRead: () => void }) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [bookDetails, setBookDetails] = useState<any>(null);
@@ -68,12 +69,24 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-      <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
+      <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
         <img 
           src={coverSrc} 
           alt={book.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
+        {/* Badge de lecture en overlay */}
+        <button
+          onClick={onToggleRead}
+          className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-full transition-all ${
+            book.isRead 
+              ? 'bg-green-500 text-white hover:bg-green-600' 
+              : 'bg-gray-500 text-white hover:bg-gray-600'
+          }`}
+          title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
+        >
+          {book.isRead ? "✓ Lu" : "◯ Non lu"}
+        </button>
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
@@ -121,7 +134,7 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
                     <h4 className="font-medium text-gray-900 text-xs mb-1">📖 Résumé</h4>
                     <div className={`${
                       showFullDescription 
-                        ? 'max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400' 
+                        ? 'max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400' 
                         : 'max-h-none'
                     }`}>
                       <p className={`text-xs text-gray-600 leading-relaxed ${
@@ -235,6 +248,7 @@ function App() {
         authors: book.authors || [],
         isbn: book.isbn,
         addedAt: new Date().toISOString(),
+        isRead: false,
       });
       
       await fetchCollection(user.uid);
@@ -334,9 +348,28 @@ function App() {
     if (!user) return;
     try {
       await deleteDoc(doc(db, `users/${user.uid}/collection`, isbn));
-      fetchCollection(user.uid); // refresh la liste
+      fetchCollection(user.uid);
     } catch (err) {
       console.error("Erreur suppression Firestore:", err);
+    }
+  };
+
+  const toggleReadStatus = async (isbn: string) => {
+    if (!user) return;
+    
+    try {
+      const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+      if (!bookToUpdate) return;
+
+      const ref = doc(db, `users/${user.uid}/collection`, isbn);
+      await setDoc(ref, {
+        ...bookToUpdate,
+        isRead: !bookToUpdate.isRead
+      });
+      
+      fetchCollection(user.uid);
+    } catch (err) {
+      console.error("Erreur mise à jour statut lecture:", err);
     }
   };
 
@@ -504,6 +537,7 @@ function App() {
                       key={item.isbn}
                       book={item}
                       onRemove={() => removeFromCollection(item.isbn)}
+                      onToggleRead={() => toggleReadStatus(item.isbn)}
                     />
                   ))}
                 </div>
