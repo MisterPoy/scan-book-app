@@ -214,6 +214,7 @@ function App() {
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [addMessage, setAddMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
+  const [authMessage, setAuthMessage] = useState<{text: string, type: 'success' | 'info'} | null>(null);
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -338,6 +339,11 @@ function App() {
       if (u) {
         console.log("📚 Récupération collection pour:", u.displayName);
         fetchCollection(u.uid);
+        setAuthMessage({ text: `✅ Connecté en tant que ${u.displayName}`, type: 'success' });
+        setTimeout(() => setAuthMessage(null), 3000);
+      } else {
+        setAuthMessage({ text: "👋 Vous êtes déconnecté", type: 'info' });
+        setTimeout(() => setAuthMessage(null), 3000);
       }
     });
     
@@ -401,9 +407,10 @@ function App() {
                   <button
                     onClick={() => signOut(auth)}
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    title="Se déconnecter"
                   >
                     <span className="hidden sm:inline">Se déconnecter</span>
-                    <span className="sm:hidden">↗️</span>
+                    <span className="sm:hidden">🚪</span>
                   </button>
                 </div>
               ) : (
@@ -419,6 +426,19 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Auth Message */}
+      {authMessage && (
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 pt-4">
+          <div className={`p-3 rounded-lg text-sm font-medium text-center ${
+            authMessage.type === 'success' 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-blue-100 text-blue-800 border border-blue-200'
+          }`}>
+            {authMessage.text}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
