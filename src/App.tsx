@@ -22,6 +22,9 @@ interface CollectionBook {
 
 function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove: () => void }) {
   const [coverSrc, setCoverSrc] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const [bookDetails, setBookDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   
   useEffect(() => {
     const testImage = new Image();
@@ -39,6 +42,29 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
     testImage.onerror = () => setCoverSrc(fallback);
   }, [book.isbn]);
 
+  const fetchBookDetails = async () => {
+    if (bookDetails || loadingDetails) return;
+    
+    setLoadingDetails(true);
+    try {
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}`);
+      const data = await res.json();
+      const volumeInfo = data.items?.[0]?.volumeInfo;
+      setBookDetails(volumeInfo);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des détails:", err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleExpandToggle = () => {
+    if (!expanded) {
+      fetchBookDetails();
+    }
+    setExpanded(!expanded);
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
       <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
@@ -55,17 +81,89 @@ function CollectionBookCard({ book, onRemove }: { book: CollectionBook; onRemove
         <p className="text-xs text-gray-600 mb-3 line-clamp-1">
           {book.authors?.join(", ") || "Auteur inconnu"}
         </p>
-        <div className="flex justify-between items-center">
+        
+        <div className="flex justify-between items-center mb-2">
           <span className="text-xs text-gray-400">
             Ajouté le {new Date(book.addedAt).toLocaleDateString('fr-FR')}
           </span>
-          <button
-            onClick={onRemove}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-            title="Supprimer de la collection"
-          >
-            🗑️
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={handleExpandToggle}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title={expanded ? "Masquer les détails" : "Voir les détails"}
+            >
+              {expanded ? "🔼" : "🔽"}
+            </button>
+            <button
+              onClick={onRemove}
+              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              title="Supprimer de la collection"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        {/* Collapse Details */}
+        <div className={`overflow-hidden transition-all duration-300 ${
+          expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="border-t pt-3 mt-2">
+            {loadingDetails ? (
+              <div className="text-center py-4">
+                <div className="text-blue-600">⏳ Chargement des détails...</div>
+              </div>
+            ) : bookDetails ? (
+              <div className="space-y-3">
+                {bookDetails.description && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 text-xs mb-1">📖 Résumé</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
+                      {bookDetails.description.replace(/<[^>]*>/g, '')}
+                    </p>
+                  </div>
+                )}
+                
+                {bookDetails.publishedDate && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 text-xs mb-1">📅 Publication</h4>
+                    <p className="text-xs text-gray-600">{bookDetails.publishedDate}</p>
+                  </div>
+                )}
+                
+                {bookDetails.publisher && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 text-xs mb-1">🏢 Éditeur</h4>
+                    <p className="text-xs text-gray-600">{bookDetails.publisher}</p>
+                  </div>
+                )}
+                
+                {bookDetails.pageCount && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 text-xs mb-1">📄 Pages</h4>
+                    <p className="text-xs text-gray-600">{bookDetails.pageCount} pages</p>
+                  </div>
+                )}
+                
+                {bookDetails.categories && bookDetails.categories.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 text-xs mb-1">🏷️ Catégories</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {bookDetails.categories.slice(0, 3).map((category: string, index: number) => (
+                        <span key={index} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          {category.split('/')[0]}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-gray-500">Aucun détail disponible</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -80,6 +178,8 @@ function App() {
   const [collectionBooks, setCollectionBooks] = useState<any[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [addingToCollection, setAddingToCollection] = useState(false);
+  const [addMessage, setAddMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -103,6 +203,10 @@ function App() {
 
   const addToCollection = async () => {
     if (!user || !book) return;
+    
+    setAddingToCollection(true);
+    setAddMessage(null);
+    
     try {
       const ref = doc(db, `users/${user.uid}/collection`, book.isbn);
       await setDoc(ref, {
@@ -111,9 +215,23 @@ function App() {
         isbn: book.isbn,
         addedAt: new Date().toISOString(),
       });
-      fetchCollection(user.uid);
+      
+      await fetchCollection(user.uid);
+      
+      setAddMessage({ text: "✅ Livre ajouté à votre collection !", type: 'success' });
+      
+      // Auto-fermeture après 2 secondes
+      setTimeout(() => {
+        setBook(null);
+        setIsbn("");
+        setAddMessage(null);
+      }, 2000);
+      
     } catch (err) {
       console.error("Erreur ajout Firestore:", err);
+      setAddMessage({ text: "❌ Erreur lors de l'ajout du livre", type: 'error' });
+    } finally {
+      setAddingToCollection(false);
     }
   };
 
@@ -306,12 +424,25 @@ function App() {
               />
               <div className="mt-6">
                 {user ? (
-                  <button
-                    onClick={addToCollection}
-                    className="px-8 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md"
-                  >
-                    📥 Ajouter à ma collection
-                  </button>
+                  <>
+                    <button
+                      onClick={addToCollection}
+                      disabled={addingToCollection}
+                      className="px-8 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors shadow-md"
+                    >
+                      {addingToCollection ? "⏳ Ajout en cours..." : "📥 Ajouter à ma collection"}
+                    </button>
+                    
+                    {addMessage && (
+                      <div className={`mt-4 p-3 rounded-lg text-sm font-medium ${
+                        addMessage.type === 'success' 
+                          ? 'bg-green-100 text-green-800 border border-green-200' 
+                          : 'bg-red-100 text-red-800 border border-red-200'
+                      }`}>
+                        {addMessage.text}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <button
                     onClick={() => setShowAuthModal(true)}
