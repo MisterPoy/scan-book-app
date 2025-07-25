@@ -34,18 +34,38 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
         </button>
       </div>
       {cameraActive ? (
-        <BarcodeScannerComponent
-          width={300}
-          height={300}
-          onUpdate={(_, result) => {
-            if (result) {
-              setError(null);
-              const code = result.getText();
-              onDetected(code);
-            }
-            // On ignore complètement les erreurs pour éviter l'affichage permanent
-          }}
-        />
+        <div className="relative">
+          <BarcodeScannerComponent
+            width={300}
+            height={300}
+            onUpdate={(_, result) => {
+              if (result) {
+                setError(null);
+                const code = result.getText();
+                onDetected(code);
+              }
+            }}
+          />
+          {/* Zone de ciblage overlay */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Coins de la zone de scan */}
+            <div className="absolute top-8 left-8 w-8 h-8 border-l-4 border-t-4 border-blue-500"></div>
+            <div className="absolute top-8 right-8 w-8 h-8 border-r-4 border-t-4 border-blue-500"></div>
+            <div className="absolute bottom-8 left-8 w-8 h-8 border-l-4 border-b-4 border-blue-500"></div>
+            <div className="absolute bottom-8 right-8 w-8 h-8 border-r-4 border-b-4 border-blue-500"></div>
+            
+            {/* Zone de scan centrale */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-32 border-2 border-dashed border-blue-400 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-blue-600 font-semibold text-sm mb-1">📖 Zone de scan</div>
+                <div className="text-blue-500 text-xs">Placez le code-barres ici</div>
+              </div>
+            </div>
+            
+            {/* Ligne de scan animée */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-0.5 bg-red-500 animate-pulse"></div>
+          </div>
+        </div>
       ) : (
         <div className="w-[300px] h-[300px] bg-gray-200 flex items-center justify-center rounded">
           <p className="text-gray-600">📷 Caméra désactivée</p>
