@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  updateProfile,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
@@ -40,8 +41,11 @@ provider.setCustomParameters({
 export const db = getFirestore(app);
 
 // Fonctions d'authentification
-export const registerWithEmail = (email: string, password: string) => 
-  createUserWithEmailAndPassword(auth, email, password);
+export const registerWithEmail = async (email: string, password: string, displayName: string) => {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(result.user, { displayName });
+  return result;
+};
 
 export const loginWithEmail = (email: string, password: string) => 
   signInWithEmailAndPassword(auth, email, password);
