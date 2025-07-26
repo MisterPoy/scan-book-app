@@ -223,7 +223,7 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover }: {
         <img 
           src={coverSrc} 
           alt={book.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          className="w-full h-full object-contain"
         />
         {/* Badge de lecture en overlay - CLICKABLE */}
         <button
