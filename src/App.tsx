@@ -97,20 +97,20 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
         </div>
-        {/* Badge de lecture mobile */}
+        {/* Badge de lecture mobile avec texte */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleRead();
           }}
-          className={`ml-2 px-2 py-1 text-xs font-medium rounded-full transition-all flex-shrink-0 ${
+          className={`ml-2 px-2 py-1 text-xs font-medium rounded-md transition-all flex-shrink-0 ${
             book.isRead 
               ? 'bg-green-500 text-white hover:bg-green-600' 
               : 'bg-gray-500 text-white hover:bg-gray-600'
           }`}
           title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
         >
-          {book.isRead ? "✓" : "◯"}
+          {book.isRead ? "Lu" : "Non lu"}
         </button>
       </div>
     </div>
@@ -172,9 +172,12 @@ function CollectionBookCard({ book, onRemove, onToggleRead }: { book: Collection
           alt={book.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
-        {/* Badge de lecture en overlay */}
+        {/* Badge de lecture en overlay - CLICKABLE */}
         <button
-          onClick={onToggleRead}
+          onClick={(e) => {
+            e.stopPropagation(); // Empêcher le clic sur la carte parente
+            onToggleRead();
+          }}
           className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-full transition-all ${
             book.isRead 
               ? 'bg-green-500 text-white hover:bg-green-600' 
@@ -680,7 +683,11 @@ function App() {
                       removeFromCollection(selectedBook.isbn);
                       setSelectedBook(null);
                     }}
-                    onToggleRead={() => toggleReadStatus(selectedBook.isbn)}
+                    onToggleRead={() => {
+                      toggleReadStatus(selectedBook.isbn);
+                      // Mettre à jour selectedBook avec le nouveau statut
+                      setSelectedBook({...selectedBook, isRead: !selectedBook.isRead});
+                    }}
                   />
                 </div>
               ) : (
