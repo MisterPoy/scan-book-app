@@ -21,6 +21,66 @@ interface CollectionBook {
   isRead: boolean;
 }
 
+// Composant vue compacte pour la grille
+function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook; onClick: () => void; onToggleRead: () => void }) {
+  const [coverSrc, setCoverSrc] = useState('');
+  
+  useEffect(() => {
+    const testImage = new Image();
+    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-S.jpg`;
+    const fallback = '/img/default-cover.png';
+
+    testImage.src = openLibraryUrl;
+    testImage.onload = () => {
+      if (testImage.width > 1 && testImage.height > 1) {
+        setCoverSrc(openLibraryUrl);
+      } else {
+        setCoverSrc(fallback);
+      }
+    };
+    testImage.onerror = () => setCoverSrc(fallback);
+  }, [book.isbn]);
+
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02]"
+    >
+      <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
+        <img 
+          src={coverSrc} 
+          alt={book.title}
+          className="w-full h-full object-cover"
+        />
+        {/* Badge de lecture en overlay */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleRead();
+          }}
+          className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full transition-all ${
+            book.isRead 
+              ? 'bg-green-500 text-white hover:bg-green-600' 
+              : 'bg-gray-500 text-white hover:bg-gray-600'
+          }`}
+          title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
+        >
+          {book.isRead ? "✓" : "◯"}
+        </button>
+      </div>
+      <div className="p-2">
+        <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
+          {book.title}
+        </h3>
+        <p className="text-xs text-gray-600 line-clamp-1">
+          {book.authors?.join(", ") || "Auteur inconnu"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Composant vue détaillée (version actuelle)
 function CollectionBookCard({ book, onRemove, onToggleRead }: { book: CollectionBook; onRemove: () => void; onToggleRead: () => void }) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -215,6 +275,7 @@ function App() {
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [addMessage, setAddMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   const [authMessage, setAuthMessage] = useState<{text: string, type: 'success' | 'info'} | null>(null);
+  const [selectedBook, setSelectedBook] = useState<CollectionBook | null>(null);
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -540,31 +601,72 @@ function App() {
       {/* Collection Modal */}
       {showCollectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowCollectionModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors z-10"
-            >
-              ✕
-            </button>
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">📚 Ma Collection</h2>
+          <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header avec navigation */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-gray-900">📚 Ma Collection</h2>
+                {selectedBook && (
+                  <button
+                    onClick={() => setSelectedBook(null)}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    ← Retour à la grille
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setShowCollectionModal(false);
+                  setSelectedBook(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="flex-1 overflow-y-auto p-6">
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 text-6xl mb-4">📚</div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun livre pour le moment</h3>
                   <p className="text-gray-600">Commencez par scanner ou rechercher votre premier livre !</p>
                 </div>
+              ) : selectedBook ? (
+                /* Vue détaillée d'un livre */
+                <div className="max-w-2xl mx-auto">
+                  <CollectionBookCard
+                    book={selectedBook}
+                    onRemove={() => {
+                      removeFromCollection(selectedBook.isbn);
+                      setSelectedBook(null);
+                    }}
+                    onToggleRead={() => toggleReadStatus(selectedBook.isbn)}
+                  />
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {collectionBooks.map((item) => (
-                    <CollectionBookCard
-                      key={item.isbn}
-                      book={item}
-                      onRemove={() => removeFromCollection(item.isbn)}
-                      onToggleRead={() => toggleReadStatus(item.isbn)}
-                    />
-                  ))}
+                /* Vue grille compacte */
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <p className="text-gray-600">
+                      {collectionBooks.length} livre{collectionBooks.length > 1 ? 's' : ''} dans votre collection
+                    </p>
+                    <div className="text-sm text-gray-500">
+                      Cliquez sur un livre pour voir les détails
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {collectionBooks.map((item) => (
+                      <CompactBookCard
+                        key={item.isbn}
+                        book={item}
+                        onClick={() => setSelectedBook(item)}
+                        onToggleRead={() => toggleReadStatus(item.isbn)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
