@@ -12,6 +12,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const [showResetForm, setShowResetForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     
     try {
       const result = isRegister 
-        ? await registerWithEmail(email, password)
+        ? await registerWithEmail(email, password, displayName)
         : await loginWithEmail(email, password);
       
       onLogin(result.user);
@@ -137,6 +138,16 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
       
       {/* Formulaire Email/Password */}
       <form onSubmit={handleEmailAuth} className="mb-4">
+        {isRegister && (
+          <input
+            type="text"
+            placeholder="Nom d'utilisateur"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
+        )}
         <input
           type="email"
           placeholder="Email"
@@ -182,6 +193,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
           onClick={() => {
             setIsRegister(!isRegister);
             setError("");
+            setDisplayName("");
           }}
           className="text-blue-600 hover:underline"
         >
