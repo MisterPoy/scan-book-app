@@ -27,7 +27,7 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
   
   useEffect(() => {
     const testImage = new Image();
-    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-S.jpg`;
+    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`; // Retour à -M pour meilleure qualité
     const fallback = '/img/default-cover.png';
 
     testImage.src = openLibraryUrl;
@@ -46,19 +46,64 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
       onClick={onClick}
       className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02]"
     >
-      <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
-        <img 
-          src={coverSrc} 
-          alt={book.title}
-          className="w-full h-full object-cover"
-        />
-        {/* Badge de lecture en overlay */}
+      {/* Desktop : Layout vertical */}
+      <div className="hidden sm:block">
+        <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
+          <img 
+            src={coverSrc} 
+            alt={book.title}
+            className="w-full h-full object-cover"
+          />
+          {/* Badge de lecture en overlay */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleRead();
+            }}
+            className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full transition-all ${
+              book.isRead 
+                ? 'bg-green-500 text-white hover:bg-green-600' 
+                : 'bg-gray-500 text-white hover:bg-gray-600'
+            }`}
+            title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
+          >
+            {book.isRead ? "✓" : "◯"}
+          </button>
+        </div>
+        <div className="p-2">
+          <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
+            {book.title}
+          </h3>
+          <p className="text-xs text-gray-600 line-clamp-1">
+            {book.authors?.join(", ") || "Auteur inconnu"}
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile : Layout horizontal */}
+      <div className="flex sm:hidden items-center p-3 relative">
+        <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-3">
+          <img 
+            src={coverSrc} 
+            alt={book.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
+            {book.title}
+          </h3>
+          <p className="text-xs text-gray-600 line-clamp-1">
+            {book.authors?.join(", ") || "Auteur inconnu"}
+          </p>
+        </div>
+        {/* Badge de lecture mobile */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleRead();
           }}
-          className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full transition-all ${
+          className={`ml-2 px-2 py-1 text-xs font-medium rounded-full transition-all flex-shrink-0 ${
             book.isRead 
               ? 'bg-green-500 text-white hover:bg-green-600' 
               : 'bg-gray-500 text-white hover:bg-gray-600'
@@ -67,14 +112,6 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
         >
           {book.isRead ? "✓" : "◯"}
         </button>
-      </div>
-      <div className="p-2">
-        <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
-          {book.title}
-        </h3>
-        <p className="text-xs text-gray-600 line-clamp-1">
-          {book.authors?.join(", ") || "Auteur inconnu"}
-        </p>
       </div>
     </div>
   );
@@ -657,7 +694,7 @@ function App() {
                       Cliquez sur un livre pour voir les détails
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {collectionBooks.map((item) => (
                       <CompactBookCard
                         key={item.isbn}
