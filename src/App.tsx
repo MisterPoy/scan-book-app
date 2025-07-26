@@ -12,6 +12,7 @@ import {
   collection,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { uploadCustomCover, deleteCustomCover } from "./firebase";
 
 interface CollectionBook {
   isbn: string;
@@ -19,6 +20,7 @@ interface CollectionBook {
   authors: string[];
   addedAt: string;
   isRead: boolean;
+  customCoverUrl?: string;
 }
 
 // Composant vue compacte pour la grille
@@ -26,8 +28,14 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
   const [coverSrc, setCoverSrc] = useState('');
   
   useEffect(() => {
+    // Si image personnalisée, l'utiliser en priorité
+    if (book.customCoverUrl) {
+      setCoverSrc(book.customCoverUrl);
+      return;
+    }
+
     const testImage = new Image();
-    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`; // Retour à -M pour meilleure qualité
+    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`;
     const fallback = '/img/default-cover.png';
 
     testImage.src = openLibraryUrl;
@@ -39,7 +47,7 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
       }
     };
     testImage.onerror = () => setCoverSrc(fallback);
-  }, [book.isbn]);
+  }, [book.isbn, book.customCoverUrl]);
 
   return (
     <div 
@@ -118,14 +126,26 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
 }
 
 // Composant vue détaillée (version actuelle)
-function CollectionBookCard({ book, onRemove, onToggleRead }: { book: CollectionBook; onRemove: () => void; onToggleRead: () => void }) {
+function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover }: { 
+  book: CollectionBook; 
+  onRemove: () => void; 
+  onToggleRead: () => void; 
+  onUpdateCover?: (newCoverUrl: string | null) => void;
+}) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [bookDetails, setBookDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   
   useEffect(() => {
+    // Si image personnalisée, l'utiliser en priorité
+    if (book.customCoverUrl) {
+      setCoverSrc(book.customCoverUrl);
+      return;
+    }
+
     const testImage = new Image();
     const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`;
     const fallback = '/img/default-cover.png';
@@ -139,7 +159,7 @@ function CollectionBookCard({ book, onRemove, onToggleRead }: { book: Collection
       }
     };
     testImage.onerror = () => setCoverSrc(fallback);
-  }, [book.isbn]);
+  }, [book.isbn, book.customCoverUrl]);
 
   const fetchBookDetails = async () => {
     if (bookDetails || loadingDetails) return;
@@ -162,6 +182,54 @@ function CollectionBookCard({ book, onRemove, onToggleRead }: { book: Collection
       fetchBookDetails();
     }
     setExpanded(!expanded);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !onUpdateCover) return;
+
+    // Validation du fichier
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB max
+      alert('Le fichier doit faire moins de 5MB');
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      // Récupérer l'utilisateur depuis le contexte parent
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const downloadUrl = await uploadCustomCover(file, user.uid, book.isbn);
+      onUpdateCover(downloadUrl);
+    } catch (error) {
+      console.error('Erreur upload image:', error);
+      alert('Erreur lors du téléchargement de l\'image');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleRestoreOriginal = async () => {
+    if (!onUpdateCover) return;
+    
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // Supprimer l'image personnalisée si elle existe
+      if (book.customCoverUrl) {
+        await deleteCustomCover(user.uid, book.isbn);
+      }
+      onUpdateCover(null);
+    } catch (error) {
+      console.error('Erreur suppression image:', error);
+      alert('Erreur lors de la restauration de l\'image originale');
+    }
   };
 
   return (
@@ -187,6 +255,35 @@ function CollectionBookCard({ book, onRemove, onToggleRead }: { book: Collection
         >
           {book.isRead ? "✓ Lu" : "◯ Non lu"}
         </button>
+
+        {/* Boutons de gestion de couverture */}
+        {onUpdateCover && (
+          <div className="absolute bottom-2 left-2 flex gap-1">
+            <label className={`px-2 py-1 text-xs font-medium rounded transition-all cursor-pointer ${
+              uploadingCover 
+                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}>
+              {uploadingCover ? "⏳" : "📷"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploadingCover}
+                className="hidden"
+              />
+            </label>
+            {book.customCoverUrl && (
+              <button
+                onClick={handleRestoreOriginal}
+                className="px-2 py-1 text-xs font-medium bg-gray-500 text-white hover:bg-gray-600 rounded transition-all"
+                title="Restaurer l'image originale"
+              >
+                🔄
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
@@ -351,6 +448,7 @@ function App() {
         isbn: book.isbn,
         addedAt: new Date().toISOString(),
         isRead: false,
+        customCoverUrl: null,
       });
       
       await fetchCollection(user.uid);
@@ -477,6 +575,29 @@ function App() {
       fetchCollection(user.uid);
     } catch (err) {
       console.error("Erreur mise à jour statut lecture:", err);
+    }
+  };
+
+  const updateBookCover = async (isbn: string, newCoverUrl: string | null) => {
+    if (!user) return;
+    
+    try {
+      const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+      if (!bookToUpdate) return;
+
+      const ref = doc(db, `users/${user.uid}/collection`, isbn);
+      await setDoc(ref, {
+        ...bookToUpdate,
+        customCoverUrl: newCoverUrl
+      });
+      
+      // Mettre à jour les états locaux
+      fetchCollection(user.uid);
+      if (selectedBook && selectedBook.isbn === isbn) {
+        setSelectedBook({...selectedBook, customCoverUrl: newCoverUrl});
+      }
+    } catch (err) {
+      console.error("Erreur mise à jour couverture:", err);
     }
   };
 
@@ -688,6 +809,7 @@ function App() {
                       // Mettre à jour selectedBook avec le nouveau statut
                       setSelectedBook({...selectedBook, isRead: !selectedBook.isRead});
                     }}
+                    onUpdateCover={(newCoverUrl) => updateBookCover(selectedBook.isbn, newCoverUrl)}
                   />
                 </div>
               ) : (
