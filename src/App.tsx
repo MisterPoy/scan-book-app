@@ -433,7 +433,7 @@ function App() {
         isbn: book.isbn,
         addedAt: new Date().toISOString(),
         isRead: false,
-        customCoverUrl: null,
+        customCoverUrl: undefined,
       });
       
       await fetchCollection(user.uid);
@@ -563,7 +563,7 @@ function App() {
     }
   };
 
-  const updateBookCover = async (isbn: string, newCoverUrl: string | null) => {
+  const updateBookCover = async (isbn: string, newCoverUrl: string | null | undefined) => {
     if (!user) return;
     
     try {
@@ -573,13 +573,13 @@ function App() {
       const ref = doc(db, `users/${user.uid}/collection`, isbn);
       await setDoc(ref, {
         ...bookToUpdate,
-        customCoverUrl: newCoverUrl
+        customCoverUrl: newCoverUrl || undefined
       });
       
       // Mettre à jour les états locaux
       fetchCollection(user.uid);
       if (selectedBook && selectedBook.isbn === isbn) {
-        setSelectedBook({...selectedBook, customCoverUrl: newCoverUrl});
+        setSelectedBook({...selectedBook, customCoverUrl: newCoverUrl || undefined});
       }
     } catch (err) {
       console.error("Erreur mise à jour couverture:", err);
