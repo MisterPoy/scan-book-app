@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider, 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
@@ -44,3 +45,6 @@ export const registerWithEmail = (email: string, password: string) =>
 
 export const loginWithEmail = (email: string, password: string) => 
   signInWithEmailAndPassword(auth, email, password);
+
+export const resetPassword = (email: string) => 
+  sendPasswordResetEmail(auth, email);
