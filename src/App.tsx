@@ -12,7 +12,7 @@ import {
   collection,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { uploadCustomCover, deleteCustomCover } from "./firebase";
+import { resizeImage } from "./firebase";
 
 interface CollectionBook {
   isbn: string;
@@ -200,36 +200,21 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover }: {
 
     setUploadingCover(true);
     try {
-      // Récupérer l'utilisateur depuis le contexte parent
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const downloadUrl = await uploadCustomCover(file, user.uid, book.isbn);
-      onUpdateCover(downloadUrl);
+      // Redimensionner et convertir en base64 (gratuit!)
+      const base64Image = await resizeImage(file, 400, 0.8);
+      onUpdateCover(base64Image);
     } catch (error) {
-      console.error('Erreur upload image:', error);
-      alert('Erreur lors du téléchargement de l\'image');
+      console.error('Erreur traitement image:', error);
+      alert('Erreur lors du traitement de l\'image');
     } finally {
       setUploadingCover(false);
     }
   };
 
-  const handleRestoreOriginal = async () => {
+  const handleRestoreOriginal = () => {
     if (!onUpdateCover) return;
-    
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      // Supprimer l'image personnalisée si elle existe
-      if (book.customCoverUrl) {
-        await deleteCustomCover(user.uid, book.isbn);
-      }
-      onUpdateCover(null);
-    } catch (error) {
-      console.error('Erreur suppression image:', error);
-      alert('Erreur lors de la restauration de l\'image originale');
-    }
+    // Simplement remettre à null pour utiliser l'image d'origine
+    onUpdateCover(null);
   };
 
   return (

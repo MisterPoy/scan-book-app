@@ -10,7 +10,6 @@ import {
   browserLocalPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 
 
@@ -40,7 +39,6 @@ provider.setCustomParameters({
 });
 
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 
 // Fonctions d'authentification
 export const registerWithEmail = async (email: string, password: string, displayName: string) => {
@@ -55,14 +53,40 @@ export const loginWithEmail = (email: string, password: string) =>
 export const resetPassword = (email: string) => 
   sendPasswordResetEmail(auth, email);
 
-// Fonctions de gestion des images personnalisées
-export const uploadCustomCover = async (file: File, userId: string, isbn: string): Promise<string> => {
-  const storageRef = ref(storage, `covers/${userId}/${isbn}`);
-  const snapshot = await uploadBytes(storageRef, file);
-  return await getDownloadURL(snapshot.ref);
+// Fonctions de gestion des images personnalisées (base64 - gratuit!)
+export const convertImageToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
-export const deleteCustomCover = async (userId: string, isbn: string): Promise<void> => {
-  const storageRef = ref(storage, `covers/${userId}/${isbn}`);
-  await deleteObject(storageRef);
+export const resizeImage = (file: File, maxWidth: number = 400, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculer les nouvelles dimensions en gardant le ratio
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      
+      // Dessiner l'image redimensionnée
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Convertir en base64 avec compression
+      const base64 = canvas.toDataURL('image/jpeg', quality);
+      resolve(base64);
+    };
+    
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
 };
