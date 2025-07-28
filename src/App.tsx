@@ -401,6 +401,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSearching, setIsSearching] = useState(false);
+  const resultsPerPage = 10;
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualBook, setManualBook] = useState({
     title: "",
@@ -435,12 +438,14 @@ function App() {
   const handleTextSearch = async (query: string) => {
     if (!query.trim()) return;
     
+    setIsSearching(true);
+    setCurrentPage(1); // Reset à la première page
     let allBooks: any[] = [];
     
     try {
       // 1. Recherche Google Books
       const googleRes = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40`
       );
       const googleData = await googleRes.json();
       const googleBooks = googleData.items?.map((item: any) => ({
@@ -457,7 +462,7 @@ function App() {
       if (allBooks.length < 5) {
         try {
           const openLibRes = await fetch(
-            `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`
+            `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=40`
           );
           const openLibData = await openLibRes.json();
           const openLibBooks = openLibData.docs?.map((doc: any) => ({
@@ -486,11 +491,27 @@ function App() {
         }
       }
       
-      setSearchResults(allBooks.slice(0, 10)); // Limiter à 10 résultats au total
+      setSearchResults(allBooks); // Garder tous les résultats pour la pagination
       
     } catch (err) {
       console.error("Erreur lors de la recherche par texte :", err);
       setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Calcul de la pagination
+  const totalPages = Math.ceil(searchResults.length / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const currentResults = searchResults.slice(startIndex, startIndex + resultsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll vers le haut des résultats
+    const resultsElement = document.getElementById('search-results');
+    if (resultsElement) {
+      resultsElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -849,7 +870,7 @@ function App() {
                   placeholder="Rechercher par titre ou auteur..."
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !isSearching) {
                       handleTextSearch(searchQuery);
                       setShowSearchResults(true);
                     }
@@ -860,9 +881,10 @@ function App() {
                     handleTextSearch(searchQuery);
                     setShowSearchResults(true);
                   }}
-                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={isSearching}
+                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
                 >
-                  Rechercher
+                  {isSearching ? "⏳ Recherche..." : "Rechercher"}
                 </button>
               </div>
 
@@ -888,25 +910,53 @@ function App() {
         </div>
 
         {/* Search Results */}
-        {showSearchResults && searchResults.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
+        {showSearchResults && (
+          <div id="search-results" className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                📚 Résultats de recherche ({searchResults.length})
+                📚 Résultats de recherche {searchResults.length > 0 && `(${searchResults.length})`}
               </h3>
               <button
                 onClick={() => {
                   setShowSearchResults(false);
                   setSearchResults([]);
                   setSearchQuery("");
+                  setCurrentPage(1);
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 ✕ Fermer
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchResults.map((searchBook, index) => (
+
+            {isSearching ? (
+              <div className="text-center py-12">
+                <div className="text-blue-600 text-4xl mb-4">⏳</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Recherche en cours...</h3>
+                <p className="text-gray-600">Interrogation de Google Books et OpenLibrary</p>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-4xl mb-4">📚</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun résultat</h3>
+                <p className="text-gray-600">Essayez avec d'autres mots-clés</p>
+              </div>
+            ) : (
+              <>
+                {/* Pagination info */}
+                {totalPages > 1 && (
+                  <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
+                    <span>
+                      Page {currentPage} sur {totalPages} • {searchResults.length} résultat{searchResults.length > 1 ? 's' : ''}
+                    </span>
+                    <span>
+                      Affichage {startIndex + 1}-{Math.min(startIndex + resultsPerPage, searchResults.length)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentResults.map((searchBook, index) => (
                 <div
                   key={index}
                   className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -938,8 +988,60 @@ function App() {
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+
+                {/* Pagination Navigation */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      ← Précédent
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-green-600 text-white'
+                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Suivant →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
