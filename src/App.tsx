@@ -1053,6 +1053,7 @@ function App() {
                 title={book.title}
                 authors={book.authors}
                 isbn={book.isbn}
+                customCoverUrl={book.customCoverUrl}
               />
               <div className="mt-6">
                 {user ? (
