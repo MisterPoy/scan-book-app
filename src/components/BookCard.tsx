@@ -4,13 +4,20 @@ interface Props {
   title: string;
   authors: string[];
   isbn: string;
+  customCoverUrl?: string;
 }
 
-export default function BookCard({ title, authors, isbn }: Props) {
+export default function BookCard({ title, authors, isbn, customCoverUrl }: Props) {
   const [coverSrc, setCoverSrc] = useState('');
   const fallback = '/img/default-cover.png';
 
   useEffect(() => {
+    // Si image personnalisée, l'utiliser en priorité
+    if (customCoverUrl) {
+      setCoverSrc(customCoverUrl);
+      return;
+    }
+
     const testImage = new Image();
     const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
 
@@ -23,7 +30,7 @@ export default function BookCard({ title, authors, isbn }: Props) {
       }
     };
     testImage.onerror = () => setCoverSrc(fallback);
-  }, [isbn]);
+  }, [isbn, customCoverUrl]);
 
   return (
     <div className="bg-white p-4 border rounded shadow w-80 text-center">
