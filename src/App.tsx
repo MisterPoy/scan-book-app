@@ -427,14 +427,20 @@ function App() {
     
     try {
       const ref = doc(db, `users/${user.uid}/collection`, book.isbn);
-      await setDoc(ref, {
+      const docData: any = {
         title: book.title,
         authors: book.authors || [],
         isbn: book.isbn,
         addedAt: new Date().toISOString(),
         isRead: false,
-        customCoverUrl: undefined,
-      });
+      };
+      
+      // N'ajouter customCoverUrl que s'il n'est pas undefined
+      if (book.customCoverUrl) {
+        docData.customCoverUrl = book.customCoverUrl;
+      }
+      
+      await setDoc(ref, docData);
       
       await fetchCollection(user.uid);
       
@@ -571,15 +577,27 @@ function App() {
       if (!bookToUpdate) return;
 
       const ref = doc(db, `users/${user.uid}/collection`, isbn);
-      await setDoc(ref, {
-        ...bookToUpdate,
-        customCoverUrl: newCoverUrl || undefined
-      });
+      const docData = { ...bookToUpdate };
+      
+      if (newCoverUrl) {
+        docData.customCoverUrl = newCoverUrl;
+      } else {
+        // Supprimer le champ au lieu de le mettre à undefined
+        delete docData.customCoverUrl;
+      }
+      
+      await setDoc(ref, docData);
       
       // Mettre à jour les états locaux
       fetchCollection(user.uid);
       if (selectedBook && selectedBook.isbn === isbn) {
-        setSelectedBook({...selectedBook, customCoverUrl: newCoverUrl || undefined});
+        const updatedBook = { ...selectedBook };
+        if (newCoverUrl) {
+          updatedBook.customCoverUrl = newCoverUrl;
+        } else {
+          delete updatedBook.customCoverUrl;
+        }
+        setSelectedBook(updatedBook);
       }
     } catch (err) {
       console.error("Erreur mise à jour couverture:", err);
