@@ -398,6 +398,19 @@ function App() {
   const [addMessage, setAddMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   const [authMessage, setAuthMessage] = useState<{text: string, type: 'success' | 'info'} | null>(null);
   const [selectedBook, setSelectedBook] = useState<CollectionBook | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualBook, setManualBook] = useState({
+    title: "",
+    authors: "",
+    publisher: "",
+    publishedDate: "",
+    description: "",
+    pageCount: "",
+    customCoverUrl: ""
+  });
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -416,6 +429,120 @@ function App() {
     } catch (err) {
       console.error("Erreur lors de la recherche Google Books :", err);
       setBook(null);
+    }
+  };
+
+  const handleTextSearch = async (query: string) => {
+    if (!query.trim()) return;
+    
+    let allBooks: any[] = [];
+    
+    try {
+      // 1. Recherche Google Books
+      const googleRes = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
+      );
+      const googleData = await googleRes.json();
+      const googleBooks = googleData.items?.map((item: any) => ({
+        ...item.volumeInfo,
+        isbn: item.volumeInfo?.industryIdentifiers?.find((id: any) => 
+          id.type === 'ISBN_13' || id.type === 'ISBN_10'
+        )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
+        source: 'Google Books'
+      })) || [];
+      
+      allBooks = [...googleBooks];
+      
+      // 2. Si pas assez de résultats, essayer OpenLibrary
+      if (allBooks.length < 5) {
+        try {
+          const openLibRes = await fetch(
+            `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`
+          );
+          const openLibData = await openLibRes.json();
+          const openLibBooks = openLibData.docs?.map((doc: any) => ({
+            title: doc.title,
+            authors: doc.author_name || [],
+            publishedDate: doc.first_publish_year?.toString(),
+            publisher: doc.publisher?.[0],
+            isbn: doc.isbn?.[0] || `temp_openlib_${Date.now()}_${Math.random()}`,
+            imageLinks: doc.cover_i ? {
+              thumbnail: `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+            } : undefined,
+            source: 'Open Library'
+          })).filter((book: any) => book.title) || [];
+          
+          // Éviter les doublons basés sur le titre et l'auteur
+          const uniqueOpenLibBooks = openLibBooks.filter((olBook: any) => 
+            !allBooks.some(gBook => 
+              gBook.title?.toLowerCase() === olBook.title?.toLowerCase() &&
+              gBook.authors?.[0]?.toLowerCase() === olBook.authors?.[0]?.toLowerCase()
+            )
+          );
+          
+          allBooks = [...allBooks, ...uniqueOpenLibBooks];
+        } catch (openLibErr) {
+          console.error("Erreur OpenLibrary:", openLibErr);
+        }
+      }
+      
+      setSearchResults(allBooks.slice(0, 10)); // Limiter à 10 résultats au total
+      
+    } catch (err) {
+      console.error("Erreur lors de la recherche par texte :", err);
+      setSearchResults([]);
+    }
+  };
+
+  const handleManualBookSubmit = () => {
+    if (!manualBook.title.trim()) {
+      alert("Le titre est obligatoire");
+      return;
+    }
+    
+    const book = {
+      title: manualBook.title,
+      authors: manualBook.authors ? manualBook.authors.split(',').map(a => a.trim()) : [],
+      publisher: manualBook.publisher || undefined,
+      publishedDate: manualBook.publishedDate || undefined,
+      description: manualBook.description || undefined,
+      pageCount: manualBook.pageCount ? parseInt(manualBook.pageCount) : undefined,
+      isbn: `manual_${Date.now()}_${Math.random()}`,
+      customCoverUrl: manualBook.customCoverUrl || undefined
+    };
+    
+    setBook(book);
+    setShowManualAdd(false);
+    setManualBook({
+      title: "",
+      authors: "",
+      publisher: "",
+      publishedDate: "",
+      description: "",
+      pageCount: "",
+      customCoverUrl: ""
+    });
+  };
+
+  const handleManualCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Le fichier doit faire moins de 5MB');
+      return;
+    }
+
+    try {
+      const base64Image = await resizeImage(file, 400, 0.8);
+      setManualBook(prev => ({ ...prev, customCoverUrl: base64Image }));
+    } catch (error) {
+      console.error('Erreur traitement image:', error);
+      alert('Erreur lors du traitement de l\'image');
     }
   };
 
@@ -708,6 +835,49 @@ function App() {
                   Rechercher
                 </button>
               </div>
+
+              <div className="flex items-center w-full max-w-sm mt-4">
+                <div className="flex-1 h-px bg-gray-300"></div>
+                <span className="px-4 text-sm text-gray-500 bg-white">ou rechercher par titre/auteur</span>
+                <div className="flex-1 h-px bg-gray-300"></div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher par titre ou auteur..."
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTextSearch(searchQuery);
+                      setShowSearchResults(true);
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    handleTextSearch(searchQuery);
+                    setShowSearchResults(true);
+                  }}
+                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Rechercher
+                </button>
+              </div>
+
+              <div className="flex items-center w-full max-w-sm mt-4">
+                <div className="flex-1 h-px bg-gray-300"></div>
+                <span className="px-4 text-sm text-gray-500 bg-white">ou ajouter manuellement</span>
+                <div className="flex-1 h-px bg-gray-300"></div>
+              </div>
+              
+              <button
+                onClick={() => setShowManualAdd(true)}
+                className="px-8 py-3 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md"
+              >
+                ✏️ Ajouter un livre manuellement
+              </button>
             </div>
           ) : (
             <ISBNScanner 
@@ -716,6 +886,62 @@ function App() {
             />
           )}
         </div>
+
+        {/* Search Results */}
+        {showSearchResults && searchResults.length > 0 && (
+          <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                📚 Résultats de recherche ({searchResults.length})
+              </h3>
+              <button
+                onClick={() => {
+                  setShowSearchResults(false);
+                  setSearchResults([]);
+                  setSearchQuery("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                ✕ Fermer
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {searchResults.map((searchBook, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => {
+                    setBook(searchBook);
+                    setShowSearchResults(false);
+                    setSearchResults([]);
+                    setSearchQuery("");
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="mb-3">
+                      <img
+                        src={searchBook.imageLinks?.thumbnail || '/img/default-cover.png'}
+                        alt={searchBook.title}
+                        className="w-16 h-24 object-cover mx-auto rounded"
+                      />
+                    </div>
+                    <h4 className="font-semibold text-sm text-gray-900 mb-2 line-clamp-2">
+                      {searchBook.title}
+                    </h4>
+                    <p className="text-xs text-gray-600 mb-2">
+                      {searchBook.authors?.join(", ") || "Auteur inconnu"}
+                    </p>
+                    {searchBook.publishedDate && (
+                      <p className="text-xs text-gray-500">
+                        {searchBook.publishedDate}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Book Result */}
         {book && (
@@ -855,6 +1081,188 @@ function App() {
             </button>
             <div className="p-6">
               <Login onLogin={() => setShowAuthModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Add Modal */}
+      {showManualAdd && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-bold text-gray-900">✏️ Ajouter un livre manuellement</h2>
+              <button
+                onClick={() => {
+                  setShowManualAdd(false);
+                  setManualBook({
+                    title: "",
+                    authors: "",
+                    publisher: "",
+                    publishedDate: "",
+                    description: "",
+                    pageCount: "",
+                    customCoverUrl: ""
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Colonne gauche - Informations */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Titre * (obligatoire)
+                    </label>
+                    <input
+                      type="text"
+                      value={manualBook.title}
+                      onChange={(e) => setManualBook(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Titre du livre"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Auteur(s) (séparés par des virgules)
+                    </label>
+                    <input
+                      type="text"
+                      value={manualBook.authors}
+                      onChange={(e) => setManualBook(prev => ({ ...prev, authors: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Auteur 1, Auteur 2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Éditeur
+                    </label>
+                    <input
+                      type="text"
+                      value={manualBook.publisher}
+                      onChange={(e) => setManualBook(prev => ({ ...prev, publisher: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Nom de l'éditeur"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Année
+                      </label>
+                      <input
+                        type="text"
+                        value={manualBook.publishedDate}
+                        onChange={(e) => setManualBook(prev => ({ ...prev, publishedDate: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="2024"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Pages
+                      </label>
+                      <input
+                        type="number"
+                        value={manualBook.pageCount}
+                        onChange={(e) => setManualBook(prev => ({ ...prev, pageCount: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="250"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={manualBook.description}
+                      onChange={(e) => setManualBook(prev => ({ ...prev, description: e.target.value }))}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Résumé du livre..."
+                    />
+                  </div>
+                </div>
+                
+                {/* Colonne droite - Couverture */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Couverture personnalisée
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      {manualBook.customCoverUrl ? (
+                        <div className="relative">
+                          <img
+                            src={manualBook.customCoverUrl}
+                            alt="Aperçu couverture"
+                            className="w-32 h-48 object-cover mx-auto rounded"
+                          />
+                          <button
+                            onClick={() => setManualBook(prev => ({ ...prev, customCoverUrl: "" }))}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-gray-400 text-4xl mb-2">📚</div>
+                          <p className="text-gray-600 text-sm mb-3">Aucune couverture</p>
+                        </div>
+                      )}
+                      
+                      <label className="inline-block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer transition-colors">
+                        {manualBook.customCoverUrl ? "Changer" : "Ajouter"} une image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleManualCoverUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                <button
+                  onClick={() => {
+                    setShowManualAdd(false);
+                    setManualBook({
+                      title: "",
+                      authors: "",
+                      publisher: "",
+                      publishedDate: "",
+                      description: "",
+                      pageCount: "",
+                      customCoverUrl: ""
+                    });
+                  }}
+                  className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleManualBookSubmit}
+                  className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors"
+                >
+                  Créer le livre
+                </button>
+              </div>
             </div>
           </div>
         </div>
