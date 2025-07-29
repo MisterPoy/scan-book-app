@@ -60,7 +60,7 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
           <img 
             src={coverSrc} 
             alt={book.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           {/* Badge de lecture en overlay */}
           <button
@@ -94,7 +94,7 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
           <img 
             src={coverSrc} 
             alt={book.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
         <div className="flex-1 min-w-0">
