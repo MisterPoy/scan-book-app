@@ -583,9 +583,11 @@ function App() {
         isRead: false,
       };
       
-      // N'ajouter customCoverUrl que s'il n'est pas undefined
+      // Sauvegarder l'image de couverture (priorité : customCoverUrl > imageLinks.thumbnail)
       if (book.customCoverUrl) {
         docData.customCoverUrl = book.customCoverUrl;
+      } else if (book.imageLinks?.thumbnail) {
+        docData.customCoverUrl = book.imageLinks.thumbnail;
       }
       
       await setDoc(ref, docData);
