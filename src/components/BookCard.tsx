@@ -5,19 +5,27 @@ interface Props {
   authors: string[];
   isbn: string;
   customCoverUrl?: string;
+  imageLinks?: { thumbnail?: string };
 }
 
-export default function BookCard({ title, authors, isbn, customCoverUrl }: Props) {
+export default function BookCard({ title, authors, isbn, customCoverUrl, imageLinks }: Props) {
   const [coverSrc, setCoverSrc] = useState('');
   const fallback = '/img/default-cover.png';
 
   useEffect(() => {
-    // Si image personnalisée, l'utiliser en priorité
+    // 1. Si image personnalisée, l'utiliser en priorité
     if (customCoverUrl) {
       setCoverSrc(customCoverUrl);
       return;
     }
 
+    // 2. Si image Google Books disponible, l'utiliser
+    if (imageLinks?.thumbnail) {
+      setCoverSrc(imageLinks.thumbnail);
+      return;
+    }
+
+    // 3. Sinon, essayer OpenLibrary avec l'ISBN
     const testImage = new Image();
     const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
 
@@ -30,7 +38,7 @@ export default function BookCard({ title, authors, isbn, customCoverUrl }: Props
       }
     };
     testImage.onerror = () => setCoverSrc(fallback);
-  }, [isbn, customCoverUrl]);
+  }, [isbn, customCoverUrl, imageLinks]);
 
   return (
     <div className="bg-white p-4 border rounded shadow w-80 text-center">
