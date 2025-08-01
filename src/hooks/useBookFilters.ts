@@ -13,25 +13,29 @@ interface CollectionBook {
   description?: string;
   pageCount?: number;
   isManualEntry?: boolean;
-  readingStatus: 'lu' | 'a_lire' | 'en_cours' | 'abandonne';
-  bookType: 'physique' | 'numerique' | 'audio';
+  readingStatus?: 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne';
+  bookType?: 'physique' | 'numerique' | 'audio';
   genre?: string;
   tags?: string[];
+  libraries?: string[];
+  isFavorite?: boolean;
 }
 
 export function useBookFilters(books: CollectionBook[], filters: FilterState) {
   const filteredBooks = useMemo(() => {
     return books.filter(book => {
-      // Filtre statut de lecture
+      // Filtre statut de lecture (avec fallback sur isRead pour rétrocompatibilité)
       if (filters.readingStatus.length > 0) {
-        if (!filters.readingStatus.includes(book.readingStatus)) {
+        const bookStatus = book.readingStatus || (book.isRead ? 'lu' : 'non_lu');
+        if (!filters.readingStatus.includes(bookStatus)) {
           return false;
         }
       }
 
-      // Filtre type de livre
+      // Filtre type de livre (avec fallback par défaut)
       if (filters.bookType.length > 0) {
-        if (!filters.bookType.includes(book.bookType)) {
+        const bookType = book.bookType || 'physique'; // Par défaut physique
+        if (!filters.bookType.includes(bookType)) {
           return false;
         }
       }
@@ -41,6 +45,45 @@ export function useBookFilters(books: CollectionBook[], filters: FilterState) {
         if (!book.genre || !filters.genre.includes(book.genre)) {
           return false;
         }
+      }
+
+      // Filtre par année de publication
+      if (filters.yearRange[0] !== null || filters.yearRange[1] !== null) {
+        const bookYear = book.publishedDate ? parseInt(book.publishedDate) : null;
+        if (bookYear) {
+          if (filters.yearRange[0] !== null && bookYear < filters.yearRange[0]) return false;
+          if (filters.yearRange[1] !== null && bookYear > filters.yearRange[1]) return false;
+        } else if (filters.yearRange[0] !== null || filters.yearRange[1] !== null) {
+          return false; // Exclure les livres sans année si un filtre année est actif
+        }
+      }
+
+      // Filtre par nombre de pages
+      if (filters.pageRange[0] !== null || filters.pageRange[1] !== null) {
+        const bookPages = book.pageCount;
+        if (bookPages) {
+          if (filters.pageRange[0] !== null && bookPages < filters.pageRange[0]) return false;
+          if (filters.pageRange[1] !== null && bookPages > filters.pageRange[1]) return false;
+        } else if (filters.pageRange[0] !== null || filters.pageRange[1] !== null) {
+          return false; // Exclure les livres sans pages si un filtre page est actif
+        }
+      }
+
+      // Filtre par auteurs
+      if (filters.authors.length > 0) {
+        const bookAuthors = book.authors || [];
+        const hasMatchingAuthor = filters.authors.some(filterAuthor => 
+          bookAuthors.some(bookAuthor => 
+            bookAuthor.toLowerCase().includes(filterAuthor.toLowerCase())
+          )
+        );
+        if (!hasMatchingAuthor) return false;
+      }
+
+      // Filtre favoris
+      if (filters.favorites !== null) {
+        const isFavorite = book.isFavorite || false;
+        if (filters.favorites !== isFavorite) return false;
       }
 
       return true;
