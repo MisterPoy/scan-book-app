@@ -756,6 +756,11 @@ function App() {
       setUserLibraries(libraries);
     } catch (err) {
       console.error("Erreur récupération bibliothèques:", err);
+      // Si permissions manquantes, initialiser avec un tableau vide
+      if (err instanceof Error && err.message.includes('permissions')) {
+        console.log("Permissions insuffisantes pour les bibliothèques, fonctionnalité désactivée temporairement");
+        setUserLibraries([]);
+      }
     }
   };
 
