@@ -42,13 +42,9 @@ interface CollectionBook {
 }
 
 // Composant vue compacte pour la grille
-function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeChange, onLibraryToggle, userLibraries }: { 
+function CompactBookCard({ book, onClick, userLibraries }: { 
   book: CollectionBook; 
   onClick: () => void; 
-  onToggleRead: () => void;
-  onStatusChange?: (status: string) => void;
-  onTypeChange?: (type: string) => void;
-  onLibraryToggle?: (libraryId: string) => void;
   userLibraries?: UserLibrary[];
 }) {
   const [coverSrc, setCoverSrc] = useState('');
@@ -88,21 +84,16 @@ function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeCh
             alt={book.title}
             className="w-full h-full object-contain"
           />
-          {/* Badge de lecture en overlay */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleRead();
-            }}
-            className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full transition-all ${
+          {/* Badge de lecture en overlay (lecture seule) */}
+          <div
+            className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full ${
               book.isRead 
-                ? 'bg-green-500 text-white hover:bg-green-600' 
-                : 'bg-gray-500 text-white hover:bg-gray-600'
+                ? 'bg-green-500 text-white' 
+                : 'bg-gray-500 text-white'
             }`}
-            title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
           >
             {book.isRead ? "✓" : "◯"}
-          </button>
+          </div>
         </div>
         <div className="p-2">
           <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
@@ -111,86 +102,60 @@ function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeCh
           <p className="text-xs text-gray-600 line-clamp-1 mb-2">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
-          {/* Badges éditables */}
+          {/* Badges informatifs (lecture seule) */}
           <div className="flex flex-wrap gap-1">
             {/* Badge statut de lecture */}
-            <select
-              value={book.readingStatus || (book.isRead ? 'lu' : 'non_lu')}
-              onChange={(e) => {
-                e.stopPropagation();
-                onStatusChange?.(e.target.value);
-              }}
-              className="text-xs px-1 py-0.5 rounded bg-blue-100 text-blue-800 border-0 cursor-pointer hover:bg-blue-200 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value="lu">✅ Lu</option>
-              <option value="non_lu">⭕ Non lu</option>
-              <option value="a_lire">📖 À lire</option>
-              <option value="en_cours">🔄 En cours</option>
-              <option value="abandonne">❌ Abandonné</option>
-            </select>
+            {(() => {
+              const status = book.readingStatus || (book.isRead ? 'lu' : 'non_lu');
+              const statusConfig = {
+                'lu': { emoji: '✅', label: 'Lu', color: 'bg-green-100 text-green-800' },
+                'non_lu': { emoji: '⭕', label: 'Non lu', color: 'bg-gray-100 text-gray-800' },
+                'a_lire': { emoji: '📖', label: 'À lire', color: 'bg-blue-100 text-blue-800' },
+                'en_cours': { emoji: '🔄', label: 'En cours', color: 'bg-yellow-100 text-yellow-800' },
+                'abandonne': { emoji: '❌', label: 'Abandonné', color: 'bg-red-100 text-red-800' }
+              };
+              const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.non_lu;
+              return (
+                <span className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}>
+                  {config.emoji} {config.label}
+                </span>
+              );
+            })()}
             
             {/* Badge type de livre */}
-            <select
-              value={book.bookType || 'physique'}
-              onChange={(e) => {
-                e.stopPropagation();
-                onTypeChange?.(e.target.value);
-              }}
-              className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-800 border-0 cursor-pointer hover:bg-green-200 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value="physique">📚 Physique</option>
-              <option value="numerique">💻 Numérique</option>
-              <option value="audio">🎧 Audio</option>
-            </select>
-            
-            {/* Bibliothèques */}
-            {userLibraries && userLibraries.length > 0 && (
-              <div className="text-xs">
-                {book.libraries && book.libraries.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {book.libraries.map(libId => {
-                      const library = userLibraries.find(lib => lib.id === libId);
-                      return library ? (
-                        <button
-                          key={libId}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onLibraryToggle?.(libId);
-                          }}
-                          className="px-1 py-0.5 rounded text-xs text-white transition-colors hover:opacity-80"
-                          style={{ backgroundColor: library.color || '#3B82F6' }}
-                          title={`Retirer de ${library.name}`}
-                        >
-                          {library.icon} {library.name}
-                        </button>
-                      ) : null;
-                    })}
-                  </div>
-                ) : (
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        e.stopPropagation();
-                        onLibraryToggle?.(e.target.value);
-                      }
-                    }}
-                    className="text-xs px-1 py-0.5 rounded bg-purple-100 text-purple-800 border-0 cursor-pointer hover:bg-purple-200 transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="">📂 Ajouter à...</option>
-                    {userLibraries.map(library => (
-                      <option key={library.id} value={library.id}>
-                        {library.icon} {library.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
+            {(() => {
+              const type = book.bookType || 'physique';
+              const typeConfig = {
+                'physique': { emoji: '📚', label: 'Physique', color: 'bg-amber-100 text-amber-800' },
+                'numerique': { emoji: '💻', label: 'Numérique', color: 'bg-indigo-100 text-indigo-800' },
+                'audio': { emoji: '🎧', label: 'Audio', color: 'bg-purple-100 text-purple-800' }
+              };
+              const config = typeConfig[type as keyof typeof typeConfig] || typeConfig.physique;
+              return (
+                <span className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}>
+                  {config.emoji} {config.label}
+                </span>
+              );
+            })()}
           </div>
+          
+          {/* Bibliothèques (affichage simple) */}
+          {book.libraries && book.libraries.length > 0 && userLibraries && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {book.libraries.map(libId => {
+                const library = userLibraries.find(lib => lib.id === libId);
+                return library ? (
+                  <span
+                    key={libId}
+                    className="px-1 py-0.5 rounded text-xs text-white font-medium"
+                    style={{ backgroundColor: library.color || '#3B82F6' }}
+                  >
+                    {library.icon} {library.name}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -210,99 +175,71 @@ function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeCh
           <p className="text-xs text-gray-600 line-clamp-1 mb-2">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
-          {/* Badges éditables mobile */}
+          {/* Badges informatifs mobile (lecture seule) */}
           <div className="flex flex-wrap gap-1">
-            <select
-              value={book.readingStatus || (book.isRead ? 'lu' : 'non_lu')}
-              onChange={(e) => {
-                e.stopPropagation();
-                onStatusChange?.(e.target.value);
-              }}
-              className="text-xs px-1 py-0.5 rounded bg-blue-100 text-blue-800 border-0 cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value="lu">✅ Lu</option>
-              <option value="non_lu">⭕ Non lu</option>
-              <option value="a_lire">📖 À lire</option>
-              <option value="en_cours">🔄 En cours</option>
-              <option value="abandonne">❌ Abandonné</option>
-            </select>
-            <select
-              value={book.bookType || 'physique'}
-              onChange={(e) => {
-                e.stopPropagation();
-                onTypeChange?.(e.target.value);
-              }}
-              className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-800 border-0 cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value="physique">📚 Physique</option>
-              <option value="numerique">💻 Numérique</option>
-              <option value="audio">🎧 Audio</option>
-            </select>
+            {/* Badge statut de lecture */}
+            {(() => {
+              const status = book.readingStatus || (book.isRead ? 'lu' : 'non_lu');
+              const statusConfig = {
+                'lu': { emoji: '✅', label: 'Lu', color: 'bg-green-100 text-green-800' },
+                'non_lu': { emoji: '⭕', label: 'Non lu', color: 'bg-gray-100 text-gray-800' },
+                'a_lire': { emoji: '📖', label: 'À lire', color: 'bg-blue-100 text-blue-800' },
+                'en_cours': { emoji: '🔄', label: 'En cours', color: 'bg-yellow-100 text-yellow-800' },
+                'abandonne': { emoji: '❌', label: 'Abandonné', color: 'bg-red-100 text-red-800' }
+              };
+              const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.non_lu;
+              return (
+                <span className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}>
+                  {config.emoji}
+                </span>
+              );
+            })()}
             
-            {/* Bibliothèques mobile */}
-            {userLibraries && userLibraries.length > 0 && (
-              <div className="text-xs mt-1">
-                {book.libraries && book.libraries.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {book.libraries.map(libId => {
-                      const library = userLibraries.find(lib => lib.id === libId);
-                      return library ? (
-                        <button
-                          key={libId}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onLibraryToggle?.(libId);
-                          }}
-                          className="px-1 py-0.5 rounded text-xs text-white transition-colors hover:opacity-80"
-                          style={{ backgroundColor: library.color || '#3B82F6' }}
-                          title={`Retirer de ${library.name}`}
-                        >
-                          {library.icon} {library.name}
-                        </button>
-                      ) : null;
-                    })}
-                  </div>
-                ) : (
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        e.stopPropagation();
-                        onLibraryToggle?.(e.target.value);
-                      }
-                    }}
-                    className="text-xs px-1 py-0.5 rounded bg-purple-100 text-purple-800 border-0 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="">📂 Ajouter à...</option>
-                    {userLibraries.map(library => (
-                      <option key={library.id} value={library.id}>
-                        {library.icon} {library.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
+            {/* Badge type de livre */}
+            {(() => {
+              const type = book.bookType || 'physique';
+              const typeConfig = {
+                'physique': { emoji: '📚', label: 'Physique', color: 'bg-amber-100 text-amber-800' },
+                'numerique': { emoji: '💻', label: 'Numérique', color: 'bg-indigo-100 text-indigo-800' },
+                'audio': { emoji: '🎧', label: 'Audio', color: 'bg-purple-100 text-purple-800' }
+              };
+              const config = typeConfig[type as keyof typeof typeConfig] || typeConfig.physique;
+              return (
+                <span className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}>
+                  {config.emoji}
+                </span>
+              );
+            })()}
           </div>
+          
+          {/* Bibliothèques mobile (affichage simple) */}
+          {book.libraries && book.libraries.length > 0 && userLibraries && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {book.libraries.map(libId => {
+                const library = userLibraries.find(lib => lib.id === libId);
+                return library ? (
+                  <span
+                    key={libId}
+                    className="px-1 py-0.5 rounded text-xs text-white font-medium"
+                    style={{ backgroundColor: library.color || '#3B82F6' }}
+                  >
+                    {library.icon}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
         </div>
-        {/* Badge de lecture mobile avec texte */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleRead();
-          }}
-          className={`ml-2 px-2 py-1 text-xs font-medium rounded-md transition-all flex-shrink-0 ${
+        {/* Badge de lecture mobile (lecture seule) */}
+        <div
+          className={`ml-2 px-2 py-1 text-xs font-medium rounded-md flex-shrink-0 ${
             book.isRead 
-              ? 'bg-green-500 text-white hover:bg-green-600' 
-              : 'bg-gray-500 text-white hover:bg-gray-600'
+              ? 'bg-green-500 text-white' 
+              : 'bg-gray-500 text-white'
           }`}
-          title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
         >
           {book.isRead ? "Lu" : "Non lu"}
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -622,6 +559,7 @@ function App() {
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
+  const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(null); // null = tous les livres
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -1095,62 +1033,14 @@ function App() {
     setBookToEdit(null);
   };
 
-  const handleStatusChange = async (isbn: string, newStatus: string) => {
-    if (!user) return;
-    
-    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
-    if (!bookToUpdate) return;
-
-    const updatedBook = {
-      ...bookToUpdate,
-      readingStatus: newStatus as any,
-      isRead: newStatus === 'lu' // Sync avec l'ancien champ isRead
-    };
-    
-    await updateBookInFirestore(updatedBook);
-  };
-
-  const handleTypeChange = async (isbn: string, newType: string) => {
-    if (!user) return;
-    
-    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
-    if (!bookToUpdate) return;
-
-    const updatedBook = {
-      ...bookToUpdate,
-      bookType: newType as any
-    };
-    
-    await updateBookInFirestore(updatedBook);
-  };
-
-  const handleLibraryToggle = async (isbn: string, libraryId: string) => {
-    if (!user) return;
-    
-    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
-    if (!bookToUpdate) return;
-
-    const currentLibraries = bookToUpdate.libraries || [];
-    let updatedLibraries: string[];
-    
-    if (currentLibraries.includes(libraryId)) {
-      // Retirer la bibliothèque
-      updatedLibraries = currentLibraries.filter((id: string) => id !== libraryId);
-    } else {
-      // Ajouter la bibliothèque
-      updatedLibraries = [...currentLibraries, libraryId];
-    }
-
-    const updatedBook = {
-      ...bookToUpdate,
-      libraries: updatedLibraries.length > 0 ? updatedLibraries : undefined
-    };
-    
-    await updateBookInFirestore(updatedBook);
-  };
 
   // Utilisation du hook de filtres
-  const { filteredBooks, availableGenres } = useBookFilters(collectionBooks, filters);
+  const { filteredBooks: baseFilteredBooks, availableGenres } = useBookFilters(collectionBooks, filters);
+  
+  // Filtrage par bibliothèque sélectionnée 
+  const displayedBooks = selectedLibraryView 
+    ? baseFilteredBooks.filter(book => book.libraries?.includes(selectedLibraryView))
+    : baseFilteredBooks;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -1532,6 +1422,45 @@ function App() {
               </button>
             </div>
 
+            {/* Navigation par bibliothèques */}
+            {!selectedBook && userLibraries.length > 0 && (
+              <div className="bg-gray-50 border-b px-6 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-medium text-gray-900 text-sm">🗂️ Naviguer par bibliothèque :</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedLibraryView(null)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      selectedLibraryView === null
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    📚 Tous les livres ({collectionBooks.length})
+                  </button>
+                  {userLibraries.map(library => {
+                    const bookCount = collectionBooks.filter(book => book.libraries?.includes(library.id)).length;
+                    return (
+                      <button
+                        key={library.id}
+                        onClick={() => setSelectedLibraryView(library.id)}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1 border ${
+                          selectedLibraryView === library.id
+                            ? 'text-white border-transparent'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-200'
+                        }`}
+                        style={selectedLibraryView === library.id ? { backgroundColor: library.color || '#3B82F6' } : {}}
+                      >
+                        <span>{library.icon}</span>
+                        <span>{library.name} ({bookCount})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Contenu */}
             <div className="flex-1 overflow-y-auto p-6">
               {collectionBooks.length === 0 ? (
@@ -1567,14 +1496,14 @@ function App() {
                     onFiltersChange={setFilters}
                     availableGenres={availableGenres}
                     bookCount={collectionBooks.length}
-                    filteredCount={filteredBooks.length}
+                    filteredCount={displayedBooks.length}
                     userLibraries={userLibraries}
                   />
                   
                   <div className="flex justify-between items-center mb-6">
                     <p className="text-gray-600">
-                      {filteredBooks.length} livre{filteredBooks.length > 1 ? 's' : ''} affiché{filteredBooks.length > 1 ? 's' : ''} 
-                      {filteredBooks.length !== collectionBooks.length && (
+                      {displayedBooks.length} livre{displayedBooks.length > 1 ? 's' : ''} affiché{displayedBooks.length > 1 ? 's' : ''} 
+                      {displayedBooks.length !== collectionBooks.length && (
                         <span className="text-gray-400"> sur {collectionBooks.length}</span>
                       )}
                     </p>
@@ -1583,7 +1512,7 @@ function App() {
                     </div>
                   </div>
                   
-                  {filteredBooks.length === 0 ? (
+                  {displayedBooks.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-gray-400 text-4xl mb-4">🔍</div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun livre ne correspond aux filtres</h3>
@@ -1591,15 +1520,11 @@ function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                      {filteredBooks.map((item) => (
+                      {displayedBooks.map((item) => (
                         <CompactBookCard
                           key={item.isbn}
                           book={item}
                           onClick={() => setSelectedBook(item)}
-                          onToggleRead={() => toggleReadStatus(item.isbn)}
-                          onStatusChange={(status) => handleStatusChange(item.isbn, status)}
-                          onTypeChange={(type) => handleTypeChange(item.isbn, type)}
-                          onLibraryToggle={(libraryId) => handleLibraryToggle(item.isbn, libraryId)}
                           userLibraries={userLibraries}
                         />
                       ))}
