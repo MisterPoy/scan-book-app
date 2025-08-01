@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import BarcodeScannerComponent from 'react-qr-barcode-scanner';
+import { useZxing } from 'react-zxing';
 
 interface Props {
   onDetected: (code: string) => void;
@@ -9,6 +9,26 @@ interface Props {
 export default function ISBNScanner({ onDetected, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(true);
+
+  const { ref } = useZxing({
+    onDecodeResult(result) {
+      setError(null);
+      const code = result.getText();
+      onDetected(code);
+    },
+    onDecodeError(error) {
+      // Ne pas afficher les erreurs de scan en continu pour éviter le spam
+      console.debug('Scan error:', error);
+    },
+    paused: !cameraActive,
+    constraints: {
+      video: {
+        width: 300,
+        height: 300,
+        facingMode: 'environment' // Caméra arrière sur mobile
+      }
+    }
+  });
 
   return (
     <div className="flex flex-col items-center">
@@ -35,16 +55,12 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       </div>
       {cameraActive ? (
         <div className="relative">
-          <BarcodeScannerComponent
+          <video
+            ref={ref}
             width={300}
             height={300}
-            onUpdate={(_, result) => {
-              if (result) {
-                setError(null);
-                const code = result.getText();
-                onDetected(code);
-              }
-            }}
+            className="rounded"
+            style={{ objectFit: 'cover' }}
           />
           {/* Zone de ciblage overlay */}
           <div className="absolute inset-0 pointer-events-none">
