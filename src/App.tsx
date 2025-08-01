@@ -42,10 +42,11 @@ interface CollectionBook {
 }
 
 // Composant vue compacte pour la grille
-function CompactBookCard({ book, onClick, userLibraries }: { 
+function CompactBookCard({ book, onClick, userLibraries, onAddToLibrary }: { 
   book: CollectionBook; 
   onClick: () => void; 
   userLibraries?: UserLibrary[];
+  onAddToLibrary?: (libraryId: string) => void;
 }) {
   const [coverSrc, setCoverSrc] = useState('');
   
@@ -94,6 +95,32 @@ function CompactBookCard({ book, onClick, userLibraries }: {
           >
             {book.isRead ? "✓" : "◯"}
           </div>
+
+          {/* Bouton d'action rapide - Ajouter à bibliothèque */}
+          {userLibraries && userLibraries.length > 0 && onAddToLibrary && (
+            <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    e.stopPropagation();
+                    onAddToLibrary(e.target.value);
+                    e.target.value = ''; // Reset
+                  }
+                }}
+                className="text-xs px-1 py-0.5 rounded bg-blue-600 text-white border-0 cursor-pointer hover:bg-blue-700 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value="">📂+</option>
+                {userLibraries
+                  .filter(lib => !book.libraries?.includes(lib.id))
+                  .map(library => (
+                    <option key={library.id} value={library.id}>
+                      {library.icon} {library.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="p-2">
           <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
@@ -1033,6 +1060,26 @@ function App() {
     setBookToEdit(null);
   };
 
+  const handleAddToLibrary = async (isbn: string, libraryId: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const currentLibraries = bookToUpdate.libraries || [];
+    if (currentLibraries.includes(libraryId)) {
+      // Déjà dans cette bibliothèque
+      return;
+    }
+
+    const updatedBook = {
+      ...bookToUpdate,
+      libraries: [...currentLibraries, libraryId]
+    };
+    
+    await updateBookInFirestore(updatedBook);
+  };
+
 
   // Utilisation du hook de filtres
   const { filteredBooks: baseFilteredBooks, availableGenres } = useBookFilters(collectionBooks, filters);
@@ -1526,6 +1573,7 @@ function App() {
                           book={item}
                           onClick={() => setSelectedBook(item)}
                           userLibraries={userLibraries}
+                          onAddToLibrary={(libraryId) => handleAddToLibrary(item.isbn, libraryId)}
                         />
                       ))}
                     </div>
