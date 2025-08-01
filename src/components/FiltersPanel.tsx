@@ -8,6 +8,7 @@ export interface FilterState {
   pageRange: [number | null, number | null];
   authors: string[];
   favorites: boolean | null; // null = tous, true = favoris, false = non favoris
+  libraries: string[]; // IDs des bibliothèques sélectionnées
 }
 
 interface FiltersPanelProps {
@@ -16,6 +17,7 @@ interface FiltersPanelProps {
   availableGenres: string[];
   bookCount: number;
   filteredCount: number;
+  userLibraries?: any[]; // Ajout des bibliothèques utilisateur
 }
 
 const READING_STATUS_OPTIONS = [
@@ -37,11 +39,12 @@ export default function FiltersPanel({
   onFiltersChange, 
   availableGenres, 
   bookCount, 
-  filteredCount 
+  filteredCount,
+  userLibraries = []
 }: FiltersPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const toggleFilter = (category: 'readingStatus' | 'bookType' | 'genre' | 'authors', value: string) => {
+  const toggleFilter = (category: 'readingStatus' | 'bookType' | 'genre' | 'authors' | 'libraries', value: string) => {
     const newFilters = { ...filters };
     const currentValues = newFilters[category] as string[];
     
@@ -62,7 +65,8 @@ export default function FiltersPanel({
       yearRange: [null, null],
       pageRange: [null, null],
       authors: [],
-      favorites: null
+      favorites: null,
+      libraries: []
     });
   };
 
@@ -74,12 +78,14 @@ export default function FiltersPanel({
                           filters.pageRange[0] !== null || 
                           filters.pageRange[1] !== null ||
                           filters.authors.length > 0 ||
-                          filters.favorites !== null;
+                          filters.favorites !== null ||
+                          filters.libraries.length > 0;
 
   const activeFiltersCount = filters.readingStatus.length + 
                             filters.bookType.length + 
                             filters.genre.length +
                             filters.authors.length +
+                            filters.libraries.length +
                             (filters.yearRange[0] !== null || filters.yearRange[1] !== null ? 1 : 0) +
                             (filters.pageRange[0] !== null || filters.pageRange[1] !== null ? 1 : 0) +
                             (filters.favorites !== null ? 1 : 0);
@@ -182,6 +188,36 @@ export default function FiltersPanel({
                 )}
               </div>
             </div>
+
+            {/* Bibliothèques */}
+            {userLibraries.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 text-sm">🗂️ Bibliothèques</h4>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {userLibraries.map(library => (
+                    <label key={library.id} className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.libraries.includes(library.id)}
+                        onChange={() => toggleFilter('libraries', library.id)}
+                        className="mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 rounded flex items-center justify-center text-xs text-white"
+                          style={{ backgroundColor: library.color || '#3B82F6' }}
+                        >
+                          {library.icon}
+                        </div>
+                        <span className="text-sm text-gray-700">
+                          {library.name}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Filtres avancés - Deuxième ligne */}
