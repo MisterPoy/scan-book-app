@@ -247,12 +247,14 @@ function CompactBookCard({ book, onClick, userLibraries }: {
 }
 
 // Composant vue détaillée (version actuelle)
-function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdit }: { 
+function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdit, onStatusChange, onTypeChange }: { 
   book: CollectionBook; 
   onRemove: () => void; 
   onToggleRead: () => void; 
   onUpdateCover?: (newCoverUrl: string | null) => void;
   onEdit?: () => void;
+  onStatusChange?: (status: string) => void;
+  onTypeChange?: (type: string) => void;
 }) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -430,6 +432,37 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdi
               🗑️
             </button>
           </div>
+        </div>
+
+        {/* Actions rapides de statut */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {/* Statut de lecture */}
+          {onStatusChange && (
+            <select
+              value={book.readingStatus || (book.isRead ? 'lu' : 'non_lu')}
+              onChange={(e) => onStatusChange(e.target.value)}
+              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="non_lu">⭕ Non lu</option>
+              <option value="a_lire">📖 À lire</option>
+              <option value="en_cours">🔄 En cours</option>
+              <option value="lu">✅ Lu</option>
+              <option value="abandonne">❌ Abandonné</option>
+            </select>
+          )}
+          
+          {/* Type de livre */}
+          {onTypeChange && (
+            <select
+              value={book.bookType || 'physique'}
+              onChange={(e) => onTypeChange(e.target.value)}
+              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="physique">📚 Physique</option>
+              <option value="numerique">💻 Numérique</option>
+              <option value="audio">🎧 Audio</option>
+            </select>
+          )}
         </div>
 
         {/* Collapse Details */}
@@ -990,26 +1023,41 @@ function App() {
     try {
       const ref = doc(db, `users/${user.uid}/collection`, updatedBook.isbn);
       
-      // Nettoyer les données pour éviter les valeurs undefined
-      const cleanedBook: any = {
+      // Fonction pour nettoyer récursivement les valeurs undefined
+      const cleanObject = (obj: any): any => {
+        if (obj === null || obj === undefined) return null;
+        if (Array.isArray(obj)) return obj.filter(item => item !== undefined);
+        if (typeof obj === 'object') {
+          const cleaned: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            if (value !== undefined) {
+              cleaned[key] = cleanObject(value);
+            }
+          }
+          return cleaned;
+        }
+        return obj;
+      };
+
+      // Nettoyer complètement l'objet livre
+      const cleanedBook: any = cleanObject({
         isbn: updatedBook.isbn,
         title: updatedBook.title,
         authors: updatedBook.authors || [],
         addedAt: updatedBook.addedAt,
         isRead: updatedBook.isRead,
         readingStatus: updatedBook.readingStatus || (updatedBook.isRead ? 'lu' : 'a_lire'),
-        bookType: updatedBook.bookType || 'physique'
-      };
-      
-      if (updatedBook.customCoverUrl) cleanedBook.customCoverUrl = updatedBook.customCoverUrl;
-      if (updatedBook.publisher) cleanedBook.publisher = updatedBook.publisher;
-      if (updatedBook.publishedDate) cleanedBook.publishedDate = updatedBook.publishedDate;
-      if (updatedBook.description) cleanedBook.description = updatedBook.description;
-      if (updatedBook.pageCount) cleanedBook.pageCount = updatedBook.pageCount;
-      if (updatedBook.isManualEntry) cleanedBook.isManualEntry = updatedBook.isManualEntry;
-      if (updatedBook.genre) cleanedBook.genre = updatedBook.genre;
-      if (updatedBook.tags && updatedBook.tags.length > 0) cleanedBook.tags = updatedBook.tags;
-      if (updatedBook.libraries && updatedBook.libraries.length > 0) cleanedBook.libraries = updatedBook.libraries;
+        bookType: updatedBook.bookType || 'physique',
+        customCoverUrl: updatedBook.customCoverUrl,
+        publisher: updatedBook.publisher,
+        publishedDate: updatedBook.publishedDate,
+        description: updatedBook.description,
+        pageCount: updatedBook.pageCount,
+        isManualEntry: updatedBook.isManualEntry,
+        genre: updatedBook.genre,
+        tags: updatedBook.tags,
+        libraries: updatedBook.libraries
+      });
       
       await setDoc(ref, cleanedBook);
       
@@ -1032,6 +1080,35 @@ function App() {
     updateBookInFirestore(updatedBook);
     setShowEditModal(false);
     setBookToEdit(null);
+  };
+
+  const handleStatusChange = async (isbn: string, newStatus: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const updatedBook = {
+      ...bookToUpdate,
+      readingStatus: newStatus as any,
+      isRead: newStatus === 'lu' // Sync avec l'ancien champ isRead
+    };
+    
+    await updateBookInFirestore(updatedBook);
+  };
+
+  const handleTypeChange = async (isbn: string, newType: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const updatedBook = {
+      ...bookToUpdate,
+      bookType: newType as any
+    };
+    
+    await updateBookInFirestore(updatedBook);
   };
 
 
@@ -1487,6 +1564,8 @@ function App() {
                     }}
                     onUpdateCover={(newCoverUrl) => updateBookCover(selectedBook.isbn, newCoverUrl)}
                     onEdit={() => handleEditBook(selectedBook)}
+                    onStatusChange={(status) => handleStatusChange(selectedBook.isbn, status)}
+                    onTypeChange={(type) => handleTypeChange(selectedBook.isbn, type)}
                   />
                 </div>
               ) : (
