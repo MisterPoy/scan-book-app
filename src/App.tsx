@@ -32,9 +32,9 @@ interface CollectionBook {
   description?: string;
   pageCount?: number;
   isManualEntry?: boolean; // Distinguer les livres manuels des scannés
-  // Nouveaux champs pour les filtres
-  readingStatus: 'lu' | 'a_lire' | 'en_cours' | 'abandonne';
-  bookType: 'physique' | 'numerique' | 'audio';
+  // Nouveaux champs pour les filtres (optionnels pour rétrocompatibilité)
+  readingStatus?: 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne';
+  bookType?: 'physique' | 'numerique' | 'audio';
   genre?: string;
   tags?: string[];
   // Nouveau champ pour les bibliothèques personnalisées
@@ -42,7 +42,13 @@ interface CollectionBook {
 }
 
 // Composant vue compacte pour la grille
-function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook; onClick: () => void; onToggleRead: () => void }) {
+function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeChange }: { 
+  book: CollectionBook; 
+  onClick: () => void; 
+  onToggleRead: () => void;
+  onStatusChange?: (status: string) => void;
+  onTypeChange?: (type: string) => void;
+}) {
   const [coverSrc, setCoverSrc] = useState('');
   
   useEffect(() => {
@@ -100,9 +106,43 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
           <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
             {book.title}
           </h3>
-          <p className="text-xs text-gray-600 line-clamp-1">
+          <p className="text-xs text-gray-600 line-clamp-1 mb-2">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
+          {/* Badges éditables */}
+          <div className="flex flex-wrap gap-1">
+            {/* Badge statut de lecture */}
+            <select
+              value={book.readingStatus || (book.isRead ? 'lu' : 'non_lu')}
+              onChange={(e) => {
+                e.stopPropagation();
+                onStatusChange?.(e.target.value);
+              }}
+              className="text-xs px-1 py-0.5 rounded bg-blue-100 text-blue-800 border-0 cursor-pointer hover:bg-blue-200 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="lu">✅ Lu</option>
+              <option value="non_lu">⭕ Non lu</option>
+              <option value="a_lire">📖 À lire</option>
+              <option value="en_cours">🔄 En cours</option>
+              <option value="abandonne">❌ Abandonné</option>
+            </select>
+            
+            {/* Badge type de livre */}
+            <select
+              value={book.bookType || 'physique'}
+              onChange={(e) => {
+                e.stopPropagation();
+                onTypeChange?.(e.target.value);
+              }}
+              className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-800 border-0 cursor-pointer hover:bg-green-200 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="physique">📚 Physique</option>
+              <option value="numerique">💻 Numérique</option>
+              <option value="audio">🎧 Audio</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -119,9 +159,40 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
           <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
             {book.title}
           </h3>
-          <p className="text-xs text-gray-600 line-clamp-1">
+          <p className="text-xs text-gray-600 line-clamp-1 mb-2">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
+          {/* Badges éditables mobile */}
+          <div className="flex flex-wrap gap-1">
+            <select
+              value={book.readingStatus || (book.isRead ? 'lu' : 'non_lu')}
+              onChange={(e) => {
+                e.stopPropagation();
+                onStatusChange?.(e.target.value);
+              }}
+              className="text-xs px-1 py-0.5 rounded bg-blue-100 text-blue-800 border-0 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="lu">✅ Lu</option>
+              <option value="non_lu">⭕ Non lu</option>
+              <option value="a_lire">📖 À lire</option>
+              <option value="en_cours">🔄 En cours</option>
+              <option value="abandonne">❌ Abandonné</option>
+            </select>
+            <select
+              value={book.bookType || 'physique'}
+              onChange={(e) => {
+                e.stopPropagation();
+                onTypeChange?.(e.target.value);
+              }}
+              className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-800 border-0 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="physique">📚 Physique</option>
+              <option value="numerique">💻 Numérique</option>
+              <option value="audio">🎧 Audio</option>
+            </select>
+          </div>
         </div>
         {/* Badge de lecture mobile avec texte */}
         <button
@@ -448,7 +519,11 @@ function App() {
   const [filters, setFilters] = useState<FilterState>({
     readingStatus: [],
     bookType: [],
-    genre: []
+    genre: [],
+    yearRange: [null, null],
+    pageRange: [null, null],
+    authors: [],
+    favorites: null
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
@@ -640,8 +715,8 @@ function App() {
       // Valeurs par défaut pour les nouveaux champs de filtre
       docData.readingStatus = 'a_lire'; // Par défaut "à lire"
       docData.bookType = 'physique'; // Par défaut "physique"
-      docData.genre = book.genre || undefined;
-      docData.tags = book.tags || undefined;
+      if (book.genre) docData.genre = book.genre;
+      if (book.tags && book.tags.length > 0) docData.tags = book.tags;
       
       await setDoc(ref, docData);
       
@@ -690,11 +765,19 @@ function App() {
     try {
       const libraryId = `lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
-      const libraryData: UserLibrary = {
-        ...library,
+      
+      // Nettoyer les données pour éviter les valeurs undefined
+      const libraryData: any = {
         id: libraryId,
+        name: library.name,
         createdAt: new Date().toISOString()
       };
+      
+      if (library.description && library.description.trim()) {
+        libraryData.description = library.description.trim();
+      }
+      if (library.color) libraryData.color = library.color;
+      if (library.icon) libraryData.icon = library.icon;
       
       await setDoc(ref, libraryData);
       await fetchUserLibraries(user.uid);
@@ -867,7 +950,29 @@ function App() {
     
     try {
       const ref = doc(db, `users/${user.uid}/collection`, updatedBook.isbn);
-      await setDoc(ref, updatedBook);
+      
+      // Nettoyer les données pour éviter les valeurs undefined
+      const cleanedBook: any = {
+        isbn: updatedBook.isbn,
+        title: updatedBook.title,
+        authors: updatedBook.authors || [],
+        addedAt: updatedBook.addedAt,
+        isRead: updatedBook.isRead,
+        readingStatus: updatedBook.readingStatus,
+        bookType: updatedBook.bookType
+      };
+      
+      if (updatedBook.customCoverUrl) cleanedBook.customCoverUrl = updatedBook.customCoverUrl;
+      if (updatedBook.publisher) cleanedBook.publisher = updatedBook.publisher;
+      if (updatedBook.publishedDate) cleanedBook.publishedDate = updatedBook.publishedDate;
+      if (updatedBook.description) cleanedBook.description = updatedBook.description;
+      if (updatedBook.pageCount) cleanedBook.pageCount = updatedBook.pageCount;
+      if (updatedBook.isManualEntry) cleanedBook.isManualEntry = updatedBook.isManualEntry;
+      if (updatedBook.genre) cleanedBook.genre = updatedBook.genre;
+      if (updatedBook.tags && updatedBook.tags.length > 0) cleanedBook.tags = updatedBook.tags;
+      if (updatedBook.libraries && updatedBook.libraries.length > 0) cleanedBook.libraries = updatedBook.libraries;
+      
+      await setDoc(ref, cleanedBook);
       
       // Mettre à jour les états locaux
       fetchCollection(user.uid);
@@ -888,6 +993,35 @@ function App() {
     updateBookInFirestore(updatedBook);
     setShowEditModal(false);
     setBookToEdit(null);
+  };
+
+  const handleStatusChange = async (isbn: string, newStatus: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const updatedBook = {
+      ...bookToUpdate,
+      readingStatus: newStatus as any,
+      isRead: newStatus === 'lu' // Sync avec l'ancien champ isRead
+    };
+    
+    await updateBookInFirestore(updatedBook);
+  };
+
+  const handleTypeChange = async (isbn: string, newType: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const updatedBook = {
+      ...bookToUpdate,
+      bookType: newType as any
+    };
+    
+    await updateBookInFirestore(updatedBook);
   };
 
   // Utilisation du hook de filtres
@@ -1337,6 +1471,8 @@ function App() {
                           book={item}
                           onClick={() => setSelectedBook(item)}
                           onToggleRead={() => toggleReadStatus(item.isbn)}
+                          onStatusChange={(status) => handleStatusChange(item.isbn, status)}
+                          onTypeChange={(type) => handleTypeChange(item.isbn, type)}
                         />
                       ))}
                     </div>
