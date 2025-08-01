@@ -41,9 +41,9 @@ export default function FiltersPanel({
 }: FiltersPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const toggleFilter = (category: keyof FilterState, value: string) => {
+  const toggleFilter = (category: 'readingStatus' | 'bookType' | 'genre' | 'authors', value: string) => {
     const newFilters = { ...filters };
-    const currentValues = newFilters[category];
+    const currentValues = newFilters[category] as string[];
     
     if (currentValues.includes(value)) {
       newFilters[category] = currentValues.filter(v => v !== value);

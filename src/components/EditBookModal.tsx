@@ -14,8 +14,8 @@ interface CollectionBook {
   description?: string;
   pageCount?: number;
   isManualEntry?: boolean;
-  readingStatus: 'lu' | 'a_lire' | 'en_cours' | 'abandonne';
-  bookType: 'physique' | 'numerique' | 'audio';
+  readingStatus?: 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne';
+  bookType?: 'physique' | 'numerique' | 'audio';
   genre?: string;
   tags?: string[];
   libraries?: string[];
@@ -39,7 +39,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     description: "",
     pageCount: "",
     customCoverUrl: "",
-    readingStatus: "a_lire" as 'lu' | 'a_lire' | 'en_cours' | 'abandonne',
+    readingStatus: "a_lire" as 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne',
     bookType: "physique" as 'physique' | 'numerique' | 'audio',
     genre: "",
     tags: "",
@@ -235,6 +235,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                     onChange={(e) => setFormData(prev => ({ ...prev, readingStatus: e.target.value as any }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="non_lu">⭕ Non lu</option>
                     <option value="a_lire">📖 À lire</option>
                     <option value="en_cours">🔄 En cours</option>
                     <option value="lu">✅ Lu</option>
