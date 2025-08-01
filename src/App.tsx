@@ -42,12 +42,14 @@ interface CollectionBook {
 }
 
 // Composant vue compacte pour la grille
-function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeChange }: { 
+function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeChange, onLibraryToggle, userLibraries }: { 
   book: CollectionBook; 
   onClick: () => void; 
   onToggleRead: () => void;
   onStatusChange?: (status: string) => void;
   onTypeChange?: (type: string) => void;
+  onLibraryToggle?: (libraryId: string) => void;
+  userLibraries?: UserLibrary[];
 }) {
   const [coverSrc, setCoverSrc] = useState('');
   
@@ -142,6 +144,52 @@ function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeCh
               <option value="numerique">💻 Numérique</option>
               <option value="audio">🎧 Audio</option>
             </select>
+            
+            {/* Bibliothèques */}
+            {userLibraries && userLibraries.length > 0 && (
+              <div className="text-xs">
+                {book.libraries && book.libraries.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {book.libraries.map(libId => {
+                      const library = userLibraries.find(lib => lib.id === libId);
+                      return library ? (
+                        <button
+                          key={libId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLibraryToggle?.(libId);
+                          }}
+                          className="px-1 py-0.5 rounded text-xs text-white transition-colors hover:opacity-80"
+                          style={{ backgroundColor: library.color || '#3B82F6' }}
+                          title={`Retirer de ${library.name}`}
+                        >
+                          {library.icon} {library.name}
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                ) : (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        e.stopPropagation();
+                        onLibraryToggle?.(e.target.value);
+                      }
+                    }}
+                    className="text-xs px-1 py-0.5 rounded bg-purple-100 text-purple-800 border-0 cursor-pointer hover:bg-purple-200 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">📂 Ajouter à...</option>
+                    {userLibraries.map(library => (
+                      <option key={library.id} value={library.id}>
+                        {library.icon} {library.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -192,6 +240,52 @@ function CompactBookCard({ book, onClick, onToggleRead, onStatusChange, onTypeCh
               <option value="numerique">💻 Numérique</option>
               <option value="audio">🎧 Audio</option>
             </select>
+            
+            {/* Bibliothèques mobile */}
+            {userLibraries && userLibraries.length > 0 && (
+              <div className="text-xs mt-1">
+                {book.libraries && book.libraries.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {book.libraries.map(libId => {
+                      const library = userLibraries.find(lib => lib.id === libId);
+                      return library ? (
+                        <button
+                          key={libId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLibraryToggle?.(libId);
+                          }}
+                          className="px-1 py-0.5 rounded text-xs text-white transition-colors hover:opacity-80"
+                          style={{ backgroundColor: library.color || '#3B82F6' }}
+                          title={`Retirer de ${library.name}`}
+                        >
+                          {library.icon} {library.name}
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                ) : (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        e.stopPropagation();
+                        onLibraryToggle?.(e.target.value);
+                      }
+                    }}
+                    className="text-xs px-1 py-0.5 rounded bg-purple-100 text-purple-800 border-0 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">📂 Ajouter à...</option>
+                    {userLibraries.map(library => (
+                      <option key={library.id} value={library.id}>
+                        {library.icon} {library.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {/* Badge de lecture mobile avec texte */}
@@ -523,7 +617,8 @@ function App() {
     yearRange: [null, null],
     pageRange: [null, null],
     authors: [],
-    favorites: null
+    favorites: null,
+    libraries: []
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
@@ -1029,6 +1124,31 @@ function App() {
     await updateBookInFirestore(updatedBook);
   };
 
+  const handleLibraryToggle = async (isbn: string, libraryId: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const currentLibraries = bookToUpdate.libraries || [];
+    let updatedLibraries: string[];
+    
+    if (currentLibraries.includes(libraryId)) {
+      // Retirer la bibliothèque
+      updatedLibraries = currentLibraries.filter((id: string) => id !== libraryId);
+    } else {
+      // Ajouter la bibliothèque
+      updatedLibraries = [...currentLibraries, libraryId];
+    }
+
+    const updatedBook = {
+      ...bookToUpdate,
+      libraries: updatedLibraries.length > 0 ? updatedLibraries : undefined
+    };
+    
+    await updateBookInFirestore(updatedBook);
+  };
+
   // Utilisation du hook de filtres
   const { filteredBooks, availableGenres } = useBookFilters(collectionBooks, filters);
 
@@ -1448,6 +1568,7 @@ function App() {
                     availableGenres={availableGenres}
                     bookCount={collectionBooks.length}
                     filteredCount={filteredBooks.length}
+                    userLibraries={userLibraries}
                   />
                   
                   <div className="flex justify-between items-center mb-6">
@@ -1478,6 +1599,8 @@ function App() {
                           onToggleRead={() => toggleReadStatus(item.isbn)}
                           onStatusChange={(status) => handleStatusChange(item.isbn, status)}
                           onTypeChange={(type) => handleTypeChange(item.isbn, type)}
+                          onLibraryToggle={(libraryId) => handleLibraryToggle(item.isbn, libraryId)}
+                          userLibraries={userLibraries}
                         />
                       ))}
                     </div>

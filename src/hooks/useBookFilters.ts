@@ -86,6 +86,15 @@ export function useBookFilters(books: CollectionBook[], filters: FilterState) {
         if (filters.favorites !== isFavorite) return false;
       }
 
+      // Filtre par bibliothèques
+      if (filters.libraries.length > 0) {
+        const bookLibraries = book.libraries || [];
+        const hasMatchingLibrary = filters.libraries.some(filterId => 
+          bookLibraries.includes(filterId)
+        );
+        if (!hasMatchingLibrary) return false;
+      }
+
       return true;
     });
   }, [books, filters]);
