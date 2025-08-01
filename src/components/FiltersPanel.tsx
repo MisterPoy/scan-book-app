@@ -117,10 +117,10 @@ export default function FiltersPanel({
       </div>
 
       {/* Contenu des filtres */}
-      <div className={`overflow-hidden transition-all duration-300 ${
-        isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+      <div className={`transition-all duration-300 ${
+        isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
       }`}>
-        <div className="px-4 pb-4 border-t">
+        <div className="px-4 pb-4 border-t overflow-y-auto max-h-[580px]">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             
             {/* Statut de lecture */}
@@ -221,7 +221,7 @@ export default function FiltersPanel({
           </div>
 
           {/* Filtres avancés - Deuxième ligne */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t mt-6">
             
             {/* Filtre par année */}
             <div>
