@@ -247,7 +247,7 @@ function CompactBookCard({ book, onClick, userLibraries }: {
 }
 
 // Composant vue détaillée (version actuelle)
-function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdit, onStatusChange, onTypeChange }: { 
+function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdit, onStatusChange, onTypeChange, userLibraries, onLibraryToggle }: { 
   book: CollectionBook; 
   onRemove: () => void; 
   onToggleRead: () => void; 
@@ -255,6 +255,8 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdi
   onEdit?: () => void;
   onStatusChange?: (status: string) => void;
   onTypeChange?: (type: string) => void;
+  userLibraries?: UserLibrary[];
+  onLibraryToggle?: (libraryId: string) => void;
 }) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -414,8 +416,8 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdi
             >
               {expanded ? "🔼" : "🔽"}
             </button>
-            {/* Bouton modifier - seulement pour les livres manuels */}
-            {book.isManualEntry && onEdit && (
+            {/* Bouton modifier - pour tous les livres */}
+            {onEdit && (
               <button
                 onClick={onEdit}
                 className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
@@ -464,6 +466,53 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdi
             </select>
           )}
         </div>
+
+        {/* Gestion des bibliothèques */}
+        {userLibraries && userLibraries.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-3 mb-3">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">🗂️ Bibliothèques</h4>
+            
+            {/* Bibliothèques actuelles */}
+            {book.libraries && book.libraries.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {book.libraries.map(libId => {
+                  const library = userLibraries.find(lib => lib.id === libId);
+                  return library ? (
+                    <button
+                      key={libId}
+                      onClick={() => onLibraryToggle?.(libId)}
+                      className="px-2 py-1 rounded text-xs text-white transition-colors hover:opacity-80"
+                      style={{ backgroundColor: library.color || '#3B82F6' }}
+                      title={`Retirer de ${library.name}`}
+                    >
+                      {library.icon} {library.name} ✕
+                    </button>
+                  ) : null;
+                })}
+              </div>
+            )}
+            
+            {/* Ajouter à une bibliothèque */}
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  onLibraryToggle?.(e.target.value);
+                }
+              }}
+              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">➕ Ajouter à une bibliothèque...</option>
+              {userLibraries
+                .filter(lib => !book.libraries?.includes(lib.id))
+                .map(library => (
+                  <option key={library.id} value={library.id}>
+                    {library.icon} {library.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
 
         {/* Collapse Details */}
         <div className={`overflow-hidden transition-all duration-300 ${
@@ -1111,6 +1160,31 @@ function App() {
     await updateBookInFirestore(updatedBook);
   };
 
+  const handleLibraryToggle = async (isbn: string, libraryId: string) => {
+    if (!user) return;
+    
+    const bookToUpdate = collectionBooks.find(book => book.isbn === isbn);
+    if (!bookToUpdate) return;
+
+    const currentLibraries = bookToUpdate.libraries || [];
+    let updatedLibraries: string[];
+    
+    if (currentLibraries.includes(libraryId)) {
+      // Retirer la bibliothèque
+      updatedLibraries = currentLibraries.filter((id: string) => id !== libraryId);
+    } else {
+      // Ajouter la bibliothèque
+      updatedLibraries = [...currentLibraries, libraryId];
+    }
+
+    const updatedBook = {
+      ...bookToUpdate,
+      libraries: updatedLibraries.length > 0 ? updatedLibraries : undefined
+    };
+    
+    await updateBookInFirestore(updatedBook);
+  };
+
 
 
   // Utilisation du hook de filtres
@@ -1566,6 +1640,8 @@ function App() {
                     onEdit={() => handleEditBook(selectedBook)}
                     onStatusChange={(status) => handleStatusChange(selectedBook.isbn, status)}
                     onTypeChange={(type) => handleTypeChange(selectedBook.isbn, type)}
+                    userLibraries={userLibraries}
+                    onLibraryToggle={(libraryId) => handleLibraryToggle(selectedBook.isbn, libraryId)}
                   />
                 </div>
               ) : (
