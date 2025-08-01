@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import ISBNScanner from "./components/ISBNScanner";
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
+import EditBookModal from "./components/EditBookModal";
+import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
+import LibraryManager from "./components/LibraryManager";
+import { useBookFilters } from "./hooks/useBookFilters";
+import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
 import {
@@ -21,6 +26,19 @@ interface CollectionBook {
   addedAt: string;
   isRead: boolean;
   customCoverUrl?: string;
+  // Nouveaux champs pour l'édition complète
+  publisher?: string;
+  publishedDate?: string;
+  description?: string;
+  pageCount?: number;
+  isManualEntry?: boolean; // Distinguer les livres manuels des scannés
+  // Nouveaux champs pour les filtres
+  readingStatus: 'lu' | 'a_lire' | 'en_cours' | 'abandonne';
+  bookType: 'physique' | 'numerique' | 'audio';
+  genre?: string;
+  tags?: string[];
+  // Nouveau champ pour les bibliothèques personnalisées
+  libraries?: string[]; // IDs des bibliothèques
 }
 
 // Composant vue compacte pour la grille
@@ -126,11 +144,12 @@ function CompactBookCard({ book, onClick, onToggleRead }: { book: CollectionBook
 }
 
 // Composant vue détaillée (version actuelle)
-function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover }: { 
+function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover, onEdit }: { 
   book: CollectionBook; 
   onRemove: () => void; 
   onToggleRead: () => void; 
   onUpdateCover?: (newCoverUrl: string | null) => void;
+  onEdit?: () => void;
 }) {
   const [coverSrc, setCoverSrc] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -290,6 +309,16 @@ function CollectionBookCard({ book, onRemove, onToggleRead, onUpdateCover }: {
             >
               {expanded ? "🔼" : "🔽"}
             </button>
+            {/* Bouton modifier - seulement pour les livres manuels */}
+            {book.isManualEntry && onEdit && (
+              <button
+                onClick={onEdit}
+                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                title="Modifier ce livre"
+              >
+                ✏️
+              </button>
+            )}
             <button
               onClick={onRemove}
               className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -414,6 +443,15 @@ function App() {
     pageCount: "",
     customCoverUrl: ""
   });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [bookToEdit, setBookToEdit] = useState<CollectionBook | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    readingStatus: [],
+    bookType: [],
+    genre: []
+  });
+  const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
+  const [showLibraryManager, setShowLibraryManager] = useState(false);
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -590,6 +628,21 @@ function App() {
         docData.customCoverUrl = book.imageLinks.thumbnail;
       }
       
+      // Marquer comme livre manuel si créé manuellement
+      if (book.isbn?.startsWith('manual_')) {
+        docData.isManualEntry = true;
+        docData.publisher = book.publisher;
+        docData.publishedDate = book.publishedDate;
+        docData.description = book.description;
+        docData.pageCount = book.pageCount;
+      }
+      
+      // Valeurs par défaut pour les nouveaux champs de filtre
+      docData.readingStatus = 'a_lire'; // Par défaut "à lire"
+      docData.bookType = 'physique'; // Par défaut "physique"
+      docData.genre = book.genre || undefined;
+      docData.tags = book.tags || undefined;
+      
       await setDoc(ref, docData);
       
       await fetchCollection(user.uid);
@@ -618,6 +671,60 @@ function App() {
       setCollectionBooks(list);
     } catch (err) {
       console.error("Erreur récupération collection:", err);
+    }
+  };
+
+  const fetchUserLibraries = async (uid: string) => {
+    try {
+      const snapshot = await getDocs(collection(db, `users/${uid}/libraries`));
+      const libraries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as UserLibrary[];
+      setUserLibraries(libraries);
+    } catch (err) {
+      console.error("Erreur récupération bibliothèques:", err);
+    }
+  };
+
+  const createUserLibrary = async (library: Omit<UserLibrary, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    
+    try {
+      const libraryId = `lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
+      const libraryData: UserLibrary = {
+        ...library,
+        id: libraryId,
+        createdAt: new Date().toISOString()
+      };
+      
+      await setDoc(ref, libraryData);
+      await fetchUserLibraries(user.uid);
+      return libraryId;
+    } catch (err) {
+      console.error("Erreur création bibliothèque:", err);
+    }
+  };
+
+  const deleteUserLibrary = async (libraryId: string) => {
+    if (!user) return;
+    
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/libraries`, libraryId));
+      await fetchUserLibraries(user.uid);
+      
+      // Retirer cette bibliothèque de tous les livres
+      const booksToUpdate = collectionBooks.filter(book => 
+        book.libraries?.includes(libraryId)
+      );
+      
+      for (const book of booksToUpdate) {
+        const updatedBook = {
+          ...book,
+          libraries: book.libraries?.filter((id: string) => id !== libraryId)
+        };
+        await updateBookInFirestore(updatedBook);
+      }
+    } catch (err) {
+      console.error("Erreur suppression bibliothèque:", err);
     }
   };
 
@@ -679,6 +786,7 @@ function App() {
       if (u) {
         console.log("📚 Récupération collection pour:", u.displayName);
         fetchCollection(u.uid);
+        fetchUserLibraries(u.uid);
         setAuthMessage({ text: `✅ Connecté en tant que ${u.displayName}`, type: 'success' });
         setTimeout(() => setAuthMessage(null), 3000);
       } else {
@@ -754,6 +862,37 @@ function App() {
     }
   };
 
+  const updateBookInFirestore = async (updatedBook: CollectionBook) => {
+    if (!user) return;
+    
+    try {
+      const ref = doc(db, `users/${user.uid}/collection`, updatedBook.isbn);
+      await setDoc(ref, updatedBook);
+      
+      // Mettre à jour les états locaux
+      fetchCollection(user.uid);
+      if (selectedBook && selectedBook.isbn === updatedBook.isbn) {
+        setSelectedBook(updatedBook);
+      }
+    } catch (err) {
+      console.error("Erreur mise à jour livre:", err);
+    }
+  };
+
+  const handleEditBook = (book: CollectionBook) => {
+    setBookToEdit(book);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditedBook = (updatedBook: CollectionBook) => {
+    updateBookInFirestore(updatedBook);
+    setShowEditModal(false);
+    setBookToEdit(null);
+  };
+
+  // Utilisation du hook de filtres
+  const { filteredBooks, availableGenres } = useBookFilters(collectionBooks, filters);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -773,6 +912,18 @@ function App() {
                     {collectionBooks.length > 0 && (
                       <span className="bg-blue-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {collectionBooks.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowLibraryManager(true)}
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 sm:gap-2"
+                  >
+                    <span className="hidden sm:inline">🗂️ Bibliothèques</span>
+                    <span className="sm:hidden">🗂️</span>
+                    {userLibraries.length > 0 && (
+                      <span className="bg-green-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
+                        {userLibraries.length}
                       </span>
                     )}
                   </button>
@@ -1145,29 +1296,51 @@ function App() {
                       setSelectedBook({...selectedBook, isRead: !selectedBook.isRead});
                     }}
                     onUpdateCover={(newCoverUrl) => updateBookCover(selectedBook.isbn, newCoverUrl)}
+                    onEdit={() => handleEditBook(selectedBook)}
                   />
                 </div>
               ) : (
                 /* Vue grille compacte */
                 <div>
+                  {/* Panel de filtres */}
+                  <FiltersPanel
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    availableGenres={availableGenres}
+                    bookCount={collectionBooks.length}
+                    filteredCount={filteredBooks.length}
+                  />
+                  
                   <div className="flex justify-between items-center mb-6">
                     <p className="text-gray-600">
-                      {collectionBooks.length} livre{collectionBooks.length > 1 ? 's' : ''} dans votre collection
+                      {filteredBooks.length} livre{filteredBooks.length > 1 ? 's' : ''} affiché{filteredBooks.length > 1 ? 's' : ''} 
+                      {filteredBooks.length !== collectionBooks.length && (
+                        <span className="text-gray-400"> sur {collectionBooks.length}</span>
+                      )}
                     </p>
                     <div className="text-sm text-gray-500">
                       Cliquez sur un livre pour voir les détails
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {collectionBooks.map((item) => (
-                      <CompactBookCard
-                        key={item.isbn}
-                        book={item}
-                        onClick={() => setSelectedBook(item)}
-                        onToggleRead={() => toggleReadStatus(item.isbn)}
-                      />
-                    ))}
-                  </div>
+                  
+                  {filteredBooks.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-gray-400 text-4xl mb-4">🔍</div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun livre ne correspond aux filtres</h3>
+                      <p className="text-gray-600">Try modifying your filters or adding more books to your collection</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {filteredBooks.map((item) => (
+                        <CompactBookCard
+                          key={item.isbn}
+                          book={item}
+                          onClick={() => setSelectedBook(item)}
+                          onToggleRead={() => toggleReadStatus(item.isbn)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1373,6 +1546,30 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Edit Book Modal */}
+      {bookToEdit && (
+        <EditBookModal
+          book={bookToEdit}
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setBookToEdit(null);
+          }}
+          onSave={handleSaveEditedBook}
+          userLibraries={userLibraries}
+          onCreateLibrary={createUserLibrary}
+        />
+      )}
+
+      {/* Library Manager Modal */}
+      <LibraryManager
+        libraries={userLibraries}
+        onCreateLibrary={createUserLibrary}
+        onDeleteLibrary={deleteUserLibrary}
+        isOpen={showLibraryManager}
+        onClose={() => setShowLibraryManager(false)}
+      />
     </div>
   );
 }
