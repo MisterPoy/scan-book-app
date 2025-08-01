@@ -328,16 +328,26 @@ export default function FiltersPanel({
           </div>
 
           {/* Actions */}
-          {hasActiveFilters && (
-            <div className="flex justify-end mt-6 pt-4 border-t">
-              <button
-                onClick={clearAllFilters}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                🧹 Effacer tous les filtres
-              </button>
-            </div>
-          )}
+          <div className="flex justify-between items-center mt-6 pt-4 border-t">
+            <button
+              onClick={clearAllFilters}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                hasActiveFilters 
+                  ? 'text-gray-700 bg-gray-100 hover:bg-gray-200' 
+                  : 'text-gray-400 bg-gray-50 cursor-not-allowed'
+              }`}
+              disabled={!hasActiveFilters}
+            >
+              🧹 Réinitialiser
+            </button>
+            
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              🔍 Appliquer les filtres
+            </button>
+          </div>
         </div>
       </div>
     </div>
