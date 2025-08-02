@@ -5,6 +5,7 @@ import Login from "./components/login";
 import EditBookModal from "./components/EditBookModal";
 import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
@@ -2277,6 +2278,9 @@ function App() {
         isOpen={showLibraryManager}
         onClose={() => setShowLibraryManager(false)}
       />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }
