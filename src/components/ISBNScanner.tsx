@@ -9,10 +9,8 @@ interface Props {
 export default function ISBNScanner({ onDetected, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(true);
-  const [isPhotoMode, setIsPhotoMode] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [cameraInfo, setCameraInfo] = useState<string>("");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { ref } = useZxing({
     onDecodeResult(result) {
@@ -25,7 +23,7 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       // Ne pas afficher les erreurs de scan en continu pour éviter le spam
       console.debug("Scan error:", error);
     },
-    paused: !cameraActive || isPhotoMode,
+    paused: !cameraActive,
     constraints: {
       video: {
         width: { ideal: 1920, min: 1280 },
@@ -52,43 +50,9 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
     }
   }, [cameraActive, ref.current?.srcObject]);
 
-  // Fonction pour mode freeze intelligent (analyse intensive)
-  const capturePhoto = async () => {
-    if (!ref.current) {
-      console.log("Référence vidéo manquante");
-      return;
-    }
-
-    try {
-      // Mode freeze : pause temporaire pour analyse intensive
-      setIsPhotoMode(true);
-      setError("🔍 Mode analyse intensive activé...");
-      
-      console.log("Mode freeze activé - analyse intensive pendant 4 secondes");
-      
-      // Attendre 4 secondes avec le scan pausé pour stabiliser l'image
-      setTimeout(() => {
-        setError("📸 Analyse en cours, gardez l'appareil stable...");
-      }, 500);
-      
-      // Relancer le scan après 4 secondes
-      setTimeout(() => {
-        setIsPhotoMode(false);
-        setError(null);
-        console.log("Fin du mode freeze - reprise scan automatique");
-      }, 4000);
-      
-    } catch (error) {
-      console.error("Erreur mode freeze:", error);
-      setError("Erreur lors de l'analyse intensive");
-      setIsPhotoMode(false);
-    }
-  };
 
   return (
     <div className="flex flex-col items-center">
-      {/* Canvas caché pour la capture photo */}
-      <canvas ref={canvasRef} className="hidden" />
 
       {/* Contrôles améliorés */}
       <div className="mb-4 flex flex-wrap gap-2 justify-center">
@@ -96,7 +60,6 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           onClick={() => {
             setCameraActive(!cameraActive);
             setError(null);
-            setIsPhotoMode(false);
           }}
           className={`px-3 py-2 rounded text-sm font-medium ${
             cameraActive
@@ -133,10 +96,6 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
             <li>• Gardez l'appareil stable et net</li>
             <li>• Assurez-vous d'avoir un bon éclairage</li>
             <li>
-              • Si le scan temps réel ne fonctionne pas, utilisez le bouton "📸
-              Photo"
-            </li>
-            <li>
               • Le code-barres ISBN se trouve généralement au dos du livre
             </li>
           </ul>
@@ -148,9 +107,7 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
             ref={ref}
             width={400}
             height={300}
-            className={`rounded-lg shadow-lg transition-all duration-300 ${
-              isPhotoMode ? 'border-4 border-green-400 shadow-green-400/50' : ''
-            }`}
+            className="rounded-lg shadow-lg"
             style={{ objectFit: "cover" }}
           />
           {/* Zone de ciblage overlay - style original amélioré */}
@@ -180,21 +137,6 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
             </div>
           </div>
 
-          {/* Bouton photo flottant sur la caméra */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
-            <button
-              onClick={capturePhoto}
-              disabled={isPhotoMode}
-              className={`p-4 rounded-full shadow-lg transition-all duration-300 ${
-                isPhotoMode 
-                  ? 'bg-green-500 text-white animate-pulse cursor-not-allowed' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-              title={isPhotoMode ? "Analyse en cours..." : "Mode analyse intensive"}
-            >
-              {isPhotoMode ? '🔍' : '📸'}
-            </button>
-          </div>
         </div>
       ) : (
         <div className="w-[400px] h-[300px] bg-gray-200 flex items-center justify-center rounded-lg shadow-lg">
