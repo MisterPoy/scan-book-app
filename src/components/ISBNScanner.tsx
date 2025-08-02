@@ -52,52 +52,35 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
     }
   }, [cameraActive, ref.current?.srcObject]);
 
-  // Fonction pour capturer une photo et l'analyser
+  // Fonction pour mode freeze intelligent (analyse intensive)
   const capturePhoto = async () => {
-    if (!ref.current || !canvasRef.current) {
-      console.log("Références manquantes pour la capture");
-      return;
-    }
-
-    const video = ref.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      console.log("Contexte canvas manquant");
+    if (!ref.current) {
+      console.log("Référence vidéo manquante");
       return;
     }
 
     try {
-      // Configurer le canvas aux dimensions de la vidéo
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-
-      // Capturer l'image actuelle de la vidéo
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      console.log(
-        "Photo capturée, dimensions:",
-        canvas.width,
-        "x",
-        canvas.height
-      );
-
-      // Temporairement désactiver le scan automatique pour éviter les conflits
+      // Mode freeze : pause temporaire pour analyse intensive
       setIsPhotoMode(true);
-
-      // Feedback visuel
-      setError("📸 Photo capturée, analyse en cours...");
-
-      // Attendre un peu puis relancer le scan automatique
+      setError("🔍 Mode analyse intensive activé...");
+      
+      console.log("Mode freeze activé - analyse intensive pendant 4 secondes");
+      
+      // Attendre 4 secondes avec le scan pausé pour stabiliser l'image
+      setTimeout(() => {
+        setError("📸 Analyse en cours, gardez l'appareil stable...");
+      }, 500);
+      
+      // Relancer le scan après 4 secondes
       setTimeout(() => {
         setIsPhotoMode(false);
         setError(null);
-        console.log("Reprise du scan automatique");
-      }, 2000);
+        console.log("Fin du mode freeze - reprise scan automatique");
+      }, 4000);
+      
     } catch (error) {
-      console.error("Erreur capture photo:", error);
-      setError("Erreur lors de la capture de la photo");
+      console.error("Erreur mode freeze:", error);
+      setError("Erreur lors de l'analyse intensive");
       setIsPhotoMode(false);
     }
   };
@@ -165,7 +148,9 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
             ref={ref}
             width={400}
             height={300}
-            className="rounded-lg shadow-lg"
+            className={`rounded-lg shadow-lg transition-all duration-300 ${
+              isPhotoMode ? 'border-4 border-green-400 shadow-green-400/50' : ''
+            }`}
             style={{ objectFit: "cover" }}
           />
           {/* Zone de ciblage overlay - style original amélioré */}
@@ -199,10 +184,15 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
             <button
               onClick={capturePhoto}
-              className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors"
-              title="Prendre une photo pour analyse"
+              disabled={isPhotoMode}
+              className={`p-4 rounded-full shadow-lg transition-all duration-300 ${
+                isPhotoMode 
+                  ? 'bg-green-500 text-white animate-pulse cursor-not-allowed' 
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+              title={isPhotoMode ? "Analyse en cours..." : "Mode analyse intensive"}
             >
-              📸
+              {isPhotoMode ? '🔍' : '📸'}
             </button>
           </div>
         </div>
