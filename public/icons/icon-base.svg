@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#3B82F6" stroke="#1E40AF" stroke-width="8"/>
+  
+  <!-- Book icon -->
+  <g transform="translate(256,256)">
+    <!-- Book spine -->
+    <rect x="-80" y="-100" width="20" height="200" fill="#1E40AF" rx="4"/>
+    
+    <!-- Book pages -->
+    <rect x="-60" y="-90" width="120" height="180" fill="#ffffff" rx="8"/>
+    <rect x="-50" y="-80" width="100" height="160" fill="#f8fafc" rx="4"/>
+    
+    <!-- Scanner lines -->
+    <line x1="-40" y1="-60" x2="40" y2="-60" stroke="#3B82F6" stroke-width="3"/>
+    <line x1="-40" y1="-30" x2="40" y2="-30" stroke="#3B82F6" stroke-width="3"/>
+    <line x1="-40" y1="0" x2="40" y2="0" stroke="#3B82F6" stroke-width="3"/>
+    <line x1="-40" y1="30" x2="40" y2="30" stroke="#3B82F6" stroke-width="3"/>
+    <line x1="-40" y1="60" x2="40" y2="60" stroke="#3B82F6" stroke-width="3"/>
+    
+    <!-- Scanner symbol -->
+    <circle cx="0" cy="-120" r="8" fill="#EF4444"/>
+    <text x="0" y="-115" text-anchor="middle" fill="white" font-size="10" font-weight="bold">📱</text>
+  </g>
+</svg>
