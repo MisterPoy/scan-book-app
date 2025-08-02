@@ -80,8 +80,8 @@ function CompactBookCard({
       onClick={onClick}
       className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02]"
     >
-      {/* Desktop : Layout vertical */}
-      <div className="hidden sm:block">
+      {/* Desktop/Tablet : Layout vertical */}
+      <div className="hidden md:block">
         <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
           <img
             src={coverSrc}
@@ -202,9 +202,9 @@ function CompactBookCard({
         </div>
       </div>
 
-      {/* Mobile : Layout horizontal */}
-      <div className="flex sm:hidden items-center p-3 relative">
-        <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-3">
+      {/* Mobile : Layout optimisé pleine largeur */}
+      <div className="flex md:hidden items-center p-4 relative">
+        <div className="w-16 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-4">
           <img
             src={coverSrc}
             alt={book.title}
@@ -212,14 +212,14 @@ function CompactBookCard({
           />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
+          <h3 className="font-semibold text-gray-900 text-base mb-1 line-clamp-2 leading-tight">
             {book.title}
           </h3>
-          <p className="text-xs text-gray-600 line-clamp-1 mb-2">
+          <p className="text-sm text-gray-600 line-clamp-1 mb-2">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
           {/* Badges informatifs mobile (lecture seule) */}
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {/* Badge statut de lecture */}
             {(() => {
               const status =
@@ -1969,12 +1969,12 @@ function App() {
                   </div>
 
                   {displayedBooks.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="text-gray-400 text-4xl mb-4">🔍</div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <div className="text-center py-8 md:py-12 px-4">
+                      <div className="text-gray-400 text-5xl md:text-4xl mb-4">🔍</div>
+                      <h3 className="text-xl md:text-lg font-semibold text-gray-900 mb-2">
                         Aucun livre ne correspond aux filtres
                       </h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-gray-600 mb-6 md:mb-6">
                         Modifiez vos filtres ou ajoutez plus de livres à votre
                         collection
                       </p>
@@ -1991,13 +1991,13 @@ function App() {
                             libraries: [],
                           })
                         }
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                        className="inline-flex items-center gap-2 px-6 py-3 md:px-6 md:py-3 w-full md:w-auto bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer text-center justify-center"
                       >
                         🧹 Réinitialiser tous les filtres
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
                       {displayedBooks.map((item) => (
                         <CompactBookCard
                           key={item.isbn}
