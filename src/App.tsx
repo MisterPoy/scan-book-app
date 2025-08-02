@@ -647,7 +647,32 @@ function App() {
   const handleDetected = (code: string) => {
     setIsbn(code);
     setScanning(false);
+    
+    // Vibration mobile si disponible
+    if (navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+    
+    // Lancer la recherche du livre
     handleSearch(code);
+    
+    // Scroll automatique vers l'aperçu après un délai pour laisser le temps à l'interface de se mettre à jour
+    setTimeout(() => {
+      // Scroll vers l'aperçu du livre
+      const bookPreview = document.querySelector('[data-book-preview]');
+      if (bookPreview) {
+        bookPreview.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      } else {
+        // Fallback : scroll vers le bas de la page
+        window.scrollTo({ 
+          top: window.innerHeight, 
+          behavior: 'smooth' 
+        });
+      }
+    }, 500);
   };
 
   const handleSearch = async (code: string) => {
@@ -1502,7 +1527,10 @@ function App() {
 
         {/* Book Result */}
         {book && (
-          <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
+          <div 
+            data-book-preview 
+            className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8"
+          >
             <div className="text-center">
               <BookCard
                 title={book.title}
