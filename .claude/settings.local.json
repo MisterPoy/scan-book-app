@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp:*)",
+      "Bash(robocopy:*)",
+      "Bash(xcopy:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npx cap:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx @capacitor/assets:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(./gradlew:*)",
+      "Bash(export:*)",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")",
+      "Bash(keytool:*)",
+      "Bash(.gradlew assembleDebug)",
+      "Bash(adb install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": []
+  }
+}
