@@ -1701,7 +1701,22 @@ function App() {
                     <div className="text-center py-12">
                       <div className="text-gray-400 text-4xl mb-4">🔍</div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun livre ne correspond aux filtres</h3>
-                      <p className="text-gray-600">Try modifying your filters or adding more books to your collection</p>
+                      <p className="text-gray-600 mb-6">Modifiez vos filtres ou ajoutez plus de livres à votre collection</p>
+                      <button
+                        onClick={() => setFilters({
+                          readingStatus: [],
+                          bookType: [],
+                          genre: [],
+                          yearRange: [null, null],
+                          pageRange: [null, null],
+                          authors: [],
+                          favorites: null,
+                          libraries: []
+                        })}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        🧹 Réinitialiser tous les filtres
+                      </button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
