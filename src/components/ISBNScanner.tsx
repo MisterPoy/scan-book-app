@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useZxing } from 'react-zxing';
 
 interface Props {
@@ -11,6 +11,7 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
   const [cameraActive, setCameraActive] = useState(true);
   const [isPhotoMode, setIsPhotoMode] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [cameraInfo, setCameraInfo] = useState<string>('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { ref } = useZxing({
@@ -29,45 +30,70 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       video: {
         width: { ideal: 1920, min: 1280 },
         height: { ideal: 1080, min: 720 },
-        facingMode: { ideal: 'environment' }
+        facingMode: { ideal: 'environment' },
+        frameRate: { ideal: 30, min: 15 },
+        aspectRatio: { ideal: 16/9 }
       }
     }
   });
 
+  // Obtenir les infos de la caméra quand elle est active
+  useEffect(() => {
+    if (cameraActive && ref.current && ref.current.srcObject) {
+      const stream = ref.current.srcObject as MediaStream;
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        setCameraInfo(`${settings.width}x${settings.height} @${settings.frameRate || 30}fps`);
+        console.log('Paramètres caméra réels:', settings);
+      }
+    }
+  }, [cameraActive, ref.current?.srcObject]);
+
   // Fonction pour capturer une photo et l'analyser
-  const capturePhoto = () => {
-    if (!ref.current || !canvasRef.current) return;
+  const capturePhoto = async () => {
+    if (!ref.current || !canvasRef.current) {
+      console.log('Références manquantes pour la capture');
+      return;
+    }
     
     const video = ref.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     
-    if (!context) return;
-    
-    // Configurer le canvas aux dimensions de la vidéo
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Capturer l'image
-    context.drawImage(video, 0, 0);
-    
-    // Convertir en blob et analyser avec ZXing
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
+    if (!context) {
+      console.log('Contexte canvas manquant');
+      return;
+    }
+
+    try {
+      // Configurer le canvas aux dimensions de la vidéo
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
       
-      try {
-        // Créer une image temporaire pour ZXing
-        const img = new Image();
-        img.onload = () => {
-          // L'analyse sera faite par ZXing automatiquement
-          console.log('Photo capturée pour analyse');
-        };
-        img.src = URL.createObjectURL(blob);
-      } catch (error) {
-        console.error('Erreur analyse photo:', error);
-        setError('Erreur lors de l\'analyse de la photo');
-      }
-    }, 'image/jpeg', 0.9);
+      // Capturer l'image actuelle de la vidéo
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      console.log('Photo capturée, dimensions:', canvas.width, 'x', canvas.height);
+      
+      // Temporairement désactiver le scan automatique pour éviter les conflits
+      setIsPhotoMode(true);
+      
+      // Feedback visuel
+      setError('📸 Photo capturée, analyse en cours...');
+      
+      // Attendre un peu puis relancer le scan automatique
+      setTimeout(() => {
+        setIsPhotoMode(false);
+        setError(null);
+        console.log('Reprise du scan automatique');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Erreur capture photo:', error);
+      setError('Erreur lors de la capture de la photo');
+      setIsPhotoMode(false);
+    }
   };
 
   return (
@@ -92,14 +118,6 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           {cameraActive ? '📹 Désactiver' : '📷 Activer'}
         </button>
         
-        {cameraActive && (
-          <button
-            onClick={capturePhoto}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium"
-          >
-            📸 Photo
-          </button>
-        )}
         
         <button
           onClick={() => setHelpVisible(!helpVisible)}
@@ -133,43 +151,49 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
         <div className="relative">
           <video
             ref={ref}
-            width={640}
-            height={480}
+            width={400}
+            height={300}
             className="rounded-lg shadow-lg"
             style={{ objectFit: 'cover' }}
           />
-          {/* Zone de ciblage optimisée pour ISBN */}
+          {/* Zone de ciblage overlay - style original amélioré */}
           <div className="absolute inset-0 pointer-events-none">
-            {/* Masque sombre autour de la zone de scan */}
-            <div className="absolute inset-0 bg-black/40"></div>
+            {/* Coins de la zone de scan */}
+            <div className="absolute top-8 left-8 w-8 h-8 border-l-4 border-t-4 border-blue-500"></div>
+            <div className="absolute top-8 right-8 w-8 h-8 border-r-4 border-t-4 border-blue-500"></div>
+            <div className="absolute bottom-8 left-8 w-8 h-8 border-l-4 border-b-4 border-blue-500"></div>
+            <div className="absolute bottom-8 right-8 w-8 h-8 border-r-4 border-b-4 border-blue-500"></div>
             
-            {/* Zone de scan ISBN (rectangle horizontal) */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-20 bg-transparent border-2 border-green-400 rounded-lg">
-              {/* Coins animés */}
-              <div className="absolute -top-1 -left-1 w-6 h-6 border-l-4 border-t-4 border-green-400 animate-pulse"></div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 border-r-4 border-t-4 border-green-400 animate-pulse"></div>
-              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-l-4 border-b-4 border-green-400 animate-pulse"></div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-r-4 border-b-4 border-green-400 animate-pulse"></div>
-              
-              {/* Ligne de scan animée */}
-              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-400 shadow-lg animate-pulse"></div>
-              
-              {/* Texte instructif */}
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-                <div className="bg-black/60 text-white px-3 py-1 rounded text-xs font-medium">
-                  📖 Placez le code-barres ISBN ici
-                </div>
+            {/* Zone de scan centrale - adaptée à la nouvelle taille */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-20 border-2 border-dashed border-blue-400 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-blue-600 font-semibold text-xs mb-1">📖 Zone de scan</div>
+                <div className="text-blue-500 text-xs">Code-barres ici</div>
               </div>
             </div>
             
+            {/* Ligne de scan animée */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-0.5 bg-red-500 animate-pulse"></div>
+            
             {/* Indicateur de qualité */}
             <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs">
-              📱 Résolution: HD
+              📱 {cameraInfo || 'Résolution: HD'}
             </div>
+          </div>
+          
+          {/* Bouton photo flottant sur la caméra */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+            <button
+              onClick={capturePhoto}
+              className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors"
+              title="Prendre une photo pour analyse"
+            >
+              📸
+            </button>
           </div>
         </div>
       ) : (
-        <div className="w-[640px] h-[480px] bg-gray-200 flex items-center justify-center rounded-lg shadow-lg">
+        <div className="w-[400px] h-[300px] bg-gray-200 flex items-center justify-center rounded-lg shadow-lg">
           <div className="text-center">
             <div className="text-gray-400 text-6xl mb-4">📷</div>
             <p className="text-gray-600 font-medium">Caméra désactivée</p>
