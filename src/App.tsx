@@ -25,7 +25,8 @@ import {
   ArrowsClockwise,
   Timer,
   Hourglass,
-  Megaphone
+  Megaphone,
+  Crown
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -577,11 +578,11 @@ function CollectionBookCard({
               onChange={(e) => onStatusChange(e.target.value)}
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="non_lu">⭕ Non lu</option>
+              <option value="non_lu">Non lu</option>
               <option value="a_lire">À lire</option>
               <option value="en_cours">En cours</option>
-              <option value="lu">✅ Lu</option>
-              <option value="abandonne">❌ Abandonné</option>
+              <option value="lu">Lu</option>
+              <option value="abandonne">Abandonné</option>
             </select>
           )}
 
@@ -620,7 +621,7 @@ function CollectionBookCard({
                       style={{ backgroundColor: library.color || "#3B82F6" }}
                       title={`Retirer de ${library.name}`}
                     >
-                      {library.icon} {library.name} ×
+                      {library.icon} {library.name} <X size={12} />
                     </button>
                   ) : null;
                 })}
@@ -637,7 +638,7 @@ function CollectionBookCard({
               }}
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">➕ Ajouter à une bibliothèque...</option>
+              <option value="">Ajouter à une bibliothèque...</option>
               {userLibraries
                 .filter((lib) => !book.libraries?.includes(lib.id))
                 .map((library) => (
@@ -1071,7 +1072,7 @@ function App() {
       await fetchCollection(user.uid);
 
       setAddMessage({
-        text: "✅ Livre ajouté à votre collection !",
+        text: "Livre ajouté à votre collection !",
         type: "success",
       });
 
@@ -1084,7 +1085,7 @@ function App() {
     } catch (err) {
       console.error("Erreur ajout Firestore:", err);
       setAddMessage({
-        text: "❌ Erreur lors de l'ajout du livre",
+        text: "Erreur lors de l'ajout du livre",
         type: "error",
       });
     } finally {
@@ -1323,7 +1324,7 @@ function App() {
         fetchCollection(u.uid);
         fetchUserLibraries(u.uid);
         setAuthMessage({
-          text: `✅ Connecté en tant que ${u.displayName}`,
+          text: `Connecté en tant que ${u.displayName}`,
           type: "success",
         });
         setTimeout(() => setAuthMessage(null), 3000);
@@ -1590,7 +1591,7 @@ function App() {
                   )}
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
-                    {isAdmin && <span className="ml-2 text-blue-600 font-bold">👑</span>}
+                    {isAdmin && <Crown size={16} weight="bold" className="ml-2 text-blue-600" />}
                   </span>
                   <button
                     onClick={() => signOut(auth)}
@@ -1767,7 +1768,7 @@ function App() {
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
               >
-                × Fermer
+                <X size={16} className="mr-1" /> Fermer
               </button>
             </div>
 
@@ -1996,7 +1997,7 @@ function App() {
                 }}
                 className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                ×
+                <X size={20} />
               </button>
             </div>
 
@@ -2185,7 +2186,7 @@ function App() {
               onClick={() => setShowAuthModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
             >
-              ×
+              <X size={20} />
             </button>
             <div className="p-6">
               <Login onLogin={() => setShowAuthModal(false)} />
@@ -2217,7 +2218,7 @@ function App() {
                 }}
                 className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                ×
+                <X size={20} />
               </button>
             </div>
 
@@ -2359,7 +2360,7 @@ function App() {
                             }
                             className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
                           >
-                            ×
+                            <X size={16} />
                           </button>
                         </div>
                       ) : (
