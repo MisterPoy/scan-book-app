@@ -24,7 +24,8 @@ import {
   MagnifyingGlass,
   ArrowsClockwise,
   Timer,
-  Hourglass
+  Hourglass,
+  Megaphone
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -33,6 +34,8 @@ import Login from "./components/login";
 import EditBookModal from "./components/EditBookModal";
 import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
+import AnnouncementManager from "./components/AnnouncementManager";
+import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
@@ -45,6 +48,7 @@ import {
   deleteDoc,
   updateDoc,
   collection,
+  getDoc,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
@@ -774,6 +778,7 @@ function App() {
   const [book, setBook] = useState<any>(null);
   const [scanning, setScanning] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [collectionBooks, setCollectionBooks] = useState<any[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
@@ -817,6 +822,7 @@ function App() {
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
+  const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
@@ -1200,6 +1206,43 @@ function App() {
     }
   };
 
+  const checkAndSetupAdmin = async (user: any) => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    // UID administrateur de Greg
+    const ADMIN_UID = "wpZJ2pZ0zOdaw68optxamlkjRg13";
+
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (user.uid === ADMIN_UID) {
+        // C'est Greg - s'assurer qu'il a le statut admin
+        if (!userDoc.exists() || !userDoc.data()?.isAdmin) {
+          await setDoc(userRef, {
+            email: "dreegoald@gmail.com",
+            isAdmin: true,
+            displayName: user.displayName,
+            lastLogin: new Date().toISOString()
+          }, { merge: true });
+          console.log("✅ Statut admin configuré pour Greg");
+        }
+        setIsAdmin(true);
+      } else {
+        // Autre utilisateur - vérifier le statut admin existant
+        const adminStatus = userDoc.exists() && userDoc.data()?.isAdmin === true;
+        setIsAdmin(adminStatus);
+        console.log("Statut admin configuré:", adminStatus);
+      }
+    } catch (error) {
+      console.error("Erreur vérification admin:", error);
+      setIsAdmin(false);
+    }
+  };
+
   useEffect(() => {
     const isChromeMobile =
       /Chrome/.test(navigator.userAgent) &&
@@ -1270,11 +1313,13 @@ function App() {
 
     handleRedirectResult();
 
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       console.log("Auth state changed:", u ? u.displayName : "Déconnecté");
       setUser(u);
       if (u) {
         console.log("Récupération collection pour:", u.displayName);
+        // Vérifier et configurer le statut admin
+        await checkAndSetupAdmin(u);
         fetchCollection(u.uid);
         fetchUserLibraries(u.uid);
         setAuthMessage({
@@ -1283,6 +1328,7 @@ function App() {
         });
         setTimeout(() => setAuthMessage(null), 3000);
       } else {
+        setIsAdmin(false); // Réinitialiser le statut admin à la déconnexion
         setAuthMessage({ text: "Vous êtes déconnecté", type: "info" });
         setTimeout(() => setAuthMessage(null), 3000);
       }
@@ -1495,6 +1541,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Annonces système */}
+      <AnnouncementDisplay userEmail={user?.email} isAdmin={isAdmin} />
+
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
@@ -1530,8 +1579,18 @@ function App() {
                       </span>
                     )}
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowAnnouncementManager(true)}
+                      className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                    >
+                      <span className="hidden sm:inline">Admin</span>
+                      <span className="sm:hidden"><Megaphone size={20} weight="bold" /></span>
+                    </button>
+                  )}
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
+                    {isAdmin && <span className="ml-2 text-blue-600 font-bold">👑</span>}
                   </span>
                   <button
                     onClick={() => signOut(auth)}
@@ -2382,6 +2441,12 @@ function App() {
         onDeleteLibrary={deleteUserLibrary}
         isOpen={showLibraryManager}
         onClose={() => setShowLibraryManager(false)}
+      />
+
+      {/* Announcement Manager Modal */}
+      <AnnouncementManager
+        isOpen={showAnnouncementManager}
+        onClose={() => setShowAnnouncementManager(false)}
       />
 
       {/* PWA Install Prompt */}

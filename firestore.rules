@@ -5,5 +5,23 @@ service cloud.firestore {
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // Function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.uid == "wpZJ2pZ0zOdaw68optxamlkjRg13" || // Greg's UID
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+    }
+
+    // Announcements rules
+    match /announcements/{announcementId} {
+      // All authenticated users can read announcements
+      allow read: if request.auth != null;
+
+      // Only admins can create, update, or delete announcements
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
