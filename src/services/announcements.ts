@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Announcement, CreateAnnouncementData } from '../types/announcement';
+import { triggerNotificationForAnnouncement } from './notificationSender';
 
 const ANNOUNCEMENTS_COLLECTION = 'announcements';
 
@@ -29,6 +30,24 @@ export const createAnnouncement = async (data: CreateAnnouncementData): Promise<
 
     const docRef = await addDoc(collection(db, ANNOUNCEMENTS_COLLECTION), announcementData);
     console.log('✅ Annonce créée avec ID:', docRef.id);
+
+    // Déclencher les notifications push pour les utilisateurs (seulement si le service est disponible)
+    try {
+      const createdAnnouncement: Announcement = {
+        id: docRef.id,
+        ...announcementData
+      };
+
+      // Envoyer les notifications en arrière-plan (ne pas bloquer la création)
+      triggerNotificationForAnnouncement(createdAnnouncement).catch(error => {
+        console.warn('❌ Erreur envoi notifications pour annonce:', docRef.id, error);
+        // Ne pas faire échouer la création de l'annonce si les notifications échouent
+      });
+    } catch (notificationError) {
+      console.warn('Service de notification non disponible:', notificationError);
+      // Continuer normalement sans notifications
+    }
+
     return docRef.id;
   } catch (error) {
     console.error('Erreur création annonce:', error);
@@ -116,8 +135,17 @@ export const getAnnouncementById = async (id: string): Promise<Announcement | nu
 export const updateAnnouncement = async (id: string, data: Partial<CreateAnnouncementData>): Promise<void> => {
   try {
     const docRef = doc(db, ANNOUNCEMENTS_COLLECTION, id);
+
+    // Filtrer les valeurs undefined pour éviter les erreurs Firestore
+    const cleanData: any = {};
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    });
+
     const updateData = {
-      ...data,
+      ...cleanData,
       updatedAt: new Date().toISOString()
     };
 

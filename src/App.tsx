@@ -26,7 +26,8 @@ import {
   Timer,
   Hourglass,
   Megaphone,
-  Crown
+  Crown,
+  Bell
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -37,6 +38,7 @@ import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
 import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
+import NotificationSettings from "./components/NotificationSettings";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
@@ -824,6 +826,7 @@ function App() {
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
@@ -1589,6 +1592,13 @@ function App() {
                       <span className="sm:hidden"><Megaphone size={20} weight="bold" /></span>
                     </button>
                   )}
+                  <button
+                    onClick={() => setShowNotificationSettings(true)}
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                  >
+                    <span className="hidden sm:inline">Notifications</span>
+                    <span className="sm:hidden"><Bell size={20} weight="bold" /></span>
+                  </button>
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
                     {isAdmin && <Crown size={16} weight="bold" className="ml-2 text-blue-600" />}
@@ -2448,7 +2458,31 @@ function App() {
       <AnnouncementManager
         isOpen={showAnnouncementManager}
         onClose={() => setShowAnnouncementManager(false)}
+        currentUser={user ? { uid: user.uid, role: 'admin' } : undefined}
       />
+
+      {/* Notification Settings Modal */}
+      {showNotificationSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Paramètres de notifications</h2>
+              <button
+                onClick={() => setShowNotificationSettings(false)}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <NotificationSettings
+                userId={user?.uid || null}
+                userName={user?.displayName}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />

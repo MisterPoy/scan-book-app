@@ -14,7 +14,9 @@ import {
   Calendar,
   Users,
   Shield,
-  Monitor
+  Monitor,
+  ChartBar,
+  Clock
 } from 'phosphor-react';
 import type { Announcement, CreateAnnouncementData } from '../types/announcement';
 import {
@@ -24,10 +26,16 @@ import {
   deleteAnnouncement,
   toggleAnnouncementStatus
 } from '../services/announcements';
+import NotificationStats from './NotificationStats';
+import ScheduledNotifications from './ScheduledNotifications';
 
 interface AnnouncementManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  currentUser?: {
+    uid: string;
+    role: 'admin' | 'user';
+  };
 }
 
 const TYPE_ICONS = {
@@ -50,9 +58,10 @@ const PRIORITY_COLORS = {
   high: 'bg-red-100 text-red-700'
 };
 
-export default function AnnouncementManager({ isOpen, onClose }: AnnouncementManagerProps) {
+export default function AnnouncementManager({ isOpen, onClose, currentUser }: AnnouncementManagerProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'announcements' | 'stats' | 'scheduled'>('announcements');
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateAnnouncementData>({
@@ -183,26 +192,75 @@ export default function AnnouncementManager({ isOpen, onClose }: AnnouncementMan
           </button>
         </div>
 
-        <div className="p-6">
-          {/* Header avec bouton créer */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Annonces ({announcements.length})
-              </h3>
-              <p className="text-sm text-gray-600">
-                Gérez les messages diffusés aux utilisateurs
-              </p>
-            </div>
+        {/* Onglets de navigation */}
+        <div className="border-b border-gray-200 px-6">
+          <nav className="flex space-x-8">
             <button
-              onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer"
-              disabled={loading}
+              onClick={() => setActiveTab('announcements')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'announcements'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
             >
-              <Plus size={16} className="inline mr-2" />
-              Nouvelle annonce
+              <div className="flex items-center gap-2">
+                <Megaphone size={16} />
+                Annonces ({announcements.length})
+              </div>
             </button>
-          </div>
+
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'stats'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ChartBar size={16} />
+                Statistiques
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('scheduled')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'scheduled'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Clock size={16} />
+                Programmées
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <div className="p-6">
+          {activeTab === 'announcements' && (
+            <>
+              {/* Header avec bouton créer */}
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Annonces ({announcements.length})
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Gérez les messages diffusés aux utilisateurs
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                  disabled={loading}
+                >
+                  <Plus size={16} className="inline mr-2" />
+                  Nouvelle annonce
+                </button>
+              </div>
 
           {/* Formulaire de création/édition */}
           {showCreateForm && (
@@ -419,6 +477,21 @@ export default function AnnouncementManager({ isOpen, onClose }: AnnouncementMan
                 </div>
               ))}
             </div>
+          )}
+            </>
+          )}
+
+          {/* Onglet Statistiques des notifications */}
+          {activeTab === 'stats' && (
+            <NotificationStats />
+          )}
+
+          {/* Onglet Notifications programmées */}
+          {activeTab === 'scheduled' && (
+            <ScheduledNotifications
+              userId={currentUser?.uid || ''}
+              userRole={currentUser?.role || 'user'}
+            />
           )}
         </div>
       </div>
