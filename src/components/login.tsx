@@ -5,6 +5,7 @@ import {
   signInWithRedirect,
 } from "firebase/auth";
 import { auth, provider, registerWithEmail, loginWithEmail, resetPassword } from "../firebase";
+import { Key, Envelope } from "phosphor-react";
 
 export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -25,7 +26,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
       const isChromeMobile = /Chrome/.test(navigator.userAgent) && isMobile;
       
       if (isChromeMobile) {
-        console.log("📱 Chrome mobile - Forcer popup au lieu de redirect");
+        console.log("Chrome mobile - Forcer popup au lieu de redirect");
         try {
           const result = await signInWithPopup(auth, provider);
           console.log("✅ Chrome mobile popup success:", result.user.displayName);
@@ -35,10 +36,10 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
           await signInWithRedirect(auth, provider);
         }
       } else if (isMobile) {
-        console.log("📱 Autre mobile - redirect standard");
+        console.log("Autre mobile - redirect standard");
         await signInWithRedirect(auth, provider);
       } else {
-        console.log("🪟 Desktop - popup standard");
+        console.log("Desktop - popup standard");
         const result = await signInWithPopup(auth, provider);
         onLogin(result.user);
       }
@@ -73,7 +74,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     
     try {
       await resetPassword(resetEmail);
-      setResetMessage("📧 Email de réinitialisation envoyé ! Vérifiez votre boîte mail.");
+      setResetMessage("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.");
     } catch (err: any) {
       setError("Erreur : " + err.message);
     } finally {
@@ -85,7 +86,8 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4 text-center">
-          🔑 Réinitialiser le mot de passe
+          <Key size={16} weight="regular" className="inline mr-2" />
+          Réinitialiser le mot de passe
         </h2>
         <p className="text-gray-600 text-sm mb-4 text-center">
           Entrez votre email pour recevoir un lien de réinitialisation
@@ -102,15 +104,20 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
             required
           />
           
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-          {resetMessage && <p className="text-green-600 text-sm mb-3">{resetMessage}</p>}
+          {error && <p className="text-red-500 text-sm mb-3" aria-live="polite">{error}</p>}
+          {resetMessage && <p className="text-green-600 text-sm mb-3" aria-live="polite">{resetMessage}</p>}
           
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-50 mb-3"
           >
-            {loading ? "Envoi en cours..." : "📧 Envoyer le lien"}
+            {loading ? "Envoi en cours..." : (
+              <>
+                <Envelope size={16} weight="regular" className="inline mr-2" />
+                Envoyer le lien
+              </>
+            )}
           </button>
         </form>
 
@@ -122,7 +129,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
             setResetMessage("");
             setResetEmail("");
           }}
-          className="w-full text-gray-600 hover:text-gray-800 text-sm"
+          className="w-full text-gray-600 hover:text-gray-800 text-sm cursor-pointer"
         >
           ← Retour à la connexion
         </button>
@@ -164,7 +171,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
           className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {error && <p className="text-red-500 text-sm mb-2" aria-live="polite">{error}</p>}
         <button
           type="submit"
           disabled={loading}
@@ -179,9 +186,10 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
         <p className="text-center mb-3">
           <button
             onClick={() => setShowResetForm(true)}
-            className="text-blue-600 hover:underline text-sm"
+            className="text-blue-600 hover:underline text-sm cursor-pointer"
           >
-            🔑 Mot de passe oublié ?
+            <Key size={16} weight="regular" className="inline mr-2" />
+            Mot de passe oublié ?
           </button>
         </p>
       )}
@@ -195,7 +203,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
             setError("");
             setDisplayName("");
           }}
-          className="text-blue-600 hover:underline"
+          className="text-blue-600 hover:underline cursor-pointer"
         >
           {isRegister ? "Se connecter" : "S'inscrire"}
         </button>
@@ -211,7 +219,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
       {/* Connexion Google */}
       <button
         onClick={handleGoogleLogin}
-        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 cursor-pointer"
       >
         Se connecter avec Google
       </button>

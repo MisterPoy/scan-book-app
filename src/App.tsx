@@ -1,5 +1,33 @@
-import { useEffect, useState } from "react";
-import ISBNScanner from "./components/ISBNScanner";
+import { useEffect, useState, lazy, Suspense } from "react";
+import {
+  Check,
+  Circle,
+  X,
+  Book,
+  Books,
+  Camera,
+  Clock,
+  PencilSimple,
+  DeviceMobile,
+  Headphones,
+  ArrowClockwise,
+  CaretUp,
+  CaretDown,
+  Trash,
+  FolderOpen,
+  CalendarBlank,
+  Buildings,
+  FileText,
+  Tag,
+  Door,
+  Download,
+  MagnifyingGlass,
+  ArrowsClockwise,
+  Timer,
+  Hourglass
+} from "phosphor-react";
+
+const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
 import EditBookModal from "./components/EditBookModal";
@@ -15,6 +43,7 @@ import {
   setDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
   collection,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
@@ -95,7 +124,7 @@ function CompactBookCard({
               book.isRead ? "bg-green-500 text-white" : "bg-gray-500 text-white"
             }`}
           >
-            {book.isRead ? "✓" : "◯"}
+            {book.isRead ? "Lu" : "Non lu"}
           </div>
         </div>
         <div className="p-2">
@@ -113,27 +142,27 @@ function CompactBookCard({
                 book.readingStatus || (book.isRead ? "lu" : "non_lu");
               const statusConfig = {
                 lu: {
-                  emoji: "✅",
+                  icon: <Check size={16} weight="bold" />,
                   label: "Lu",
                   color: "bg-green-100 text-green-800",
                 },
                 non_lu: {
-                  emoji: "⭕",
+                  icon: <Circle size={16} weight="regular" />,
                   label: "Non lu",
                   color: "bg-gray-100 text-gray-800",
                 },
                 a_lire: {
-                  emoji: "📖",
+                  icon: <Book size={16} weight="regular" />,
                   label: "À lire",
                   color: "bg-blue-100 text-blue-800",
                 },
                 en_cours: {
-                  emoji: "🔄",
+                  icon: <Clock size={16} weight="regular" />,
                   label: "En cours",
                   color: "bg-yellow-100 text-yellow-800",
                 },
                 abandonne: {
-                  emoji: "❌",
+                  icon: <X size={16} weight="bold" />,
                   label: "Abandonné",
                   color: "bg-red-100 text-red-800",
                 },
@@ -145,7 +174,7 @@ function CompactBookCard({
                 <span
                   className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
                 >
-                  {config.emoji} {config.label}
+                  {config.icon} {config.label}
                 </span>
               );
             })()}
@@ -155,17 +184,17 @@ function CompactBookCard({
               const type = book.bookType || "physique";
               const typeConfig = {
                 physique: {
-                  emoji: "📚",
+                  icon: <Books size={16} weight="regular" />,
                   label: "Physique",
                   color: "bg-amber-100 text-amber-800",
                 },
                 numerique: {
-                  emoji: "💻",
+                  icon: <DeviceMobile size={16} weight="regular" />,
                   label: "Numérique",
                   color: "bg-indigo-100 text-indigo-800",
                 },
                 audio: {
-                  emoji: "🎧",
+                  icon: <Headphones size={16} weight="regular" />,
                   label: "Audio",
                   color: "bg-purple-100 text-purple-800",
                 },
@@ -177,7 +206,7 @@ function CompactBookCard({
                 <span
                   className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
                 >
-                  {config.emoji} {config.label}
+                  {config.icon} {config.label}
                 </span>
               );
             })()}
@@ -227,27 +256,27 @@ function CompactBookCard({
                 book.readingStatus || (book.isRead ? "lu" : "non_lu");
               const statusConfig = {
                 lu: {
-                  emoji: "✅",
+                  icon: <Check size={16} weight="bold" />,
                   label: "Lu",
                   color: "bg-green-100 text-green-800",
                 },
                 non_lu: {
-                  emoji: "⭕",
+                  icon: <Circle size={16} weight="regular" />,
                   label: "Non lu",
                   color: "bg-gray-100 text-gray-800",
                 },
                 a_lire: {
-                  emoji: "📖",
+                  icon: <Book size={16} weight="regular" />,
                   label: "À lire",
                   color: "bg-blue-100 text-blue-800",
                 },
                 en_cours: {
-                  emoji: "🔄",
+                  icon: <Clock size={16} weight="regular" />,
                   label: "En cours",
                   color: "bg-yellow-100 text-yellow-800",
                 },
                 abandonne: {
-                  emoji: "❌",
+                  icon: <X size={16} weight="bold" />,
                   label: "Abandonné",
                   color: "bg-red-100 text-red-800",
                 },
@@ -259,7 +288,7 @@ function CompactBookCard({
                 <span
                   className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
                 >
-                  {config.emoji}
+                  {config.icon}
                 </span>
               );
             })()}
@@ -269,17 +298,17 @@ function CompactBookCard({
               const type = book.bookType || "physique";
               const typeConfig = {
                 physique: {
-                  emoji: "📚",
+                  icon: <Books size={16} weight="regular" />,
                   label: "Physique",
                   color: "bg-amber-100 text-amber-800",
                 },
                 numerique: {
-                  emoji: "💻",
+                  icon: <DeviceMobile size={16} weight="regular" />,
                   label: "Numérique",
                   color: "bg-indigo-100 text-indigo-800",
                 },
                 audio: {
-                  emoji: "🎧",
+                  icon: <Headphones size={16} weight="regular" />,
                   label: "Audio",
                   color: "bg-purple-100 text-purple-800",
                 },
@@ -291,7 +320,7 @@ function CompactBookCard({
                 <span
                   className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
                 >
-                  {config.emoji}
+                  {config.icon}
                 </span>
               );
             })()}
@@ -454,14 +483,14 @@ function CollectionBookCard({
             e.stopPropagation(); // Empêcher le clic sur la carte parente
             onToggleRead();
           }}
-          className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-full transition-all ${
+          className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
             book.isRead
               ? "bg-green-500 text-white hover:bg-green-600"
               : "bg-gray-500 text-white hover:bg-gray-600"
           }`}
           title={book.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
         >
-          {book.isRead ? "✓ Lu" : "◯ Non lu"}
+          {book.isRead ? "Lu" : "Non lu"}
         </button>
 
         {/* Boutons de gestion de couverture */}
@@ -474,7 +503,7 @@ function CollectionBookCard({
                   : "bg-blue-500 text-white hover:bg-blue-600"
               }`}
             >
-              {uploadingCover ? "⏳" : "📷"}
+              {uploadingCover ? <Clock size={16} weight="regular" /> : <Camera size={16} weight="regular" />}
               <input
                 type="file"
                 accept="image/*"
@@ -486,10 +515,10 @@ function CollectionBookCard({
             {book.customCoverUrl && (
               <button
                 onClick={handleRestoreOriginal}
-                className="px-2 py-1 text-xs font-medium bg-gray-500 text-white hover:bg-gray-600 rounded transition-all"
+                className="px-2 py-1 text-xs font-medium bg-gray-500 text-white hover:bg-gray-600 rounded transition-all cursor-pointer"
                 title="Restaurer l'image originale"
               >
-                🔄
+                <ArrowClockwise size={16} weight="regular" />
               </button>
             )}
           </div>
@@ -510,27 +539,27 @@ function CollectionBookCard({
           <div className="flex gap-1">
             <button
               onClick={handleExpandToggle}
-              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
               title={expanded ? "Masquer les détails" : "Voir les détails"}
             >
-              {expanded ? "🔼" : "🔽"}
+              {expanded ? <CaretUp size={16} weight="bold" /> : <CaretDown size={16} weight="bold" />}
             </button>
             {/* Bouton modifier - pour tous les livres */}
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors cursor-pointer"
                 title="Modifier ce livre"
               >
-                ✏️
+                <PencilSimple size={16} weight="regular" />
               </button>
             )}
             <button
               onClick={onRemove}
-              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
               title="Supprimer de la collection"
             >
-              🗑️
+              <Trash size={16} weight="regular" />
             </button>
           </div>
         </div>
@@ -545,8 +574,8 @@ function CollectionBookCard({
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="non_lu">⭕ Non lu</option>
-              <option value="a_lire">📖 À lire</option>
-              <option value="en_cours">🔄 En cours</option>
+              <option value="a_lire">À lire</option>
+              <option value="en_cours">En cours</option>
               <option value="lu">✅ Lu</option>
               <option value="abandonne">❌ Abandonné</option>
             </select>
@@ -559,9 +588,9 @@ function CollectionBookCard({
               onChange={(e) => onTypeChange(e.target.value)}
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="physique">📚 Physique</option>
-              <option value="numerique">💻 Numérique</option>
-              <option value="audio">🎧 Audio</option>
+              <option value="physique">Physique</option>
+              <option value="numerique">Numérique</option>
+              <option value="audio">Audio</option>
             </select>
           )}
         </div>
@@ -570,7 +599,8 @@ function CollectionBookCard({
         {userLibraries && userLibraries.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-3 mb-3">
             <h4 className="text-sm font-medium text-gray-900 mb-2">
-              🗂️ Bibliothèques
+              <FolderOpen size={16} weight="regular" className="inline mr-2" />
+              Bibliothèques
             </h4>
 
             {/* Bibliothèques actuelles */}
@@ -582,11 +612,11 @@ function CollectionBookCard({
                     <button
                       key={libId}
                       onClick={() => onLibraryToggle?.(libId)}
-                      className="px-2 py-1 rounded text-xs text-white transition-colors hover:opacity-80"
+                      className="px-2 py-1 rounded text-xs text-white transition-colors hover:opacity-80 cursor-pointer"
                       style={{ backgroundColor: library.color || "#3B82F6" }}
                       title={`Retirer de ${library.name}`}
                     >
-                      {library.icon} {library.name} ✕
+                      {library.icon} {library.name} ×
                     </button>
                   ) : null;
                 })}
@@ -625,7 +655,8 @@ function CollectionBookCard({
             {loadingDetails ? (
               <div className="text-center py-4">
                 <div className="text-blue-600">
-                  ⏳ Chargement des détails...
+                  <Hourglass size={16} className="inline mr-2" />
+                  Chargement des détails...
                 </div>
               </div>
             ) : bookDetails ? (
@@ -633,7 +664,8 @@ function CollectionBookCard({
                 {bookDetails.description && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      📖 Résumé
+                      <Book size={16} weight="regular" className="inline mr-2" />
+                      Résumé
                     </h4>
                     <div
                       className={`${
@@ -655,12 +687,12 @@ function CollectionBookCard({
                         onClick={() =>
                           setShowFullDescription(!showFullDescription)
                         }
-                        className="text-blue-600 hover:text-blue-700 text-xs mt-2 font-medium inline-flex items-center gap-1"
+                        className="text-blue-600 hover:text-blue-700 text-xs mt-2 font-medium inline-flex items-center gap-1 cursor-pointer"
                       >
                         {showFullDescription ? (
-                          <>📖 Lire moins</>
+                          <>Lire moins</>
                         ) : (
-                          <>📖 Lire plus</>
+                          <>Lire plus</>
                         )}
                       </button>
                     )}
@@ -670,7 +702,8 @@ function CollectionBookCard({
                 {bookDetails.publishedDate && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      📅 Publication
+                      <CalendarBlank size={16} weight="regular" className="inline mr-2" />
+                      Publication
                     </h4>
                     <p className="text-xs text-gray-600">
                       {bookDetails.publishedDate}
@@ -681,7 +714,8 @@ function CollectionBookCard({
                 {bookDetails.publisher && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      🏢 Éditeur
+                      <Buildings size={16} weight="regular" className="inline mr-2" />
+                      Éditeur
                     </h4>
                     <p className="text-xs text-gray-600">
                       {bookDetails.publisher}
@@ -692,7 +726,8 @@ function CollectionBookCard({
                 {bookDetails.pageCount && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      📄 Pages
+                      <FileText size={16} weight="regular" className="inline mr-2" />
+                      Pages
                     </h4>
                     <p className="text-xs text-gray-600">
                       {bookDetails.pageCount} pages
@@ -704,7 +739,8 @@ function CollectionBookCard({
                   bookDetails.categories.length > 0 && (
                     <div>
                       <h4 className="font-medium text-gray-900 text-xs mb-1">
-                        🏷️ Catégories
+                        <Tag size={16} weight="regular" className="inline mr-2" />
+                        Catégories
                       </h4>
                       <div className="flex flex-wrap gap-1">
                         {bookDetails.categories
@@ -1112,6 +1148,34 @@ function App() {
     }
   };
 
+  const updateUserLibrary = async (
+    libraryId: string,
+    library: Omit<UserLibrary, "id" | "createdAt">
+  ) => {
+    if (!user) return;
+
+    try {
+      const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
+
+      // Nettoyer les données pour éviter les valeurs undefined
+      const libraryData: any = {
+        name: library.name,
+      };
+
+      if (library.description && library.description.trim()) {
+        libraryData.description = library.description.trim();
+      }
+      if (library.color) libraryData.color = library.color;
+      if (library.icon) libraryData.icon = library.icon;
+
+      await updateDoc(ref, libraryData);
+      await fetchUserLibraries(user.uid);
+    } catch (err) {
+      console.error("Erreur modification bibliothèque:", err);
+      throw err;
+    }
+  };
+
   const deleteUserLibrary = async (libraryId: string) => {
     if (!user) return;
 
@@ -1144,13 +1208,13 @@ function App() {
       ) ||
         window.innerWidth <= 768);
 
-    console.log("🔍 Chrome Mobile detected:", isChromeMobile);
+    console.log("Chrome Mobile detected:", isChromeMobile);
 
-    // 🌀 Gérer le retour de redirection avec retry pour Chrome mobile
+    // Gérer le retour de redirection avec retry pour Chrome mobile
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
-        console.log("🔄 App - Redirect result:", result);
+        console.log("App - Redirect result:", result);
 
         if (result?.user) {
           console.log(
@@ -1162,12 +1226,12 @@ function App() {
 
         // Chrome mobile fallback - forcer la vérification de l'état auth
         if (isChromeMobile) {
-          console.log("📱 Chrome mobile - Fallback avec multiple checks...");
+          console.log("Chrome mobile - Fallback avec multiple checks...");
 
           // Check immédiat
           setTimeout(() => {
             console.log(
-              "🔄 Chrome mobile check 1 - currentUser:",
+              "Chrome mobile check 1 - currentUser:",
               auth.currentUser
             );
             if (auth.currentUser) {
@@ -1178,7 +1242,7 @@ function App() {
           // Check après 1 seconde
           setTimeout(() => {
             console.log(
-              "🔄 Chrome mobile check 2 - currentUser:",
+              "Chrome mobile check 2 - currentUser:",
               auth.currentUser
             );
             if (auth.currentUser) {
@@ -1191,7 +1255,7 @@ function App() {
           // Check après 2 secondes
           setTimeout(() => {
             console.log(
-              "🔄 Chrome mobile check 3 - currentUser:",
+              "Chrome mobile check 3 - currentUser:",
               auth.currentUser
             );
             if (auth.currentUser) {
@@ -1207,10 +1271,10 @@ function App() {
     handleRedirectResult();
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      console.log("🔄 Auth state changed:", u ? u.displayName : "Déconnecté");
+      console.log("Auth state changed:", u ? u.displayName : "Déconnecté");
       setUser(u);
       if (u) {
-        console.log("📚 Récupération collection pour:", u.displayName);
+        console.log("Récupération collection pour:", u.displayName);
         fetchCollection(u.uid);
         fetchUserLibraries(u.uid);
         setAuthMessage({
@@ -1219,7 +1283,7 @@ function App() {
         });
         setTimeout(() => setAuthMessage(null), 3000);
       } else {
-        setAuthMessage({ text: "👋 Vous êtes déconnecté", type: "info" });
+        setAuthMessage({ text: "Vous êtes déconnecté", type: "info" });
         setTimeout(() => setAuthMessage(null), 3000);
       }
     });
@@ -1436,17 +1500,18 @@ function App() {
         <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-              📚 Ma Bibliothèque
+              <Books size={20} weight="bold" className="inline mr-2" />
+              Ma Bibliothèque
             </h1>
             <nav className="flex-shrink-0">
               {user ? (
                 <div className="flex items-center gap-1 sm:gap-4">
                   <button
                     onClick={() => setShowCollectionModal(true)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2"
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                   >
-                    <span className="hidden sm:inline">📚 Ma Collection</span>
-                    <span className="sm:hidden">📚</span>
+                    <span className="hidden sm:inline">Ma Collection</span>
+                    <span className="sm:hidden"><Books size={20} weight="bold" /></span>
                     {collectionBooks.length > 0 && (
                       <span className="bg-blue-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {collectionBooks.length}
@@ -1455,10 +1520,10 @@ function App() {
                   </button>
                   <button
                     onClick={() => setShowLibraryManager(true)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 sm:gap-2"
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                   >
-                    <span className="hidden sm:inline">🗂️ Bibliothèques</span>
-                    <span className="sm:hidden">🗂️</span>
+                    <span className="hidden sm:inline">Bibliothèques</span>
+                    <span className="sm:hidden"><FolderOpen size={20} weight="bold" /></span>
                     {userLibraries.length > 0 && (
                       <span className="bg-green-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {userLibraries.length}
@@ -1470,17 +1535,17 @@ function App() {
                   </span>
                   <button
                     onClick={() => signOut(auth)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                     title="Se déconnecter"
                   >
                     <span className="hidden sm:inline">Se déconnecter</span>
-                    <span className="sm:hidden">🚪</span>
+                    <span className="sm:hidden"><Door size={20} weight="bold" /></span>
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                  className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   <span className="hidden sm:inline">Se connecter</span>
                   <span className="sm:hidden">Connexion</span>
@@ -1525,9 +1590,10 @@ function App() {
             <div className="flex flex-col items-center space-y-6">
               <button
                 onClick={() => setScanning(true)}
-                className="px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                className="px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
               >
-                📷 Scanner un livre
+                <Camera size={16} weight="bold" className="inline mr-2" />
+                Scanner un livre
               </button>
 
               <div className="flex items-center w-full max-w-sm">
@@ -1545,7 +1611,7 @@ function App() {
                 />
                 <button
                   onClick={() => handleSearch(isbn)}
-                  className="px-6 py-3 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+                  className="px-6 py-3 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
                 >
                   Rechercher
                 </button>
@@ -1578,9 +1644,14 @@ function App() {
                     setShowSearchResults(true);
                   }}
                   disabled={isSearching}
-                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
-                  {isSearching ? "⏳ Recherche..." : "Rechercher"}
+                  {isSearching ? (
+                    <>
+                      <Timer size={16} className="inline mr-2" />
+                      Recherche...
+                    </>
+                  ) : "Rechercher"}
                 </button>
               </div>
 
@@ -1596,14 +1667,23 @@ function App() {
                 onClick={() => setShowManualAdd(true)}
                 className="px-8 py-3 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md"
               >
-                ✏️ Ajouter un livre manuellement
+                <PencilSimple size={16} weight="regular" /> Ajouter un livre manuellement
               </button>
             </div>
           ) : (
-            <ISBNScanner
-              onDetected={handleDetected}
-              onClose={() => setScanning(false)}
-            />
+            <Suspense fallback={
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 shadow-xl">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-center text-gray-600">Chargement du scanner...</p>
+                </div>
+              </div>
+            }>
+              <ISBNScanner
+                onDetected={handleDetected}
+                onClose={() => setScanning(false)}
+              />
+            </Suspense>
           )}
         </div>
 
@@ -1615,7 +1695,8 @@ function App() {
           >
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                📚 Résultats de recherche{" "}
+                <Books size={20} weight="bold" className="inline mr-2" />
+                Résultats de recherche{" "}
                 {searchResults.length > 0 && `(${searchResults.length})`}
               </h3>
               <button
@@ -1625,15 +1706,17 @@ function App() {
                   setSearchQuery("");
                   setCurrentPage(1);
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
               >
-                ✕ Fermer
+                × Fermer
               </button>
             </div>
 
             {isSearching ? (
               <div className="text-center py-12">
-                <div className="text-blue-600 text-4xl mb-4">⏳</div>
+                <div className="text-blue-600 mb-4">
+                  <Hourglass size={48} weight="regular" />
+                </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Recherche en cours...
                 </h3>
@@ -1643,7 +1726,9 @@ function App() {
               </div>
             ) : searchResults.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-gray-400 text-4xl mb-4">📚</div>
+                <div className="text-gray-400 mb-4">
+                  <Books size={64} weight="regular" />
+                </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Aucun résultat
                 </h3>
@@ -1714,7 +1799,7 @@ function App() {
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                     >
                       ← Précédent
                     </button>
@@ -1751,7 +1836,7 @@ function App() {
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                     >
                       Suivant →
                     </button>
@@ -1785,8 +1870,18 @@ function App() {
                       className="px-8 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors shadow-md"
                     >
                       {addingToCollection
-                        ? "⏳ Ajout en cours..."
-                        : "📥 Ajouter à ma collection"}
+                        ? (
+                          <>
+                            <Timer size={16} className="inline mr-2" />
+                            Ajout en cours...
+                          </>
+                        )
+                        : (
+                          <>
+                            <Download size={16} weight="bold" className="inline mr-2" />
+                            Ajouter à ma collection
+                          </>
+                        )}
                     </button>
 
                     {addMessage && (
@@ -1823,12 +1918,13 @@ function App() {
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-4">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  📚 Ma Collection
+                  <Books size={20} weight="bold" className="inline mr-2" />
+                  Ma Collection
                 </h2>
                 {selectedBook && (
                   <button
                     onClick={() => setSelectedBook(null)}
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
                   >
                     ← Retour à la grille
                   </button>
@@ -1839,9 +1935,9 @@ function App() {
                   setShowCollectionModal(false);
                   setSelectedBook(null);
                 }}
-                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -1850,7 +1946,8 @@ function App() {
               <div className="bg-gray-50 border-b px-6 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="font-medium text-gray-900 text-sm">
-                    🗂️ Naviguer par bibliothèque :
+                    <FolderOpen size={16} weight="regular" className="inline mr-2" />
+                    Naviguer par bibliothèque :
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1858,11 +1955,11 @@ function App() {
                     onClick={() => setSelectedLibraryView(null)}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                       selectedLibraryView === null
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                        ? "bg-blue-600 text-white cursor-pointer"
+                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 cursor-pointer"
                     }`}
                   >
-                    📚 Tous les livres ({collectionBooks.length})
+                    Tous les livres ({collectionBooks.length})
                   </button>
                   {userLibraries.map((library) => {
                     const bookCount = collectionBooks.filter((book) =>
@@ -1874,8 +1971,8 @@ function App() {
                         onClick={() => setSelectedLibraryView(library.id)}
                         className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1 border ${
                           selectedLibraryView === library.id
-                            ? "text-white border-transparent"
-                            : "bg-white text-gray-700 hover:bg-gray-100 border-gray-200"
+                            ? "text-white border-transparent cursor-pointer"
+                            : "bg-white text-gray-700 hover:bg-gray-100 border-gray-200 cursor-pointer"
                         }`}
                         style={
                           selectedLibraryView === library.id
@@ -1898,7 +1995,9 @@ function App() {
             <div className="flex-1 overflow-y-auto p-6">
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-gray-400 text-6xl mb-4">📚</div>
+                  <div className="text-gray-400 mb-4">
+                    <Books size={96} weight="regular" />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Aucun livre pour le moment
                   </h3>
@@ -1971,7 +2070,9 @@ function App() {
 
                   {displayedBooks.length === 0 ? (
                     <div className="text-center py-8 md:py-12 px-4">
-                      <div className="text-gray-400 text-5xl md:text-4xl mb-4">🔍</div>
+                      <div className="text-gray-400 mb-4">
+                        <MagnifyingGlass size={64} weight="regular" />
+                      </div>
                       <h3 className="text-xl md:text-lg font-semibold text-gray-900 mb-2">
                         Aucun livre ne correspond aux filtres
                       </h3>
@@ -1994,7 +2095,8 @@ function App() {
                         }
                         className="inline-flex items-center gap-2 px-6 py-3 md:px-6 md:py-3 w-full md:w-auto bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer text-center justify-center"
                       >
-                        🧹 Réinitialiser tous les filtres
+                        <ArrowsClockwise size={16} weight="regular" className="inline mr-2" />
+                        Réinitialiser tous les filtres
                       </button>
                     </div>
                   ) : (
@@ -2022,9 +2124,9 @@ function App() {
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
             <button
               onClick={() => setShowAuthModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
             >
-              ✕
+              ×
             </button>
             <div className="p-6">
               <Login onLogin={() => setShowAuthModal(false)} />
@@ -2039,7 +2141,7 @@ function App() {
           <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-2xl font-bold text-gray-900">
-                ✏️ Ajouter un livre manuellement
+                <PencilSimple size={16} weight="regular" /> Ajouter un livre manuellement
               </h2>
               <button
                 onClick={() => {
@@ -2054,9 +2156,9 @@ function App() {
                     customCoverUrl: "",
                   });
                 }}
-                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -2198,19 +2300,21 @@ function App() {
                             }
                             className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
                           >
-                            ✕
+                            ×
                           </button>
                         </div>
                       ) : (
                         <div>
-                          <div className="text-gray-400 text-4xl mb-2">📚</div>
+                          <div className="text-gray-400 mb-2">
+                            <Books size={64} weight="regular" />
+                          </div>
                           <p className="text-gray-600 text-sm mb-3">
                             Aucune couverture
                           </p>
                         </div>
                       )}
 
-                      <label className="inline-block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer transition-colors">
+                      <label className="inline-block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer transition-colors cursor-pointer">
                         {manualBook.customCoverUrl ? "Changer" : "Ajouter"} une
                         image
                         <input
@@ -2239,13 +2343,13 @@ function App() {
                       customCoverUrl: "",
                     });
                   }}
-                  className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleManualBookSubmit}
-                  className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors"
+                  className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors cursor-pointer"
                 >
                   Créer le livre
                 </button>
@@ -2274,6 +2378,7 @@ function App() {
       <LibraryManager
         libraries={userLibraries}
         onCreateLibrary={createUserLibrary}
+        onUpdateLibrary={updateUserLibrary}
         onDeleteLibrary={deleteUserLibrary}
         isOpen={showLibraryManager}
         onClose={() => setShowLibraryManager(false)}

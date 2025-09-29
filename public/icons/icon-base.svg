@@ -20,6 +20,7 @@
     
     <!-- Scanner symbol -->
     <circle cx="0" cy="-120" r="8" fill="#EF4444"/>
-    <text x="0" y="-115" text-anchor="middle" fill="white" font-size="10" font-weight="bold">📱</text>
+    <!-- Scanner icon -->
+    <rect x="-4" y="-119" width="8" height="8" fill="white" rx="1"/>
   </g>
 </svg>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePWA } from '../hooks/usePWA';
+import { DeviceMobile } from 'phosphor-react';
 
 export default function PWAInstallPrompt() {
   const { isInstallable, isInstalled, installPWA } = usePWA();
@@ -23,7 +24,9 @@ export default function PWAInstallPrompt() {
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
       <div className="flex items-start gap-3">
-        <div className="text-2xl">📱</div>
+        <div>
+          <DeviceMobile size={24} weight="bold" className="text-blue-600" />
+        </div>
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-sm mb-1">
             Installer ScanBook
@@ -34,13 +37,13 @@ export default function PWAInstallPrompt() {
           <div className="flex gap-2">
             <button
               onClick={handleInstall}
-              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors cursor-pointer"
             >
               Installer
             </button>
             <button
               onClick={handleDismiss}
-              className="px-3 py-1.5 text-gray-600 text-xs font-medium rounded hover:bg-gray-100 transition-colors"
+              className="px-3 py-1.5 text-gray-600 text-xs font-medium rounded hover:bg-gray-100 transition-colors cursor-pointer"
             >
               Plus tard
             </button>

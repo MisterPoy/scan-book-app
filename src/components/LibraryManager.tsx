@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { UserLibrary } from '../types/library';
+import { Book, BookOpen, Notebook, Star, Heart, Bookmark, Target, Rocket, Diamond, Palette, Pencil, MaskHappy, CircleWavy, Umbrella, GameController, X, Folder, Trash, Sparkle, Timer, PencilSimple } from 'phosphor-react';
 
 interface LibraryManagerProps {
   libraries: UserLibrary[];
   onCreateLibrary: (library: Omit<UserLibrary, 'id' | 'createdAt'>) => Promise<string | undefined>;
+  onUpdateLibrary?: (id: string, library: Omit<UserLibrary, 'id' | 'createdAt'>) => Promise<void>;
   onDeleteLibrary: (id: string) => Promise<void>;
   isOpen: boolean;
   onClose: () => void;
@@ -23,19 +25,42 @@ const PRESET_COLORS = [
 ];
 
 const PRESET_ICONS = [
-  '📚', '📖', '📓', '📔', '📕', '📗', '📘', '📙',
-  '⭐', '❤️', '🔖', '🎯', '🚀', '💎', '🎨', '🌟',
-  '📝', '🎭', '🔮', '🌈', '🎪', '🎨', '🎯', '🎲'
+  'BK', 'BO', 'NB', 'ST', 'HT', 'BM', 'TG', 'RK',
+  'DM', 'PL', 'PN', 'MH', 'GM', 'UM', 'SP', 'GC'
 ];
 
-export default function LibraryManager({ 
-  libraries, 
-  onCreateLibrary, 
-  onDeleteLibrary, 
-  isOpen, 
-  onClose 
+const renderIcon = (iconCode: string, size: number = 16): React.ReactElement => {
+  const iconMap: { [key: string]: React.ReactElement } = {
+    'BK': <Book size={size} weight="regular" />,
+    'BO': <BookOpen size={size} weight="regular" />,
+    'NB': <Notebook size={size} weight="regular" />,
+    'ST': <Star size={size} weight="regular" />,
+    'HT': <Heart size={size} weight="regular" />,
+    'BM': <Bookmark size={size} weight="regular" />,
+    'TG': <Target size={size} weight="regular" />,
+    'RK': <Rocket size={size} weight="regular" />,
+    'DM': <Diamond size={size} weight="regular" />,
+    'PL': <Palette size={size} weight="regular" />,
+    'PN': <Pencil size={size} weight="regular" />,
+    'MH': <MaskHappy size={size} weight="regular" />,
+    'GM': <CircleWavy size={size} weight="regular" />,
+    'UM': <Umbrella size={size} weight="regular" />,
+    'SP': <Sparkle size={size} weight="regular" />,
+    'GC': <GameController size={size} weight="regular" />
+  };
+  return iconMap[iconCode] || <Book size={size} weight="regular" />;
+};
+
+export default function LibraryManager({
+  libraries,
+  onCreateLibrary,
+  onUpdateLibrary,
+  onDeleteLibrary,
+  isOpen,
+  onClose
 }: LibraryManagerProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingLibrary, setEditingLibrary] = useState<UserLibrary | null>(null);
   const [newLibrary, setNewLibrary] = useState({
     name: '',
     description: '',
@@ -43,6 +68,7 @@ export default function LibraryManager({
     icon: PRESET_ICONS[0]
   });
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const handleCreateLibrary = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,18 +114,79 @@ export default function LibraryManager({
     }
   };
 
+  const handleEditLibrary = (library: UserLibrary) => {
+    setEditingLibrary(library);
+    setNewLibrary({
+      name: library.name,
+      description: library.description || '',
+      color: library.color || PRESET_COLORS[0],
+      icon: library.icon || PRESET_ICONS[0]
+    });
+    setShowCreateForm(true);
+  };
+
+  const handleUpdateLibrary = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingLibrary || !onUpdateLibrary) return;
+
+    if (!newLibrary.name.trim()) {
+      alert("Le nom de la bibliothèque est obligatoire");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await onUpdateLibrary(editingLibrary.id, {
+        name: newLibrary.name.trim(),
+        description: newLibrary.description.trim() || undefined,
+        color: newLibrary.color,
+        icon: newLibrary.icon
+      });
+
+      // Reset form
+      setNewLibrary({
+        name: '',
+        description: '',
+        color: PRESET_COLORS[0],
+        icon: PRESET_ICONS[0]
+      });
+      setEditingLibrary(null);
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error('Erreur modification bibliothèque:', error);
+      alert('Erreur lors de la modification de la bibliothèque');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLibrary(null);
+    setNewLibrary({
+      name: '',
+      description: '',
+      color: PRESET_COLORS[0],
+      icon: PRESET_ICONS[0]
+    });
+    setShowCreateForm(false);
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
       <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">🗂️ Gestion des bibliothèques</h2>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Folder size={24} weight="bold" />
+            Gestion des bibliothèques
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            ✕
+            <X size={20} weight="regular" />
           </button>
         </div>
         
@@ -125,9 +212,12 @@ export default function LibraryManager({
           {/* Formulaire de création */}
           {showCreateForm && (
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h4 className="font-medium text-gray-900 mb-4">✨ Créer une nouvelle bibliothèque</h4>
+              <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                {editingLibrary ? <PencilSimple size={20} weight="regular" /> : <Sparkle size={20} weight="regular" />}
+                {editingLibrary ? 'Modifier la bibliothèque' : 'Créer une nouvelle bibliothèque'}
+              </h4>
               
-              <form onSubmit={handleCreateLibrary} className="space-y-4">
+              <form onSubmit={editingLibrary ? handleUpdateLibrary : handleCreateLibrary} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -175,7 +265,9 @@ export default function LibraryManager({
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          {icon}
+                          <div className="w-6 h-6 flex items-center justify-center">
+                            {renderIcon(icon, 20)}
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -212,7 +304,7 @@ export default function LibraryManager({
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-medium"
                       style={{ backgroundColor: newLibrary.color }}
                     >
-                      {newLibrary.icon}
+                      {renderIcon(newLibrary.icon, 18)}
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">
@@ -230,17 +322,27 @@ export default function LibraryManager({
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                    onClick={editingLibrary ? handleCancelEdit : () => setShowCreateForm(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    disabled={creating}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                    disabled={creating || updating}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
-                    {creating ? '⏳ Création...' : '✨ Créer la bibliothèque'}
+                    {(creating || updating) ? (
+                      <>
+                        <Timer size={16} className="inline mr-2" />
+                        {editingLibrary ? 'Modification...' : 'Création...'}
+                      </>
+                    ) : (
+                      <>
+                        {editingLibrary ? <PencilSimple size={16} className="inline mr-2" /> : <Sparkle size={16} className="inline mr-2" />}
+                        {editingLibrary ? 'Modifier la bibliothèque' : 'Créer la bibliothèque'}
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -250,7 +352,9 @@ export default function LibraryManager({
           {/* Liste des bibliothèques */}
           {libraries.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">🗂️</div>
+              <div className="text-gray-400 mb-4">
+                <Folder size={64} weight="regular" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune bibliothèque</h3>
               <p className="text-gray-600">Créez votre première bibliothèque pour organiser vos livres</p>
             </div>
@@ -264,7 +368,7 @@ export default function LibraryManager({
                         className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-medium text-lg"
                         style={{ backgroundColor: library.color || PRESET_COLORS[0] }}
                       >
-                        {library.icon || PRESET_ICONS[0]}
+                        {renderIcon(library.icon || PRESET_ICONS[0])}
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900">{library.name}</h4>
@@ -273,14 +377,25 @@ export default function LibraryManager({
                         )}
                       </div>
                     </div>
-                    
-                    <button
-                      onClick={() => handleDeleteLibrary(library)}
-                      className="text-red-600 hover:text-red-700 p-1"
-                      title="Supprimer cette bibliothèque"
-                    >
-                      🗑️
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {onUpdateLibrary && (
+                        <button
+                          onClick={() => handleEditLibrary(library)}
+                          className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
+                          title="Modifier cette bibliothèque"
+                        >
+                          <PencilSimple size={16} weight="regular" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteLibrary(library)}
+                        className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
+                        title="Supprimer cette bibliothèque"
+                      >
+                        <Trash size={16} weight="regular" />
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="text-xs text-gray-500">

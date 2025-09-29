@@ -10,6 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Scan Book App - Gestionnaire de Bibliothèque',
@@ -103,7 +104,20 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
         cleanupOutdatedCaches: true,
-        skipWaiting: true
+        skipWaiting: true,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/covers\.openlibrary\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'openlibrary-covers',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 jours
+              }
+            }
+          }
+        ]
       }
     })
   ],

@@ -21,17 +21,17 @@ interface FiltersPanelProps {
 }
 
 const READING_STATUS_OPTIONS = [
-  { value: 'lu', label: '✅ Lu', color: 'bg-green-100 text-green-800' },
-  { value: 'non_lu', label: '⭕ Non lu', color: 'bg-gray-100 text-gray-800' },
-  { value: 'a_lire', label: '📖 À lire', color: 'bg-blue-100 text-blue-800' },
-  { value: 'en_cours', label: '🔄 En cours', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'abandonne', label: '❌ Abandonné', color: 'bg-red-100 text-red-800' }
+  { value: 'lu', label: 'Lu', color: 'bg-green-100 text-green-800' },
+  { value: 'non_lu', label: 'Non lu', color: 'bg-gray-100 text-gray-800' },
+  { value: 'a_lire', label: 'À lire', color: 'bg-blue-100 text-blue-800' },
+  { value: 'en_cours', label: 'En cours', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'abandonne', label: 'Abandonné', color: 'bg-red-100 text-red-800' }
 ];
 
 const BOOK_TYPE_OPTIONS = [
-  { value: 'physique', label: '📚 Physique', color: 'bg-brown-100 text-brown-800' },
-  { value: 'numerique', label: '💻 Numérique', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'audio', label: '🎧 Audio', color: 'bg-purple-100 text-purple-800' }
+  { value: 'physique', label: 'Physique', color: 'bg-brown-100 text-brown-800' },
+  { value: 'numerique', label: 'Numérique', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'audio', label: 'Audio', color: 'bg-purple-100 text-purple-800' }
 ];
 
 export default function FiltersPanel({ 
@@ -98,7 +98,7 @@ export default function FiltersPanel({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <h3 className="font-medium text-gray-900">🔍 Filtres</h3>
+          <h3 className="font-medium text-gray-900">Filtres</h3>
           {hasActiveFilters && (
             <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
               {activeFiltersCount}
@@ -111,7 +111,7 @@ export default function FiltersPanel({
             {filteredCount} / {bookCount} livre{bookCount > 1 ? 's' : ''}
           </span>
           <button className="text-gray-400 hover:text-gray-600 transition-colors">
-            {isExpanded ? '🔼' : '🔽'}
+            {isExpanded ? '▲' : '▼'}
           </button>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function FiltersPanel({
             
             {/* Statut de lecture */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">📊 Statut de lecture</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Statut de lecture</h4>
               <div className="space-y-2">
                 {READING_STATUS_OPTIONS.map(option => (
                   <label key={option.value} className="flex items-center cursor-pointer">
@@ -145,7 +145,7 @@ export default function FiltersPanel({
 
             {/* Type de livre */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">📱 Type de livre</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Type de livre</h4>
               <div className="space-y-2">
                 {BOOK_TYPE_OPTIONS.map(option => (
                   <label key={option.value} className="flex items-center cursor-pointer">
@@ -165,7 +165,7 @@ export default function FiltersPanel({
 
             {/* Genres */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">🏷️ Genres</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Genres</h4>
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {availableGenres.length > 0 ? (
                   availableGenres.map(genre => (
@@ -192,7 +192,7 @@ export default function FiltersPanel({
             {/* Bibliothèques */}
             {userLibraries.length > 0 && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-3 text-sm">🗂️ Bibliothèques</h4>
+                <h4 className="font-medium text-gray-900 mb-3 text-sm">Bibliothèques</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {userLibraries.map(library => (
                     <label key={library.id} className="flex items-center cursor-pointer">
@@ -225,7 +225,7 @@ export default function FiltersPanel({
             
             {/* Filtre par année */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">📅 Année de publication</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Année de publication</h4>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -258,7 +258,7 @@ export default function FiltersPanel({
 
             {/* Filtre par nombre de pages */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">📄 Nombre de pages</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Nombre de pages</h4>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -291,7 +291,7 @@ export default function FiltersPanel({
 
             {/* Favoris */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 text-sm">⭐ Favoris</h4>
+              <h4 className="font-medium text-gray-900 mb-3 text-sm">Favoris</h4>
               <div className="space-y-2">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -311,7 +311,7 @@ export default function FiltersPanel({
                     onChange={() => onFiltersChange({ ...filters, favorites: true })}
                     className="mr-2 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">⭐ Favoris uniquement</span>
+                  <span className="text-sm text-gray-700">Favoris uniquement</span>
                 </label>
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -332,20 +332,20 @@ export default function FiltersPanel({
             <button
               onClick={clearAllFilters}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                hasActiveFilters 
-                  ? 'text-gray-700 bg-gray-100 hover:bg-gray-200' 
+                hasActiveFilters
+                  ? 'text-gray-700 bg-gray-100 hover:bg-gray-200 cursor-pointer'
                   : 'text-gray-400 bg-gray-50 cursor-not-allowed'
               }`}
               disabled={!hasActiveFilters}
             >
-              🧹 Réinitialiser
+              Réinitialiser
             </button>
             
             <button
               onClick={() => setIsExpanded(false)}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
             >
-              🔍 Appliquer les filtres
+              Appliquer les filtres
             </button>
           </div>
         </div>

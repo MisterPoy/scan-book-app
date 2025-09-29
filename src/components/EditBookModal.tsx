@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
-import { resizeImage } from "../firebase";
+import { uploadImageToStorage, auth } from "../firebase";
 import type { UserLibrary } from "../types/library";
+import {
+  PencilSimple,
+  ChartBar,
+  Books,
+  Tag,
+  FolderOpen,
+  Camera,
+  Clock,
+  FloppyDisk,
+  DeviceMobile
+} from "phosphor-react";
 
 interface CollectionBook {
   isbn: string;
@@ -110,11 +121,17 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
 
     setUploading(true);
     try {
-      const base64Image = await resizeImage(file, 400, 0.8);
-      setFormData(prev => ({ ...prev, customCoverUrl: base64Image }));
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Utilisateur non connecté');
+      }
+
+      // Uploader vers Firebase Storage
+      const imageUrl = await uploadImageToStorage(file, currentUser.uid);
+      setFormData(prev => ({ ...prev, customCoverUrl: imageUrl }));
     } catch (error) {
-      console.error('Erreur traitement image:', error);
-      alert('Erreur lors du traitement de l\'image');
+      console.error('Erreur upload image:', error);
+      alert('Erreur lors de l\'upload de l\'image');
     } finally {
       setUploading(false);
     }
@@ -130,12 +147,15 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
       <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">✏️ Modifier le livre</h2>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <PencilSimple size={24} weight="bold" />
+            Modifier le livre
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            ✕
+            ×
           </button>
         </div>
         
@@ -228,7 +248,8 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📊 Statut de lecture
+                    <ChartBar size={16} weight="regular" className="inline mr-2" />
+                    Statut de lecture
                   </label>
                   <select
                     value={formData.readingStatus}
@@ -236,32 +257,34 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="non_lu">⭕ Non lu</option>
-                    <option value="a_lire">📖 À lire</option>
-                    <option value="en_cours">🔄 En cours</option>
-                    <option value="lu">✅ Lu</option>
-                    <option value="abandonne">❌ Abandonné</option>
+                    <option value="a_lire">À lire</option>
+                    <option value="en_cours">En cours</option>
+                    <option value="lu">Lu</option>
+                    <option value="abandonne">Abandonné</option>
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📱 Type de livre
+                    <DeviceMobile size={16} weight="regular" className="inline mr-2" />
+                    Type de livre
                   </label>
                   <select
                     value={formData.bookType}
                     onChange={(e) => setFormData(prev => ({ ...prev, bookType: e.target.value as any }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="physique">📚 Physique</option>
-                    <option value="numerique">💻 Numérique</option>
-                    <option value="audio">🎧 Audio</option>
+                    <option value="physique">Physique</option>
+                    <option value="numerique">Numérique</option>
+                    <option value="audio">Audio</option>
                   </select>
                 </div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏷️ Genre / Catégorie
+                  <Tag size={16} weight="regular" className="inline mr-2" />
+                  Genre / Catégorie
                 </label>
                 <input
                   type="text"
@@ -274,7 +297,8 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏷️ Tags (séparés par des virgules)
+                  <Tag size={16} weight="regular" className="inline mr-2" />
+                  Tags (séparés par des virgules)
                 </label>
                 <input
                   type="text"
@@ -289,7 +313,8 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               {userLibraries.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🗂️ Bibliothèques (multi-sélection)
+                    <FolderOpen size={16} weight="regular" className="inline mr-2" />
+                    Bibliothèques (multi-sélection)
                   </label>
                   <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto bg-gray-50">
                     {userLibraries.map(library => (
@@ -353,12 +378,14 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
                         title="Supprimer la couverture"
                       >
-                        ✕
+                        ×
                       </button>
                     </div>
                   ) : (
                     <div className="py-8">
-                      <div className="text-gray-400 text-6xl mb-4">📚</div>
+                      <div className="text-gray-400 mb-4">
+                        <Books size={64} weight="regular" />
+                      </div>
                       <p className="text-gray-600 text-sm mb-4">Aucune couverture personnalisée</p>
                     </div>
                   )}
@@ -368,7 +395,22 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                       ? 'bg-gray-400 text-white cursor-not-allowed' 
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}>
-                    {uploading ? "⏳ Traitement..." : formData.customCoverUrl ? "📷 Changer l'image" : "📷 Ajouter une image"}
+                    {uploading ? (
+                      <>
+                        <Clock size={16} weight="regular" className="inline mr-2" />
+                        Traitement...
+                      </>
+                    ) : formData.customCoverUrl ? (
+                      <>
+                        <Camera size={16} weight="regular" className="inline mr-2" />
+                        Changer l'image
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={16} weight="regular" className="inline mr-2" />
+                        Ajouter une image
+                      </>
+                    )}
                     <input
                       type="file"
                       accept="image/*"
@@ -382,7 +424,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               
               {/* Aperçu des informations */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">📋 Aperçu</h3>
+                <h3 className="font-medium text-gray-900 mb-3">Aperçu</h3>
                 <div className="space-y-2 text-sm">
                   <div><span className="font-medium">Titre:</span> {formData.title || "Non défini"}</div>
                   <div><span className="font-medium">Auteur(s):</span> {formData.authors || "Non défini"}</div>
@@ -399,16 +441,26 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={uploading}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              {uploading ? "⏳ Traitement..." : "💾 Enregistrer les modifications"}
+              {uploading ? (
+                <>
+                  <Clock size={16} weight="regular" className="inline mr-2" />
+                  Traitement...
+                </>
+              ) : (
+                <>
+                  <FloppyDisk size={16} weight="bold" className="inline mr-2" />
+                  Enregistrer les modifications
+                </>
+              )}
             </button>
           </div>
         </form>

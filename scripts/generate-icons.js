@@ -13,7 +13,7 @@ if (!fs.existsSync(iconsDir)) {
 
 // Generate PNG icons from SVG
 async function generateIcons() {
-  console.log('🎨 Génération des icônes PWA...');
+  console.log('Génération des icônes PWA...');
   
   for (const size of sizes) {
     const outputPath = path.join(iconsDir, `icon-${size}x${size}.png`);
@@ -24,13 +24,13 @@ async function generateIcons() {
         .png()
         .toFile(outputPath);
       
-      console.log(`✅ Icône ${size}x${size} générée`);
+      console.log(`Icône ${size}x${size} générée`);
     } catch (error) {
-      console.error(`❌ Erreur pour ${size}x${size}:`, error.message);
+      console.error(`Erreur pour ${size}x${size}:`, error.message);
     }
   }
   
-  console.log('🎉 Génération des icônes terminée !');
+  console.log('Génération des icônes terminée !');
 }
 
 generateIcons();

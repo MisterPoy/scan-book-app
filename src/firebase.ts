@@ -10,6 +10,7 @@ import {
   browserLocalPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 
@@ -39,6 +40,7 @@ provider.setCustomParameters({
 });
 
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // Fonctions d'authentification
 export const registerWithEmail = async (email: string, password: string, displayName: string) => {
@@ -71,22 +73,43 @@ export const resizeImage = (file: File, maxWidth: number = 400, quality: number 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
       // Calculer les nouvelles dimensions en gardant le ratio
       const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
       canvas.width = img.width * ratio;
       canvas.height = img.height * ratio;
-      
+
       // Dessiner l'image redimensionnée
       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
+
       // Convertir en base64 avec compression
       const base64 = canvas.toDataURL('image/jpeg', quality);
       resolve(base64);
     };
-    
+
     img.onerror = reject;
     img.src = URL.createObjectURL(file);
   });
+};
+
+// Nouvelle fonction pour uploader vers Firebase Storage
+export const uploadImageToStorage = async (file: File, userId: string): Promise<string> => {
+  // Redimensionner d'abord l'image
+  const resizedBase64 = await resizeImage(file, 400, 0.8);
+
+  // Convertir base64 en blob
+  const response = await fetch(resizedBase64);
+  const blob = await response.blob();
+
+  // Créer une référence unique dans Firebase Storage
+  const timestamp = Date.now();
+  const storageRef = ref(storage, `covers/${userId}/${timestamp}.jpg`);
+
+  // Uploader le fichier
+  await uploadBytes(storageRef, blob);
+
+  // Récupérer l'URL de téléchargement
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
 };

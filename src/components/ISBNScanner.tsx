@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useZxing } from "react-zxing";
+import { VideoCamera, Camera, Book, Question, X, DeviceMobile, Warning } from "phosphor-react";
 
 interface Props {
   onDetected: (code: string) => void;
@@ -63,25 +64,37 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
           }}
           className={`px-3 py-2 rounded text-sm font-medium ${
             cameraActive
-              ? "bg-orange-500 hover:bg-orange-600 text-white"
-              : "bg-green-500 hover:bg-green-600 text-white"
+              ? "bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+              : "bg-green-500 hover:bg-green-600 text-white cursor-pointer"
           }`}
         >
-          {cameraActive ? "📹 Désactiver" : "📷 Activer"}
+          {cameraActive ? (
+            <>
+              <VideoCamera size={16} weight="regular" className="inline mr-2" />
+              Désactiver
+            </>
+          ) : (
+            <>
+              <Camera size={16} weight="regular" className="inline mr-2" />
+              Activer
+            </>
+          )}
         </button>
 
         <button
           onClick={() => setHelpVisible(!helpVisible)}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium"
+          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium cursor-pointer"
         >
-          ❓ Aide
+          <Question size={16} weight="regular" className="inline mr-2" />
+          Aide
         </button>
 
         <button
           onClick={onClose}
-          className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm font-medium"
+          className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm font-medium cursor-pointer"
         >
-          ✕ Fermer
+          <X size={16} weight="regular" className="inline mr-2" />
+          Fermer
         </button>
       </div>
 
@@ -89,7 +102,8 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       {helpVisible && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm max-w-md">
           <h4 className="font-medium text-blue-900 mb-2">
-            📖 Conseils pour scanner un ISBN :
+            <Book size={16} weight="regular" className="inline mr-2" />
+            Conseils pour scanner un ISBN :
           </h4>
           <ul className="text-blue-800 space-y-1">
             <li>• Placez le code-barres dans la zone rectangulaire</li>
@@ -122,7 +136,7 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-35 border-2 border-dashed border-blue-400 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <div className="text-blue-600 font-semibold text-xs mb-1">
-                  📖 Zone de scan
+                  Zone de scan
                 </div>
                 <div className="text-blue-500 text-xs">Code-barres ici</div>
               </div>
@@ -133,7 +147,8 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
 
             {/* Indicateur de qualité */}
             <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs">
-              📱 {cameraInfo || "Résolution: HD"}
+              <DeviceMobile size={16} className="inline mr-1" />
+              {cameraInfo || "Résolution: HD"}
             </div>
           </div>
 
@@ -141,8 +156,10 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       ) : (
         <div className="w-[400px] h-[300px] bg-gray-200 flex items-center justify-center rounded-lg shadow-lg">
           <div className="text-center">
-            <div className="text-gray-400 text-6xl mb-4">📷</div>
-            <p className="text-gray-600 font-medium">Caméra désactivée</p>
+            <div className="text-gray-400 mb-4">
+              <Camera size={64} weight="regular" />
+            </div>
+            <p className="text-gray-600 font-medium cursor-pointer">Caméra désactivée</p>
             <p className="text-gray-500 text-sm">
               Activez la caméra pour scanner
             </p>
@@ -154,8 +171,8 @@ export default function ISBNScanner({ onDetected, onClose }: Props) {
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg max-w-md">
           <div className="flex items-center gap-2">
-            <span className="text-red-500">⚠️</span>
-            <p className="text-red-700 text-sm font-medium">{error}</p>
+            <Warning size={16} weight="regular" className="text-red-500" />
+            <p className="text-red-700 text-sm font-medium cursor-pointer">{error}</p>
           </div>
           <div className="mt-2 text-red-600 text-xs">
             Essayez d'améliorer l'éclairage ou utilisez le mode photo
