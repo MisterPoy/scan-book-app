@@ -29,3 +29,10 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Journalisation locale (ne pas commiter)
+JOURNAL_*.md
+*_JOURNAL.md
+journal_*.md
+notes_dev.md
+.local/
