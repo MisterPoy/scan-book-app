@@ -154,25 +154,26 @@
 - **Fichiers modifiés** : `src/App.tsx`
 - **Résultat** : ✅ **TOUTES** les modales ont maintenant le même style de bouton fermeture
 
-### ✅ Fix Bouton Retour en Haut - Scroll Modale
+### ✅ Fix Bouton Retour en Haut - Scroll Modale (Complet)
 - **Problème** : Bouton retour en haut ne s'affichait pas dans modale Ma Collection
-- **Cause** : ScrollToTop écoutait `window.scrollY` mais modale scrolle en interne
-- **Solution** : Nouveau composant ModalScrollToTop pour scroll de container
+- **Cause 1** : ScrollToTop écoutait `window.scrollY` mais modale scrolle en interne
+- **Cause 2** : Position absolute au lieu de fixed
+- **Solution** : Nouveau composant ModalScrollToTop en position fixed
 - **Réalisé** :
   - ✅ `src/components/ModalScrollToTop.tsx` - Nouveau composant avec containerRef
   - ✅ Utilise scroll listener sur containerRef au lieu de window
   - ✅ `src/App.tsx:823` - Ajout `collectionModalScrollRef` avec useRef
-  - ✅ `src/App.tsx:2226` - Ajout ref sur div scrollable + classe relative
+  - ✅ `src/App.tsx:2226` - Ajout ref sur div scrollable
   - ✅ `src/App.tsx:2349` - Intégration ModalScrollToTop dans modale
-  - ✅ Position absolute bottom-right, apparaît après 300px de scroll
+  - ✅ **Fix final** : Position fixed (pas absolute) + z-50 pour visibilité
+  - ✅ Bouton apparaît après 300px de scroll, fixé en bas à droite écran
 - **Fichiers créés** : `src/components/ModalScrollToTop.tsx`
 - **Fichiers modifiés** : `src/App.tsx`
-- **Note** : ScrollToTop (window) reste pour scroll page principale
+- **Résultat** : ✅ Bouton visible et fonctionnel dans modale + page principale
 
 ### ⏳ À Faire
 - [ ] Tester le bulk add en production (scan 3-5 livres)
 - [ ] Retirer les logs de débogage une fois validation OK
-- [ ] Tester boutons retour en haut (page + modale) sur mobile et desktop
 - [ ] Vérifier toutes icônes bibliothèques s'affichent correctement
 
 ## 2025-09-29 - Implémentation du Backlog (Phase 1 Critique)
