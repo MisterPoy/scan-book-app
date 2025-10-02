@@ -27,7 +27,8 @@ import {
   Hourglass,
   Megaphone,
   Crown,
-  Bell
+  Bell,
+  Stack
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -40,6 +41,7 @@ import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import NotificationSettings from "./components/NotificationSettings";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
@@ -55,6 +57,8 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
+import { bulkAddBooks } from "./utils/bookApi";
+import type { BulkAddResponse } from "./types/bulkAdd";
 
 interface CollectionBook {
   isbn: string;
@@ -831,6 +835,11 @@ function App() {
     null
   ); // null = tous les livres
 
+  // États pour le mode multi-scan
+  const [scanMode, setScanMode] = useState<'single' | 'batch'>('single');
+  const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+
   const handleDetected = (code: string) => {
     setIsbn(code);
     setScanning(false);
@@ -1530,6 +1539,72 @@ function App() {
     await updateBookInFirestore(updatedBook);
   };
 
+  // Handlers pour le mode multi-scan
+  const handleBulkScanComplete = (isbns: string[]) => {
+    setBulkScannedIsbns(isbns);
+    setScanning(false);
+    setShowBulkConfirmModal(true);
+  };
+
+  const handleBulkAddConfirm = async (isbns: string[], personalNotes: Record<string, string>) => {
+    if (!user) return;
+
+    try {
+      const response: BulkAddResponse = await bulkAddBooks(
+        isbns,
+        user.uid,
+        db,
+        collectionBooks,
+        personalNotes
+      );
+
+      // Recharger la collection depuis Firestore
+      const collectionRef = collection(db, `users/${user.uid}/collection`);
+      const snapshot = await getDocs(collectionRef);
+      const books = snapshot.docs.map(doc => ({ ...doc.data() } as CollectionBook));
+      setCollectionBooks(books);
+
+      // Afficher le feedback
+      const { added, duplicates, errors } = response;
+      let message = '';
+
+      if (added.length > 0) {
+        message += `${added.length} livre${added.length > 1 ? 's' : ''} ajouté${added.length > 1 ? 's' : ''}`;
+      }
+      if (duplicates.length > 0) {
+        message += message ? `, ${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''}` : `${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''}`;
+      }
+      if (errors.length > 0) {
+        message += message ? `, ${errors.length} erreur${errors.length > 1 ? 's' : ''}` : `${errors.length} erreur${errors.length > 1 ? 's' : ''}`;
+      }
+
+      setAddMessage({
+        text: message,
+        type: errors.length > 0 && added.length === 0 ? 'error' : 'success'
+      });
+
+      // Masquer le message après 5 secondes
+      setTimeout(() => setAddMessage(null), 5000);
+
+      // Fermer la modale
+      setShowBulkConfirmModal(false);
+      setBulkScannedIsbns([]);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout groupé:', error);
+      setAddMessage({
+        text: 'Erreur lors de l\'ajout des livres',
+        type: 'error'
+      });
+      setTimeout(() => setAddMessage(null), 5000);
+    }
+  };
+
+  const handleBulkAddCancel = () => {
+    setShowBulkConfirmModal(false);
+    setBulkScannedIsbns([]);
+  };
+
   // Utilisation du hook de filtres
   const { filteredBooks: baseFilteredBooks, availableGenres } = useBookFilters(
     collectionBooks,
@@ -1658,13 +1733,35 @@ function App() {
         <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
           {!scanning ? (
             <div className="flex flex-col items-center space-y-6">
-              <button
-                onClick={() => setScanning(true)}
-                className="px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
-              >
-                <Camera size={16} weight="bold" className="inline mr-2" />
-                Scanner un livre
-              </button>
+              {/* Boutons de scan */}
+              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                <button
+                  onClick={() => {
+                    setScanMode('single');
+                    setScanning(true);
+                  }}
+                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
+                >
+                  <Camera size={20} weight="bold" className="inline mr-2" />
+                  Scan unique
+                </button>
+                <button
+                  onClick={() => {
+                    setScanMode('batch');
+                    setScanning(true);
+                  }}
+                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md cursor-pointer"
+                >
+                  <Stack size={20} weight="bold" className="inline mr-2" />
+                  Scan par lot
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 text-center max-w-md">
+                <strong>Scan unique</strong> : Scannez un livre et ajoutez-le immédiatement
+                <br />
+                <strong>Scan par lot</strong> : Scannez plusieurs livres puis validez en une fois
+              </p>
 
               <div className="flex items-center w-full max-w-sm">
                 <div className="flex-1 h-px bg-gray-300"></div>
@@ -1750,7 +1847,9 @@ function App() {
               </div>
             }>
               <ISBNScanner
-                onDetected={handleDetected}
+                mode={scanMode}
+                onDetected={scanMode === 'single' ? handleDetected : undefined}
+                onBulkScanComplete={scanMode === 'batch' ? handleBulkScanComplete : undefined}
                 onClose={() => setScanning(false)}
               />
             </Suspense>
@@ -2459,6 +2558,14 @@ function App() {
         isOpen={showAnnouncementManager}
         onClose={() => setShowAnnouncementManager(false)}
         currentUser={user ? { uid: user.uid, role: 'admin' } : undefined}
+      />
+
+      {/* Bulk Add Confirmation Modal */}
+      <BulkAddConfirmModal
+        isbns={bulkScannedIsbns}
+        isOpen={showBulkConfirmModal}
+        onConfirm={handleBulkAddConfirm}
+        onCancel={handleBulkAddCancel}
       />
 
       {/* Notification Settings Modal */}

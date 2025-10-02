@@ -93,3 +93,107 @@
   - ✅ Guide utilisation, architecture technique, sécurité, déploiement
   - ✅ Style cohérent sans émojis
 - **Résultat** : Documentation exploitable par nouveaux développeurs
+
+## 2025-10-02 - Mode Multi-Scan + Ajout Groupé de Livres
+
+### Contexte
+- **Objectif** : Permettre de scanner plusieurs livres d'affilée et de les ajouter en lot
+- **Besoin** : Éviter 20 requêtes individuelles lors de l'ajout de plusieurs livres
+- **UX** : Conserver le scan unique existant + ajouter un mode "scan par lot"
+
+### ✅ Ticket 1 & 2 - Refactor ISBNScanner avec deux modes
+- **Réalisé** :
+  - ✅ `src/components/ISBNScanner.tsx` - Ajout prop `mode: 'single' | 'batch'`
+  - ✅ Props conditionnelles : `onDetected` (single) et `onBulkScanComplete` (batch)
+  - ✅ State `scannedBooks: ScannedBook[]` pour pile temporaire en mode batch
+  - ✅ Détection doublons : vibration + message d'erreur si ISBN déjà scanné
+  - ✅ Composant `ScannedBookMiniCard` : mini-cartes avec couverture, titre, auteur
+  - ✅ Pile horizontale scrollable en bas du scanner (mode batch uniquement)
+  - ✅ Boutons "Réinitialiser" et "Valider le lot" (mode batch)
+  - ✅ Feedback sonore (bip) + vibration sur chaque scan réussi
+  - ✅ Animation fadeIn sur apparition des mini-cartes
+  - ✅ Badge indiquant le mode actif en haut du scanner
+- **Résultat** : Scanner supporte maintenant deux modes UX distincts
+
+### ✅ Ticket 3 - Interfaces TypeScript et Utils
+- **Réalisé** :
+  - ✅ `src/types/bulkAdd.ts` - Interfaces `ScannedBook`, `BulkAddRequest`, `BulkAddResponse`, `BookMetadata`
+  - ✅ `src/utils/bookApi.ts` - Fonctions utilitaires centralisées :
+    - `fetchBookMetadata(isbn)` : Fetch Google Books + fallback OpenLibrary
+    - `fetchMultipleBooks(isbns)` : Fetch parallèle de plusieurs ISBNs
+    - `getOpenLibraryCoverUrl(isbn, size)` : Génération URL couverture
+    - `bulkAddBooks(isbns, userId, db, existingBooks, personalNotes)` : Ajout groupé avec Firebase batch
+- **Résultat** : Code modulaire et réutilisable, logique métier centralisée
+
+### ✅ Ticket 4 - Logique Firebase Batch
+- **Réalisé** :
+  - ✅ `src/utils/bookApi.ts:105-191` - Fonction `bulkAddBooks()` avec Firebase `writeBatch()`
+  - ✅ Vérification doublons côté client avant écriture
+  - ✅ Fetch métadonnées pour chaque ISBN non-doublon
+  - ✅ Batch write Firestore (limite 500 ops, commit automatique si dépassement)
+  - ✅ Rapport détaillé : `{ added: [], duplicates: [], errors: [] }`
+  - ✅ Support notes personnelles par livre (optionnel)
+- **Résultat** : Ajout optimisé de plusieurs livres en une seule transaction
+
+### ✅ Ticket 5 - Modale de Confirmation
+- **Réalisé** :
+  - ✅ `src/components/BulkAddConfirmModal.tsx` - Modale de prévisualisation
+  - ✅ Liste tous les livres scannés avec couverture + titre + auteur
+  - ✅ Champ textarea "Note personnelle" pour chaque livre (facultatif)
+  - ✅ Bouton supprimer sur chaque livre avant validation
+  - ✅ Compteur dynamique "X livres sélectionnés"
+  - ✅ Badge d'erreur si métadonnées introuvables
+  - ✅ État de chargement pendant fetch des métadonnées
+  - ✅ Bouton "Ajouter X livres" avec désactivation si liste vide
+- **Résultat** : UX claire pour révision et personnalisation avant ajout
+
+### ✅ Ticket 6 - Intégration App.tsx
+- **Réalisé** :
+  - ✅ `src/App.tsx:1-63` - Ajout imports (Stack, CheckCircle, Warning, BulkAddConfirmModal, bulkAddBooks, BulkAddResponse)
+  - ✅ `src/App.tsx:840-844` - Nouveaux states : `scanMode`, `bulkScannedIsbns`, `showBulkConfirmModal`, `bulkAddingToCollection`
+  - ✅ `src/App.tsx:1545-1612` - Handlers :
+    - `handleBulkScanComplete(isbns)` : Ouvre modale confirmation
+    - `handleBulkAddConfirm(isbns, personalNotes)` : Appel bulkAddBooks + rechargement collection + feedback toast
+    - `handleBulkAddCancel()` : Annulation et reset
+  - ✅ `src/App.tsx:1743-1770` - UI : Deux boutons "Scan unique" (bleu) et "Scan par lot" (vert) avec descriptions
+  - ✅ `src/App.tsx:1855-1860` - Props conditionnelles pour ISBNScanner selon le mode
+  - ✅ `src/App.tsx:2569-2575` - Ajout de BulkAddConfirmModal dans le render
+- **Résultat** : Intégration complète du mode multi-scan dans l'application
+
+### ✅ Ticket 7 - Animations, Feedback, Accessibilité
+- **Réalisé** :
+  - ✅ `src/index.css:4-17` - Animation CSS `@keyframes fadeIn` pour apparition des mini-cartes
+  - ✅ `src/components/ISBNScanner.tsx:147-160` - Détection doublon avec vibration double + timeout 2s
+  - ✅ `src/components/ISBNScanner.tsx:172-196` - Feedback sonore via Web Audio API (oscillateur 800Hz, 0.1s)
+  - ✅ `src/components/ISBNScanner.tsx:347-356` - Alert doublon avec `role="alert"` et `aria-live="assertive"`
+  - ✅ `src/components/ISBNScanner.tsx:432-435` - Pile avec `role="list"` et `aria-label`
+  - ✅ `src/components/BulkAddConfirmModal.tsx` - Accessibilité modale (aria-label, rôles sémantiques)
+  - ✅ Toast de feedback final : "X livres ajoutés, Y doublons, Z erreurs"
+- **Résultat** : Expérience utilisateur riche avec feedbacks visuels, sonores, tactiles et accessibilité complète
+
+### 📋 Prochaines Étapes Suggérées
+1. **Tests utilisateurs** : Valider l'UX des deux modes de scan
+2. **Performance** : Tester avec 50+ livres scannés d'affilée
+3. **Offline** : Vérifier comportement PWA en mode hors ligne
+4. **Analytics** : Tracker usage scan unique vs scan par lot
+
+### 📝 Notes Techniques
+- **Mode single** : Comportement identique à l'ancien système (rétrocompatibilité totale)
+- **Mode batch** : Nouveau flux scan → pile → modale → validation
+- **Firebase** : Utilisation de `writeBatch()` pour optimiser les écritures (max 500 ops/batch)
+- **APIs** : Google Books en priorité, OpenLibrary en fallback
+- **Doublons** : Vérifiés côté client avant écriture Firestore (économie de requêtes)
+- **Notes perso** : Stockées dans le champ `notes` de chaque livre Firestore
+
+### 🔧 Fichiers Créés
+- `src/types/bulkAdd.ts`
+- `src/utils/bookApi.ts`
+- `src/components/BulkAddConfirmModal.tsx`
+
+### 🔧 Fichiers Modifiés
+- `src/App.tsx`
+- `src/components/ISBNScanner.tsx`
+- `src/index.css`
+
+### ⚠️ Aucune Action Firebase Console Requise
+Toutes les modifications sont côté client, aucune règle Firestore à déployer.
