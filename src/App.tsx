@@ -2163,9 +2163,10 @@ function App() {
                   setShowCollectionModal(false);
                   setSelectedBook(null);
                 }}
-                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+                aria-label="Fermer"
               >
-                <X size={20} />
+                <X size={24} weight="bold" />
               </button>
             </div>
 
@@ -2352,9 +2353,10 @@ function App() {
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
             <button
               onClick={() => setShowAuthModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+              aria-label="Fermer"
             >
-              <X size={20} />
+              <X size={24} weight="bold" />
             </button>
             <div className="p-6">
               <Login onLogin={() => setShowAuthModal(false)} />
@@ -2384,9 +2386,10 @@ function App() {
                     customCoverUrl: "",
                   });
                 }}
-                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+                aria-label="Fermer"
               >
-                <X size={20} />
+                <X size={24} weight="bold" />
               </button>
             </div>
 

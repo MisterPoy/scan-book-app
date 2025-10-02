@@ -143,6 +143,17 @@
 - **Fichiers créés** : `src/components/ScrollToTop.tsx`
 - **Fichiers modifiés** : `src/App.tsx`
 
+### ✅ Correction Finale - 3 Modales Oubliées
+- **Problème** : Boutons X encore anciens dans 3 modales (Ma Collection, Auth, Ajout Manuel)
+- **Solution** : Application du même style amélioré
+- **Réalisé** :
+  - ✅ `src/App.tsx:2161-2170` - Modale "Ma Collection"
+  - ✅ `src/App.tsx:2354-2360` - Modale authentification
+  - ✅ `src/App.tsx:2376-2393` - Modale ajout manuel
+  - ✅ Style uniforme : `p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700`
+- **Fichiers modifiés** : `src/App.tsx`
+- **Résultat** : ✅ **TOUTES** les modales ont maintenant le même style de bouton fermeture
+
 ### ⏳ À Faire
 - [ ] Tester le bulk add en production (scan 3-5 livres)
 - [ ] Retirer les logs de débogage une fois validation OK
