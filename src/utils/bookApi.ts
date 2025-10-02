@@ -1,4 +1,5 @@
 import type { BookMetadata, ScannedBook } from '../types/bulkAdd';
+import type { Firestore } from 'firebase/firestore';
 
 /**
  * Récupère les métadonnées d'un livre via son ISBN
@@ -35,7 +36,7 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
     if (bookData) {
       return {
         title: bookData.title || 'Titre inconnu',
-        authors: bookData.authors?.map((a: any) => a.name) || [],
+        authors: bookData.authors?.map((a: { name: string }) => a.name) || [],
         publisher: bookData.publishers?.[0]?.name,
         publishedDate: bookData.publish_date,
         description: bookData.notes || bookData.subtitle,
@@ -105,7 +106,7 @@ export function getOpenLibraryCoverUrl(isbn: string, size: 'S' | 'M' | 'L' = 'M'
 export async function bulkAddBooks(
   isbns: string[],
   userId: string,
-  db: any, // Firestore instance
+  db: Firestore,
   existingBooks: Array<{ isbn: string }>, // Livres déjà dans la collection
   personalNotes?: Record<string, string>
 ): Promise<import('../types/bulkAdd').BulkAddResponse> {

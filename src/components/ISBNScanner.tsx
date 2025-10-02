@@ -173,7 +173,8 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
 
     // Feedback sonore (optionnel)
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const audioContext = new AudioContextClass();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -236,6 +237,7 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         console.log("Paramètres caméra réels:", settings);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraActive, ref.current?.srcObject]);
 
   return (

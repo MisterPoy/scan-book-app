@@ -35,6 +35,7 @@ export default function BulkAddConfirmModal({
       loadBooks();
       setSelectedIsbns(isbns);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isbns]);
 
   const loadBooks = async () => {
