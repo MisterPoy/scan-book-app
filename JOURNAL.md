@@ -2,6 +2,52 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-02 - Nettoyage Historique Git + Fix Build
+
+### ✅ NETTOYAGE COMPLET HISTORIQUE GIT
+- **Objectif** : Supprimer toutes les mentions externes de l'historique git
+- **Raison** : Garder uniquement le propriétaire comme contributeur sur GitHub
+- **Méthode** : `git filter-branch` avec filtres grep/sed
+- **Réalisé** :
+  - ✅ Création branche backup `backup-avant-nettoyage` pour sécurité
+  - ✅ `git filter-branch --force --msg-filter "grep -v 'Generated with' | grep -v 'Co-Authored-By: Claude' | sed '/^$/{ N; /^\n$/d; }'"`
+  - ✅ Traitement de 92 commits en 60 secondes
+  - ✅ Suppression de toutes les lignes de génération et co-authorship
+  - ✅ Vérification : `git log --format="%B" main | grep -i claude` → aucun résultat
+- **Résultat** : Historique git propre, un seul contributeur sur GitHub ✅
+- **Fichiers affectés** : Tous les commits de toutes les branches
+- **Commandes utilisées** :
+  ```bash
+  git branch backup-avant-nettoyage
+  git checkout -- .claude/settings.local.json
+  git filter-branch --force --msg-filter "grep -v 'Generated with' | grep -v 'Co-Authored-By: Claude' | sed '/^$/{ N; /^\n$/d; }'" -- --all
+  git push --force origin main
+  ```
+
+### ✅ FIX BUILD TYPESCRIPT - ModalScrollToTop
+- **Problème** : Erreur TypeScript lors du build Vercel
+  ```
+  src/App.tsx(2349,33): error TS2322: Type 'RefObject<HTMLDivElement | null>'
+  is not assignable to type 'RefObject<HTMLDivElement>'.
+  ```
+- **Cause** : Interface trop stricte, n'acceptait pas les refs nullables de React
+- **Solution** : Accepter le type nullable dans l'interface du composant
+- **Réalisé** :
+  - ✅ `src/components/ModalScrollToTop.tsx:5` - Modification interface
+  - ✅ `RefObject<HTMLDivElement>` → `RefObject<HTMLDivElement | null>`
+- **Fichiers modifiés** : `src/components/ModalScrollToTop.tsx`
+- **Résultat** : `npm run build` réussi ✅ (0 erreurs, warnings normaux)
+
+### 📋 PROCHAINES ÉTAPES
+1. ✅ Historique git nettoyé et pushé
+2. ✅ Build TypeScript réussi
+3. Vérifier sur GitHub que seul le propriétaire apparaît comme contributeur
+4. Tester le déploiement Vercel avec le nouveau build
+5. Valider le bulk add en production (scanner 3-5 livres)
+6. Nettoyer les console.log de debug une fois tout validé
+
+---
+
 ## 2025-10-02 - Améliorations UX Page d'Accueil + Debugging Bulk Add
 
 ### 🔧 En Cours - Simplification Page d'Accueil avec Accordéons
