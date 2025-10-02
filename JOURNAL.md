@@ -67,10 +67,29 @@
 - **Résultat** : ✅ **0 erreurs, 0 warnings** au lint
 - **Fichiers modifiés** : Multiples (voir détails agent)
 
+### ✅ Fix Build Vercel - Erreurs TypeScript Production
+- **Problème** : Build Vercel échouait avec erreurs TypeScript
+- **Erreurs corrigées** :
+  - Property 'categories' does not exist on type 'CollectionBook' → Ajouté à l'interface
+  - Parameter 'book' implicitly has an 'any' type → Type explicite `GoogleBook`
+  - Type 'string[] | undefined' is not assignable → Ajout `|| []` pour authors
+  - Type 'Record<string, unknown>' incompatible updateDoc → Cast `Partial<UserLibrary>`
+  - Payload notification hook type 'unknown' → Cast avec interface
+- **Réalisé** :
+  - ✅ `src/App.tsx:83` - Ajout `categories?: string[]` dans CollectionBook
+  - ✅ `src/App.tsx:971` - Type explicite `(book: GoogleBook)`
+  - ✅ `src/App.tsx:2075-2076` - Ajout `|| []` pour authors et `|| ""` pour isbn
+  - ✅ `src/App.tsx:1213,1223` - Cast `Partial<UserLibrary>` puis `Record<string, string>`
+  - ✅ `src/hooks/useNotifications.ts:48` - Cast payload avec interface
+  - ✅ `src/App.tsx:1141-1144` - Cast fetchCollection avec `CollectionBook & { id: string }`
+- **Résultat** : ✅ Build local OK (1344 modules, 16.12s)
+- **Fichiers modifiés** : `src/App.tsx`, `src/hooks/useNotifications.ts`
+
 ### ⏳ À Faire
-- [ ] Tester le bulk add avec la correction (scan 3-5 livres)
+- [ ] Vérifier déploiement Vercel réussi
+- [ ] Tester le bulk add en production (scan 3-5 livres)
 - [ ] Retirer les logs de débogage une fois validation OK
-- [ ] Corriger problèmes responsive à basse résolution
+- [ ] Corriger problèmes responsive à basse résolution (si détectés)
 
 ## 2025-09-29 - Implémentation du Backlog (Phase 1 Critique)
 
