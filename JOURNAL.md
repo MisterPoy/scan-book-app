@@ -85,11 +85,69 @@
 - **Résultat** : ✅ Build local OK (1344 modules, 16.12s)
 - **Fichiers modifiés** : `src/App.tsx`, `src/hooks/useNotifications.ts`
 
+### ✅ Corrections Majeures UX Interface (Session 2)
+
+#### Fix Icônes Bibliothèques (Lettres → Phosphor)
+- **Problème** : Icônes bibliothèques affichées comme texte ("FolderOpen", "Books")
+- **Cause** : Stockage en string au lieu de composants React
+- **Solution** : Fonction de rendu centralisée
+- **Réalisé** :
+  - ✅ `src/utils/iconRenderer.tsx` - Fonction `renderLibraryIcon()` avec mapping complet
+  - ✅ `src/App.tsx` - Import et utilisation dans 5 endroits (badges, sélecteurs)
+  - ✅ `src/components/FiltersPanel.tsx` - Application dans filtres
+  - ✅ `src/components/EditBookModal.tsx` - Application dans modal édition
+- **Fichiers créés** : `src/utils/iconRenderer.tsx`
+- **Fichiers modifiés** : `src/App.tsx`, `FiltersPanel.tsx`, `EditBookModal.tsx`
+
+#### Visibilité Boutons Fermeture Modales (Toutes)
+- **Problème** : Croix (X) de fermeture peu visibles dans plusieurs modales
+- **Solution** : Style uniforme avec fond, hover et bold
+- **Réalisé** :
+  - ✅ `AnnouncementManager.tsx` - Bouton X amélioré
+  - ✅ `LibraryManager.tsx` - Bouton X amélioré
+  - ✅ `AnnouncementModal.tsx` - Bouton X amélioré
+  - ✅ `EditBookModal.tsx` - Remplacement × par composant X Phosphor
+  - ✅ `ScheduledNotifications.tsx` - Bouton X amélioré
+  - ✅ Style final : `p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700`
+- **Fichiers modifiés** : 5 composants modaux
+
+#### Tests Notifications Admin Uniquement
+- **Problème** : Boutons "Test rapide" et "Tests avancés" visibles pour tous
+- **Solution** : Masquage conditionnel selon rôle
+- **Réalisé** :
+  - ✅ `src/App.tsx:2636` - Passage prop `isAdmin` à NotificationSettings
+  - ✅ `src/components/NotificationSettings.tsx:9,12` - Ajout prop `isAdmin`
+  - ✅ `src/components/NotificationSettings.tsx:121` - Condition `enabled && isAdmin`
+- **Fichiers modifiés** : `src/App.tsx`, `src/components/NotificationSettings.tsx`
+
+#### Bouton Détails Livre Plus Visible
+- **Problème** : Flèche CaretDown peu claire, utilisateurs ne comprennent pas
+- **Solution** : Ajout texte + border + style amélioré
+- **Réalisé** :
+  - ✅ `src/App.tsx:553-569` - Refonte complète du bouton
+  - ✅ Ajout texte "Détails" / "Masquer" avec icône
+  - ✅ Border bleu + fond hover + taille augmentée
+  - ✅ Icône passée à 18px (au lieu de 16px)
+- **Fichiers modifiés** : `src/App.tsx`
+
+#### Nouveau Composant : Bouton Retour en Haut
+- **Problème** : Pas de moyen rapide de revenir en haut après scroll
+- **Solution** : Bouton fixed bottom-right avec apparition conditionnelle
+- **Réalisé** :
+  - ✅ `src/components/ScrollToTop.tsx` - Nouveau composant complet
+  - ✅ Apparition après 300px de scroll (useEffect + listener)
+  - ✅ Scroll smooth vers le haut au clic
+  - ✅ Tooltip "Retour en haut" au hover
+  - ✅ Style : fond bleu, icône ArrowUp, position fixed z-40
+  - ✅ `src/App.tsx:2658` - Intégration dans App
+- **Fichiers créés** : `src/components/ScrollToTop.tsx`
+- **Fichiers modifiés** : `src/App.tsx`
+
 ### ⏳ À Faire
-- [ ] Vérifier déploiement Vercel réussi
 - [ ] Tester le bulk add en production (scan 3-5 livres)
 - [ ] Retirer les logs de débogage une fois validation OK
-- [ ] Corriger problèmes responsive à basse résolution (si détectés)
+- [ ] Tester bouton retour en haut sur mobile et desktop
+- [ ] Vérifier toutes icônes bibliothèques s'affichent correctement
 
 ## 2025-09-29 - Implémentation du Backlog (Phase 1 Critique)
 
