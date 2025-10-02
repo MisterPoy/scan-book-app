@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense, useRef } from "react";
 import {
   Check,
   Circle,
@@ -43,6 +43,7 @@ import NotificationSettings from "./components/NotificationSettings";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import ScrollToTop from "./components/ScrollToTop";
+import ModalScrollToTop from "./components/ModalScrollToTop";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
@@ -819,6 +820,7 @@ function App() {
   const [collectionBooks, setCollectionBooks] = useState<CollectionBook[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const collectionModalScrollRef = useRef<HTMLDivElement>(null);
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [addMessage, setAddMessage] = useState<{
     text: string;
@@ -2221,7 +2223,7 @@ function App() {
             )}
 
             {/* Contenu */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div ref={collectionModalScrollRef} className="flex-1 overflow-y-auto p-6 relative">
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
@@ -2342,6 +2344,9 @@ function App() {
                   )}
                 </div>
               )}
+
+              {/* Bouton Retour en haut pour la modale */}
+              <ModalScrollToTop containerRef={collectionModalScrollRef} />
             </div>
           </div>
         </div>
