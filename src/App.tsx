@@ -80,6 +80,7 @@ interface CollectionBook {
   tags?: string[];
   // Nouveau champ pour les bibliothèques personnalisées
   libraries?: string[]; // IDs des bibliothèques
+  categories?: string[]; // Catégories Google Books
 }
 
 // Composant vue compacte pour la grille
@@ -967,7 +968,7 @@ function App() {
                   : undefined,
                 source: "Open Library",
               }))
-              .filter((book) => book.title) || [];
+              .filter((book: GoogleBook) => book.title) || [];
 
           // Éviter les doublons basés sur le titre et l'auteur
           const uniqueOpenLibBooks = openLibBooks.filter(
@@ -1137,7 +1138,10 @@ function App() {
   const fetchCollection = async (uid: string) => {
     try {
       const snapshot = await getDocs(collection(db, `users/${uid}/collection`));
-      const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      } as CollectionBook & { id: string }));
       setCollectionBooks(list);
     } catch (err) {
       console.error("Erreur récupération collection:", err);
@@ -1206,7 +1210,7 @@ function App() {
       const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
 
       // Nettoyer les données pour éviter les valeurs undefined
-      const libraryData: Record<string, unknown> = {
+      const libraryData: Partial<UserLibrary> = {
         name: library.name,
       };
 
@@ -1216,7 +1220,7 @@ function App() {
       if (library.color) libraryData.color = library.color;
       if (library.icon) libraryData.icon = library.icon;
 
-      await updateDoc(ref, libraryData);
+      await updateDoc(ref, libraryData as Record<string, string>);
       await fetchUserLibraries(user.uid);
     } catch (err) {
       console.error("Erreur modification bibliothèque:", err);
@@ -2068,8 +2072,8 @@ function App() {
             <div className="text-center">
               <BookCard
                 title={book.title}
-                authors={book.authors}
-                isbn={book.isbn}
+                authors={book.authors || []}
+                isbn={book.isbn || ""}
                 customCoverUrl={book.customCoverUrl}
                 imageLinks={book.imageLinks}
               />

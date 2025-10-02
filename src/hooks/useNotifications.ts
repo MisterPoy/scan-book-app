@@ -45,8 +45,9 @@ export const useNotifications = (userId: string | null) => {
 
       // Afficher une notification locale si l'app est au premier plan
       if (Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'Nouvelle notification', {
-          body: payload.notification?.body,
+        const notifPayload = payload as { notification?: { title?: string; body?: string } };
+        new Notification(notifPayload.notification?.title || 'Nouvelle notification', {
+          body: notifPayload.notification?.body,
           icon: '/icons/icon-192x192.png',
           tag: 'scanbook-foreground'
         });
