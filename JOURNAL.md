@@ -222,3 +222,60 @@ Toutes les modifications sont côté client, aucune règle Firestore à déploye
 - **TypeScript** : Typage strict respecté partout
 - **PWA** : Conforme aux standards iOS et Android
 - **Production ready** : Prêt pour déploiement ✅
+
+---
+
+## 2025-10-02 - Améliorations UX Mode Multi-Scan
+
+### Contexte
+Suite aux retours utilisateurs, plusieurs problèmes UX ont été identifiés :
+- Zone de scan trop haute sur mobile
+- Manque de feedback visuel clair à chaque scan
+- Bug d'ajout final en base de données
+
+### ✅ Ticket 1 - Ajustement Zone de Scan Mobile
+- **Problème** : Hauteur de 300px trop grande pour smartphones
+- **Solution** : Vidéo responsive avec `max-h-[50vh]` et `aspect-ratio: 4/3`
+- **Réalisé** :
+  - ✅ `src/components/ISBNScanner.tsx:397-401` - Classe Tailwind responsive
+  - ✅ Conteneur `max-w-md mx-auto` pour centrage mobile
+  - ✅ Hauteur adaptative : 50% max de la hauteur viewport
+- **Résultat** : Zone de scan adaptée à tous les écrans mobiles
+
+### ✅ Ticket 2 & 3 - Feedback Visuel Universel
+- **Problème** : Feedback sonore seul insuffisant, pas de retour visuel clair
+- **Solution** : Message coloré directement sur la zone caméra (mode single ET batch)
+- **Réalisé** :
+  - ✅ `src/components/ISBNScanner.tsx:116-119` - État `scanFeedback` avec type + message
+  - ✅ `src/components/ISBNScanner.tsx:152-194` - Fonction `showScanFeedback()` centralisée
+  - ✅ `src/components/ISBNScanner.tsx:430-442` - Overlay feedback sur zone caméra
+  - ✅ Feedback sonore (bip 800Hz) + vibration pour succès
+  - ✅ Vibration double pour doublon, triple pour erreur
+  - ✅ Messages explicites :
+    - ✅ Vert : "Livre détecté !" (single) / "Livre ajouté à la sélection !" (batch)
+    - ⚠️ Orange : "Déjà scanné dans la pile !"
+    - ❌ Rouge : "ISBN non reconnu"
+  - ✅ Auto-disparition après 2 secondes
+  - ✅ Accessibilité : `role="alert"` et `aria-live="assertive"`
+- **Résultat** : Feedback multi-sensoriel (visuel + sonore + tactile) pour tous les scans
+
+### ✅ Ticket 4 - Correction Bug Ajout Batch
+- **Problème** : Les livres scannés ne s'enregistraient pas en base Firestore
+- **Cause** : Variable `batch` non réinitialisée après commit intermédiaire (>450 ops)
+- **Solution** : Recréer un nouveau `writeBatch()` après chaque commit
+- **Réalisé** :
+  - ✅ `src/utils/bookApi.ts:120` - `let batch` au lieu de `const batch`
+  - ✅ `src/utils/bookApi.ts:170` - `batch = writeBatch(db)` après commit
+  - ✅ Gestion correcte des lots de 450+ livres
+- **Résultat** : Ajout batch fonctionnel, tous les livres enregistrés correctement
+
+### 🎯 Améliorations Complètes
+- **UX Mobile** : Zone de scan adaptative et ergonomique
+- **Feedback** : Triple retour (visuel + sonore + tactile) sur chaque scan
+- **Fiabilité** : Bug critique d'enregistrement corrigé
+- **Cohérence** : Même feedback pour mode single et batch
+- **Accessibilité** : Messages annoncés aux lecteurs d'écran
+
+### 🔧 Fichiers Modifiés
+- `src/components/ISBNScanner.tsx` - Feedback universel + zone responsive
+- `src/utils/bookApi.ts` - Correction bug batch writeBatch

@@ -117,7 +117,7 @@ export async function bulkAddBooks(
   const errors: Array<{ isbn: string; error: string }> = [];
 
   // Créer un batch pour les écritures
-  const batch = writeBatch(db);
+  let batch = writeBatch(db);
   let batchCount = 0;
 
   // Traiter chaque ISBN
@@ -166,6 +166,8 @@ export async function bulkAddBooks(
       // Firebase batch limit est 500 opérations, commiter si on approche
       if (batchCount >= 450) {
         await batch.commit();
+        // Créer un nouveau batch pour les opérations suivantes
+        batch = writeBatch(db);
         batchCount = 0;
       }
     } catch (error) {

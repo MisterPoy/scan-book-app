@@ -112,6 +112,12 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([]);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
 
+  // État pour le feedback visuel universel
+  const [scanFeedback, setScanFeedback] = useState<{
+    type: 'success' | 'duplicate' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
   const { ref } = useZxing({
     onDecodeResult(result) {
       setError(null);
@@ -119,7 +125,8 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
       console.log("Code détecté:", code);
 
       if (mode === 'single') {
-        // Mode single : comportement classique
+        // Mode single : afficher feedback et appeler onDetected
+        showScanFeedback('success', 'Livre détecté !');
         onDetected?.(code);
       } else {
         // Mode batch : ajouter à la pile
@@ -141,19 +148,59 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     },
   });
 
+  // Fonction pour afficher le feedback visuel
+  const showScanFeedback = (type: 'success' | 'duplicate' | 'error', message: string) => {
+    setScanFeedback({ type, message });
+
+    // Feedback sonore
+    if (navigator.vibrate) {
+      if (type === 'success') {
+        navigator.vibrate(200);
+      } else if (type === 'duplicate') {
+        navigator.vibrate([100, 50, 100]);
+      } else {
+        navigator.vibrate([50, 50, 50]);
+      }
+    }
+
+    // Feedback sonore (bip)
+    if (type === 'success') {
+      try {
+        const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioContext = new AudioContextClass();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      } catch {
+        // Ignorer si audio non disponible
+      }
+    }
+
+    // Masquer après 2 secondes
+    setTimeout(() => {
+      setScanFeedback({ type: null, message: '' });
+    }, 2000);
+  };
+
   const handleBatchScan = async (isbn: string) => {
     // Vérifier si déjà scanné
     const alreadyScanned = scannedBooks.some(book => book.isbn === isbn);
 
     if (alreadyScanned) {
       // Feedback doublon
+      showScanFeedback('duplicate', 'Déjà scanné dans la pile !');
       setDuplicateWarning(true);
-
-      // Vibration d'erreur
-      if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
-      }
-
       setTimeout(() => setDuplicateWarning(false), 2000);
       return;
     }
@@ -166,35 +213,28 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
 
     setScannedBooks(prev => [...prev, newBook]);
 
-    // Vibration succès
-    if (navigator.vibrate) {
-      navigator.vibrate(200);
-    }
-
-    // Feedback sonore (optionnel)
-    try {
-      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const audioContext = new AudioContextClass();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } catch {
-      // Ignorer si audio non disponible
-    }
+    // Feedback succès
+    showScanFeedback('success', 'Livre ajouté à la sélection !');
 
     // Charger les métadonnées
     const metadata = await fetchBookMetadata(isbn);
+
+    if (!metadata) {
+      // Livre non trouvé
+      showScanFeedback('error', 'ISBN non reconnu');
+      setScannedBooks(prev =>
+        prev.map(book =>
+          book.isbn === isbn
+            ? {
+                ...book,
+                isLoading: false,
+                error: 'Livre introuvable'
+              }
+            : book
+        )
+      );
+      return;
+    }
 
     setScannedBooks(prev =>
       prev.map(book =>
@@ -203,7 +243,6 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
               ...book,
               ...metadata,
               isLoading: false,
-              error: metadata ? undefined : 'Livre introuvable'
             }
           : book
       )
@@ -355,13 +394,11 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
 
       {/* Vidéo scanner */}
       {cameraActive ? (
-        <div className="relative">
+        <div className="relative w-full max-w-md mx-auto">
           <video
             ref={ref}
-            width={400}
-            height={300}
-            className="rounded-lg shadow-lg"
-            style={{ objectFit: "cover" }}
+            className="rounded-lg shadow-lg w-full h-auto max-h-[50vh] object-cover"
+            style={{ aspectRatio: '4/3' }}
           />
           {/* Zone de ciblage overlay */}
           <div className="absolute inset-0 pointer-events-none">
@@ -389,6 +426,20 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
               <DeviceMobile size={16} className="inline mr-1" />
               {cameraInfo || "Résolution: HD"}
             </div>
+
+            {/* Feedback visuel universel */}
+            {scanFeedback.type && (
+              <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg text-white font-semibold text-sm flex items-center gap-2 animate-fadeIn ${
+                scanFeedback.type === 'success' ? 'bg-green-600' :
+                scanFeedback.type === 'duplicate' ? 'bg-orange-600' :
+                'bg-red-600'
+              }`} role="alert" aria-live="assertive">
+                {scanFeedback.type === 'success' && <CheckCircle size={20} weight="bold" />}
+                {scanFeedback.type === 'duplicate' && <WarningCircle size={20} weight="bold" />}
+                {scanFeedback.type === 'error' && <X size={20} weight="bold" />}
+                {scanFeedback.message}
+              </div>
+            )}
           </div>
         </div>
       ) : (
