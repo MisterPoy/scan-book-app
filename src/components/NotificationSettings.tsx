@@ -6,9 +6,10 @@ import NotificationTest from './NotificationTest';
 interface NotificationSettingsProps {
   userId: string | null;
   userName?: string | null;
+  isAdmin?: boolean;
 }
 
-export default function NotificationSettings({ userId, userName }: NotificationSettingsProps) {
+export default function NotificationSettings({ userId, userName, isAdmin = false }: NotificationSettingsProps) {
   const [showTestPanel, setShowTestPanel] = useState(false);
 
   const {
@@ -117,7 +118,7 @@ export default function NotificationSettings({ userId, userName }: NotificationS
             </button>
           )}
 
-          {enabled && (
+          {enabled && isAdmin && (
             <>
               <button
                 onClick={testNotification}

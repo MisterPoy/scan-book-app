@@ -184,9 +184,10 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
             <h4 className="font-medium text-gray-900">Programmer une notification</h4>
             <button
               onClick={() => setShowCreateForm(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+              aria-label="Fermer"
             >
-              <X size={20} />
+              <X size={20} weight="bold" />
             </button>
           </div>
 

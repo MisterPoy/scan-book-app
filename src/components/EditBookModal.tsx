@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { uploadImageToStorage, auth } from "../firebase";
 import type { UserLibrary } from "../types/library";
+import { renderLibraryIcon } from "../utils/iconRenderer";
 import {
   PencilSimple,
   ChartBar,
@@ -10,7 +11,8 @@ import {
   Camera,
   Clock,
   FloppyDisk,
-  DeviceMobile
+  DeviceMobile,
+  X
 } from "phosphor-react";
 
 interface CollectionBook {
@@ -153,9 +155,10 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+            aria-label="Fermer"
           >
-            ×
+            <X size={24} weight="bold" />
           </button>
         </div>
         
@@ -338,11 +341,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                           className="mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <div className="flex items-center gap-2">
-                          <div 
+                          <div
                             className="w-4 h-4 rounded flex items-center justify-center text-xs text-white"
                             style={{ backgroundColor: library.color }}
                           >
-                            {library.icon}
+                            {renderLibraryIcon(library.icon || 'BK', 12)}
                           </div>
                           <span className="text-sm text-gray-700">{library.name}</span>
                         </div>

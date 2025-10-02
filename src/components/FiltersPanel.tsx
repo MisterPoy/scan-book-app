@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { renderLibraryIcon } from '../utils/iconRenderer';
 
 export interface FilterState {
   readingStatus: string[];
@@ -210,11 +211,11 @@ export default function FiltersPanel({
                         className="mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="w-4 h-4 rounded flex items-center justify-center text-xs text-white"
                           style={{ backgroundColor: library.color || '#3B82F6' }}
                         >
-                          {library.icon}
+                          {renderLibraryIcon(library.icon || 'BK', 12)}
                         </div>
                         <span className="text-sm text-gray-700">
                           {library.name}

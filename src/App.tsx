@@ -42,6 +42,7 @@ import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import NotificationSettings from "./components/NotificationSettings";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
+import ScrollToTop from "./components/ScrollToTop";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
@@ -59,6 +60,7 @@ import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
 import { bulkAddBooks } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
+import { renderLibraryIcon } from "./utils/iconRenderer";
 
 interface CollectionBook {
   isbn: string;
@@ -235,7 +237,7 @@ function CompactBookCard({
                     className="px-1 py-0.5 rounded text-xs text-white font-medium"
                     style={{ backgroundColor: library.color || "#3B82F6" }}
                   >
-                    {library.icon} {library.name}
+                    {renderLibraryIcon(library.icon || 'BK', 16)} {library.name}
                   </span>
                 ) : null;
               })}
@@ -349,7 +351,7 @@ function CompactBookCard({
                     className="px-1 py-0.5 rounded text-xs text-white font-medium"
                     style={{ backgroundColor: library.color || "#3B82F6" }}
                   >
-                    {library.icon}
+                    {renderLibraryIcon(library.icon || 'BK', 16)}
                   </span>
                 ) : null;
               })}
@@ -551,10 +553,20 @@ function CollectionBookCard({
           <div className="flex gap-1">
             <button
               onClick={handleExpandToggle}
-              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-blue-600 hover:bg-blue-100 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium text-sm border border-blue-200 hover:border-blue-300"
               title={expanded ? "Masquer les détails" : "Voir les détails"}
             >
-              {expanded ? <CaretUp size={16} weight="bold" /> : <CaretDown size={16} weight="bold" />}
+              {expanded ? (
+                <>
+                  <CaretUp size={18} weight="bold" />
+                  Masquer
+                </>
+              ) : (
+                <>
+                  <CaretDown size={18} weight="bold" />
+                  Détails
+                </>
+              )}
             </button>
             {/* Bouton modifier - pour tous les livres */}
             {onEdit && (
@@ -628,7 +640,7 @@ function CollectionBookCard({
                       style={{ backgroundColor: library.color || "#3B82F6" }}
                       title={`Retirer de ${library.name}`}
                     >
-                      {library.icon} {library.name} <X size={12} />
+                      {renderLibraryIcon(library.icon || 'BK', 16)} {library.name} <X size={12} />
                     </button>
                   ) : null;
                 })}
@@ -650,7 +662,7 @@ function CollectionBookCard({
                 .filter((lib) => !book.libraries?.includes(lib.id))
                 .map((library) => (
                   <option key={library.id} value={library.id}>
-                    {library.icon} {library.name}
+                    {library.name}
                   </option>
                 ))}
             </select>
@@ -2196,7 +2208,7 @@ function App() {
                             : {}
                         }
                       >
-                        <span>{library.icon}</span>
+                        <span>{renderLibraryIcon(library.icon || 'BK', 20)}</span>
                         <span>
                           {library.name} ({bookCount})
                         </span>
@@ -2632,6 +2644,7 @@ function App() {
               <NotificationSettings
                 userId={user?.uid || null}
                 userName={user?.displayName}
+                isAdmin={isAdmin}
               />
             </div>
           </div>
@@ -2640,6 +2653,9 @@ function App() {
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 }

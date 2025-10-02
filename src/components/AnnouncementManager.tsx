@@ -186,9 +186,10 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+            aria-label="Fermer"
           >
-            <X size={20} weight="regular" />
+            <X size={24} weight="bold" />
           </button>
         </div>
 

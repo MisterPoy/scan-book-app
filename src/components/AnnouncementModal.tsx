@@ -71,10 +71,10 @@ export default function AnnouncementModal({ announcement, onClose }: Announcemen
 
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 ml-4 cursor-pointer"
-            title="Fermer"
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer ml-4"
+            aria-label="Fermer"
           >
-            <X size={20} weight="bold" />
+            <X size={24} weight="bold" />
           </button>
         </div>
 
