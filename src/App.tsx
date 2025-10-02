@@ -2223,7 +2223,7 @@ function App() {
             )}
 
             {/* Contenu */}
-            <div ref={collectionModalScrollRef} className="flex-1 overflow-y-auto p-6 relative">
+            <div ref={collectionModalScrollRef} className="flex-1 overflow-y-auto p-6">
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
