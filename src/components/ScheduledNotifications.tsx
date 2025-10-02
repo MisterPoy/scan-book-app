@@ -32,27 +32,6 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
     targetAudience: 'all' as 'all' | 'admins'
   });
 
-  // Seuls les admins peuvent accéder
-  if (userRole !== 'admin') {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-yellow-800">
-          <Clock size={20} />
-          <div>
-            <h4 className="font-medium">Accès restreint</h4>
-            <p className="text-sm text-yellow-700 mt-1">
-              Seuls les administrateurs peuvent programmer des notifications.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    loadScheduledNotifications();
-  }, []);
-
   const loadScheduledNotifications = async () => {
     try {
       setLoading(true);
@@ -78,6 +57,29 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (userRole === 'admin') {
+      loadScheduledNotifications();
+    }
+  }, [userRole]);
+
+  // Seuls les admins peuvent accéder
+  if (userRole !== 'admin') {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-yellow-800">
+          <Clock size={20} />
+          <div>
+            <h4 className="font-medium">Accès restreint</h4>
+            <p className="text-sm text-yellow-700 mt-1">
+              Seuls les administrateurs peuvent programmer des notifications.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +242,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
                 </label>
                 <select
                   value={formData.recurring}
-                  onChange={(e) => setFormData({...formData, recurring: e.target.value as any})}
+                  onChange={(e) => setFormData({...formData, recurring: e.target.value as 'none' | 'daily' | 'weekly' | 'monthly'})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="none">Une seule fois</option>
@@ -256,7 +258,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
                 </label>
                 <select
                   value={formData.targetAudience}
-                  onChange={(e) => setFormData({...formData, targetAudience: e.target.value as any})}
+                  onChange={(e) => setFormData({...formData, targetAudience: e.target.value as 'all' | 'admins'})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">Tous les utilisateurs</option>

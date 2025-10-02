@@ -77,10 +77,7 @@ export default function NotificationTest({ userId }: NotificationTestProps) {
       version,
       mobile
     });
-
-    // Tests automatiques initiaux
-    runInitialTests();
-  }, [supported, permission, enabled]);
+  }, []);
 
   const runInitialTests = () => {
     const results: TestResult[] = [];
@@ -130,6 +127,11 @@ export default function NotificationTest({ userId }: NotificationTestProps) {
 
     setTestResults(results);
   };
+
+  useEffect(() => {
+    runInitialTests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supported, permission, enabled]);
 
   const addTestResult = (result: TestResult) => {
     setTestResults(prev => [...prev, { ...result, timestamp: new Date().toLocaleTimeString() }]);

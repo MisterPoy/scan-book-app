@@ -137,7 +137,7 @@ export const updateAnnouncement = async (id: string, data: Partial<CreateAnnounc
     const docRef = doc(db, ANNOUNCEMENTS_COLLECTION, id);
 
     // Filtrer les valeurs undefined pour éviter les erreurs Firestore
-    const cleanData: any = {};
+    const cleanData: Record<string, unknown> = {};
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined) {
         cleanData[key] = value;

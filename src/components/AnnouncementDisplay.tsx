@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AnnouncementBanner from './AnnouncementBanner';
 import AnnouncementModal from './AnnouncementModal';
 import type { Announcement } from '../types/announcement';
@@ -16,17 +16,7 @@ export default function AnnouncementDisplay({ userEmail, isAdmin }: Announcement
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
   const [shownModals, setShownModals] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadAnnouncements();
-  }, [userEmail, isAdmin]);
-
-  useEffect(() => {
-    if (announcements.length > 0) {
-      processAnnouncements();
-    }
-  }, [announcements, dismissedBanners, shownModals]);
-
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     try {
       const activeAnnouncements = await getActiveAnnouncements();
 
@@ -48,9 +38,13 @@ export default function AnnouncementDisplay({ userEmail, isAdmin }: Announcement
     } catch (error) {
       console.error('Erreur chargement annonces:', error);
     }
-  };
+  }, [userEmail, isAdmin]);
 
-  const processAnnouncements = () => {
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  const processAnnouncements = useCallback(() => {
     // Séparer les annonces par type d'affichage
     const banners: Announcement[] = [];
     let pendingModal: Announcement | null = null;
@@ -86,7 +80,13 @@ export default function AnnouncementDisplay({ userEmail, isAdmin }: Announcement
       setModalAnnouncement(pendingModal);
       setShownModals(prev => new Set(prev).add(pendingModal.id));
     }
-  };
+  }, [announcements, dismissedBanners, shownModals, modalAnnouncement]);
+
+  useEffect(() => {
+    if (announcements.length > 0) {
+      processAnnouncements();
+    }
+  }, [announcements, processAnnouncements]);
 
   const handleDismissBanner = (announcementId: string) => {
     setDismissedBanners(prev => new Set(prev).add(announcementId));

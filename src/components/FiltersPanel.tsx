@@ -11,13 +11,20 @@ export interface FilterState {
   libraries: string[]; // IDs des bibliothèques sélectionnées
 }
 
+interface UserLibrary {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+}
+
 interface FiltersPanelProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   availableGenres: string[];
   bookCount: number;
   filteredCount: number;
-  userLibraries?: any[]; // Ajout des bibliothèques utilisateur
+  userLibraries?: UserLibrary[];
 }
 
 const READING_STATUS_OPTIONS = [

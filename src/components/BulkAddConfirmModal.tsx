@@ -82,7 +82,7 @@ export default function BulkAddConfirmModal({
           </h2>
           <button
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
             aria-label="Fermer"
           >
             <X size={24} weight="bold" />

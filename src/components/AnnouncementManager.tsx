@@ -291,7 +291,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                     </label>
                     <select
                       value={formData.type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'info' | 'warning' | 'success' | 'error' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="info">Information</option>
@@ -323,7 +323,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                     </label>
                     <select
                       value={formData.displayMode}
-                      onChange={(e) => setFormData(prev => ({ ...prev, displayMode: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, displayMode: e.target.value as 'banner' | 'modal' | 'both' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="banner">Bandeau</option>
@@ -338,7 +338,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                     </label>
                     <select
                       value={formData.priority}
-                      onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="low">Faible</option>
@@ -353,7 +353,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                     </label>
                     <select
                       value={formData.targetAudience}
-                      onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value as 'all' | 'admins' | 'specific' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="all">Tous les utilisateurs</option>

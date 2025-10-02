@@ -2,6 +2,76 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-02 - Améliorations UX Page d'Accueil + Debugging Bulk Add
+
+### 🔧 En Cours - Simplification Page d'Accueil avec Accordéons
+- **Problème** : Page d'accueil trop chargée, trop de scrolling nécessaire
+- **Solution** : Implémentation d'accordéons pour les différentes méthodes de recherche/ajout
+- **Réalisé** :
+  - ✅ `src/App.tsx:1771-1858` - Remplacement des séparateurs "ou" par des boutons accordéons
+  - ✅ Trois accordéons : "Recherche par ISBN", "Recherche par titre/auteur", "Ajout manuel"
+  - ✅ Ajout d'icônes `CaretDown` avec rotation pour feedback visuel
+  - ✅ Animation `fadeIn` lors de l'ouverture des sections
+  - ✅ Alignement des icônes dans tous les boutons (flex items-center gap-2)
+- **Fichiers modifiés** : `src/App.tsx`
+
+### ✅ Correction Erreur Image Vide
+- **Problème** : Warning console "Image with empty src" dans CompactBookCard
+- **Solution** : Initialisation de `coverSrc` avec image par défaut au lieu de chaîne vide
+- **Réalisé** :
+  - ✅ `src/App.tsx:95` - Changement `useState("")` → `useState("/img/default-cover.png")`
+- **Résultat** : Plus de warning console, images par défaut affichées immédiatement
+
+### ✅ CORRECTION CRITIQUE - Bug Bulk Add Résolu
+- **Problème** : Les livres scannés en lot ne s'ajoutaient pas à Firestore
+- **Cause Identifiée** :
+  - Erreur Firebase : `WriteBatch.set() called with invalid data. Unsupported field value: undefined`
+  - Les métadonnées API pouvaient contenir des champs `undefined` (ex: `publisher`)
+  - Firebase Firestore rejette strictement les valeurs `undefined`
+- **Solution** : Filtrage des valeurs `undefined` avant ajout au batch
+- **Réalisé** :
+  - ✅ `src/utils/bookApi.ts:151-174` - Refonte construction `bookData`
+  - ✅ Ajout conditionnel des champs : uniquement si définis et non vides
+  - ✅ Vérification spéciale pour `authors` (doit être array non vide)
+  - ✅ Conservation des logs de débogage pour surveillance
+- **Fichiers modifiés** : `src/utils/bookApi.ts`
+- **Test** : À valider avec scan réel de plusieurs ISBNs
+
+### ✅ Simplification UX - Ajout Manuel Direct
+- **Problème** : Bouton "Ajout manuel" caché dans un accordéon inutile
+- **Solution** : Affichage direct du bouton sans accordéon
+- **Réalisé** :
+  - ✅ `src/App.tsx:1850-1857` - Suppression accordéon, bouton direct visible
+  - ✅ Suppression du state `showManualAddSection` devenu inutile
+- **Fichiers modifiés** : `src/App.tsx`
+
+### ✅ Amélioration Visibilité Boutons Fermeture Modales
+- **Problème** : Boutons de fermeture (X) peu visibles
+- **Solution** : Fond gris circulaire + hover + icône bold
+- **Réalisé** :
+  - ✅ `src/components/BulkAddConfirmModal.tsx:83-89` - Style amélioré
+  - ✅ `src/App.tsx:2607-2612` - Modale notifications settings
+  - ✅ Classes : `p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700`
+- **Fichiers modifiés** : `src/components/BulkAddConfirmModal.tsx`, `src/App.tsx`
+
+### ✅ CORRECTION COMPLÈTE - Erreurs TypeScript Lint
+- **Problème** : 42 erreurs TypeScript `@typescript-eslint/no-explicit-any`
+- **Solution** : Remplacement de tous les types `any` par types appropriés
+- **Réalisé** :
+  - ✅ 11 fichiers corrigés : App.tsx, login.tsx, EditBookModal.tsx, etc.
+  - ✅ Création interface `GoogleBook` pour API Google Books
+  - ✅ Utilisation du type `User` de Firebase Auth
+  - ✅ Types unions pour statuts : `'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne'`
+  - ✅ `Record<string, unknown>` pour données Firestore dynamiques
+  - ✅ Correction hooks React avec `useCallback` pour dépendances
+- **Résultat** : ✅ **0 erreurs, 0 warnings** au lint
+- **Fichiers modifiés** : Multiples (voir détails agent)
+
+### ⏳ À Faire
+- [ ] Tester le bulk add avec la correction (scan 3-5 livres)
+- [ ] Retirer les logs de débogage une fois validation OK
+- [ ] Corriger problèmes responsive à basse résolution
+
 ## 2025-09-29 - Implémentation du Backlog (Phase 1 Critique)
 
 ### ✅ T1 - Enregistrement du Service Worker PWA

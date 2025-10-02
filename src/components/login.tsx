@@ -6,8 +6,9 @@ import {
 } from "firebase/auth";
 import { auth, provider, registerWithEmail, loginWithEmail, resetPassword } from "../firebase";
 import { Key, Envelope } from "phosphor-react";
+import type { User } from "firebase/auth";
 
-export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
+export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth <= 768;
   const [isRegister, setIsRegister] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
@@ -54,13 +55,13 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     setError("");
     
     try {
-      const result = isRegister 
+      const result = isRegister
         ? await registerWithEmail(email, password, displayName)
         : await loginWithEmail(email, password);
-      
+
       onLogin(result.user);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -75,8 +76,8 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     try {
       await resetPassword(resetEmail);
       setResetMessage("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.");
-    } catch (err: any) {
-      setError("Erreur : " + err.message);
+    } catch (err) {
+      setError("Erreur : " + (err instanceof Error ? err.message : 'Erreur inconnue'));
     } finally {
       setLoading(false);
     }

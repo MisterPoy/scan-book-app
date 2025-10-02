@@ -253,7 +253,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                   </label>
                   <select
                     value={formData.readingStatus}
-                    onChange={(e) => setFormData(prev => ({ ...prev, readingStatus: e.target.value as any }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, readingStatus: e.target.value as 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="non_lu">⭕ Non lu</option>
@@ -271,7 +271,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                   </label>
                   <select
                     value={formData.bookType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, bookType: e.target.value as any }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bookType: e.target.value as 'physique' | 'numerique' | 'audio' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="physique">Physique</option>

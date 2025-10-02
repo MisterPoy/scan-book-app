@@ -45,7 +45,7 @@ import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
-import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
+import { onAuthStateChanged, getRedirectResult, type User } from "firebase/auth";
 import {
   doc,
   setDoc,
@@ -92,7 +92,7 @@ function CompactBookCard({
   onClick: () => void;
   userLibraries?: UserLibrary[];
 }) {
-  const [coverSrc, setCoverSrc] = useState("");
+  const [coverSrc, setCoverSrc] = useState("/img/default-cover.png");
 
   useEffect(() => {
     // Si image personnalisée, l'utiliser en priorité
@@ -392,7 +392,7 @@ function CollectionBookCard({
 }) {
   const [coverSrc, setCoverSrc] = useState("");
   const [expanded, setExpanded] = useState(false);
-  const [bookDetails, setBookDetails] = useState<any>(null);
+  const [bookDetails, setBookDetails] = useState<CollectionBook | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -780,13 +780,30 @@ function CollectionBookCard({
   );
 }
 
+interface GoogleBook {
+  isbn?: string;
+  title: string;
+  authors?: string[];
+  publisher?: string;
+  publishedDate?: string;
+  description?: string;
+  pageCount?: number;
+  imageLinks?: {
+    thumbnail?: string;
+  };
+  customCoverUrl?: string;
+  genre?: string;
+  tags?: string[];
+  source?: string;
+}
+
 function App() {
   const [isbn, setIsbn] = useState("");
-  const [book, setBook] = useState<any>(null);
+  const [book, setBook] = useState<GoogleBook | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [collectionBooks, setCollectionBooks] = useState<any[]>([]);
+  const [collectionBooks, setCollectionBooks] = useState<CollectionBook[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [addingToCollection, setAddingToCollection] = useState(false);
@@ -800,7 +817,7 @@ function App() {
   } | null>(null);
   const [selectedBook, setSelectedBook] = useState<CollectionBook | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<GoogleBook[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
@@ -839,6 +856,10 @@ function App() {
   const [scanMode, setScanMode] = useState<'single' | 'batch'>('single');
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+
+  // États pour les accordéons de la page d'accueil
+  const [showIsbnSearch, setShowIsbnSearch] = useState(false);
+  const [showTextSearch, setShowTextSearch] = useState(false);
 
   const handleDetected = (code: string) => {
     setIsbn(code);
@@ -890,7 +911,7 @@ function App() {
 
     setIsSearching(true);
     setCurrentPage(1); // Reset à la première page
-    let allBooks: any[] = [];
+    let allBooks: GoogleBook[] = [];
 
     try {
       // 1. Recherche Google Books
@@ -900,12 +921,12 @@ function App() {
         )}&maxResults=40`
       );
       const googleData = await googleRes.json();
-      const googleBooks =
-        googleData.items?.map((item: any) => ({
+      const googleBooks: GoogleBook[] =
+        googleData.items?.map((item: {volumeInfo: GoogleBook & {industryIdentifiers?: Array<{type: string; identifier: string}>}}) => ({
           ...item.volumeInfo,
           isbn:
             item.volumeInfo?.industryIdentifiers?.find(
-              (id: any) => id.type === "ISBN_13" || id.type === "ISBN_10"
+              (id) => id.type === "ISBN_13" || id.type === "ISBN_10"
             )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
           source: "Google Books",
         })) || [];
@@ -921,9 +942,17 @@ function App() {
             )}&limit=40`
           );
           const openLibData = await openLibRes.json();
-          const openLibBooks =
+          interface OpenLibDoc {
+            title: string;
+            author_name?: string[];
+            first_publish_year?: number;
+            publisher?: string[];
+            isbn?: string[];
+            cover_i?: number;
+          }
+          const openLibBooks: GoogleBook[] =
             openLibData.docs
-              ?.map((doc: any) => ({
+              ?.map((doc: OpenLibDoc) => ({
                 title: doc.title,
                 authors: doc.author_name || [],
                 publishedDate: doc.first_publish_year?.toString(),
@@ -938,11 +967,11 @@ function App() {
                   : undefined,
                 source: "Open Library",
               }))
-              .filter((book: any) => book.title) || [];
+              .filter((book) => book.title) || [];
 
           // Éviter les doublons basés sur le titre et l'auteur
           const uniqueOpenLibBooks = openLibBooks.filter(
-            (olBook: any) =>
+            (olBook) =>
               !allBooks.some(
                 (gBook) =>
                   gBook.title?.toLowerCase() === olBook.title?.toLowerCase() &&
@@ -1048,8 +1077,8 @@ function App() {
     setAddMessage(null);
 
     try {
-      const ref = doc(db, `users/${user.uid}/collection`, book.isbn);
-      const docData: any = {
+      const ref = doc(db, `users/${user.uid}/collection`, book.isbn || '');
+      const docData: Record<string, unknown> = {
         title: book.title,
         authors: book.authors || [],
         isbn: book.isbn,
@@ -1147,7 +1176,7 @@ function App() {
       const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
 
       // Nettoyer les données pour éviter les valeurs undefined
-      const libraryData: any = {
+      const libraryData: Record<string, unknown> = {
         id: libraryId,
         name: library.name,
         createdAt: new Date().toISOString(),
@@ -1177,7 +1206,7 @@ function App() {
       const ref = doc(db, `users/${user.uid}/libraries`, libraryId);
 
       // Nettoyer les données pour éviter les valeurs undefined
-      const libraryData: any = {
+      const libraryData: Record<string, unknown> = {
         name: library.name,
       };
 
@@ -1219,7 +1248,7 @@ function App() {
     }
   };
 
-  const checkAndSetupAdmin = async (user: any) => {
+  const checkAndSetupAdmin = async (user: User | null) => {
     if (!user) {
       setIsAdmin(false);
       return;
@@ -1424,12 +1453,12 @@ function App() {
       const ref = doc(db, `users/${user.uid}/collection`, updatedBook.isbn);
 
       // Fonction pour nettoyer récursivement les valeurs undefined
-      const cleanObject = (obj: any): any => {
+      const cleanObject = (obj: unknown): unknown => {
         if (obj === null || obj === undefined) return null;
         if (Array.isArray(obj)) return obj.filter((item) => item !== undefined);
         if (typeof obj === "object") {
-          const cleaned: any = {};
-          for (const [key, value] of Object.entries(obj)) {
+          const cleaned: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
             if (value !== undefined) {
               cleaned[key] = cleanObject(value);
             }
@@ -1440,7 +1469,7 @@ function App() {
       };
 
       // Nettoyer complètement l'objet livre
-      const cleanedBook: any = cleanObject({
+      const cleanedBook = cleanObject({
         isbn: updatedBook.isbn,
         title: updatedBook.title,
         authors: updatedBook.authors || [],
@@ -1491,7 +1520,7 @@ function App() {
 
     const updatedBook = {
       ...bookToUpdate,
-      readingStatus: newStatus as any,
+      readingStatus: newStatus as "lu" | "non_lu" | "a_lire" | "en_cours" | "abandonne",
       isRead: newStatus === "lu", // Sync avec l'ancien champ isRead
     };
 
@@ -1506,7 +1535,7 @@ function App() {
 
     const updatedBook = {
       ...bookToUpdate,
-      bookType: newType as any,
+      bookType: newType as "physique" | "numerique" | "audio",
     };
 
     await updateBookInFirestore(updatedBook);
@@ -1547,7 +1576,12 @@ function App() {
   };
 
   const handleBulkAddConfirm = async (isbns: string[], personalNotes: Record<string, string>) => {
-    if (!user) return;
+    if (!user) {
+      console.error('handleBulkAddConfirm: utilisateur non connecté');
+      return;
+    }
+
+    console.log('handleBulkAddConfirm: début', { isbns, userId: user.uid });
 
     try {
       const response: BulkAddResponse = await bulkAddBooks(
@@ -1558,10 +1592,13 @@ function App() {
         personalNotes
       );
 
+      console.log('handleBulkAddConfirm: réponse bulkAddBooks', response);
+
       // Recharger la collection depuis Firestore
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
       const books = snapshot.docs.map(doc => ({ ...doc.data() } as CollectionBook));
+      console.log('handleBulkAddConfirm: livres rechargés', books.length);
       setCollectionBooks(books);
 
       // Afficher le feedback
@@ -1577,6 +1614,8 @@ function App() {
       if (errors.length > 0) {
         message += message ? `, ${errors.length} erreur${errors.length > 1 ? 's' : ''}` : `${errors.length} erreur${errors.length > 1 ? 's' : ''}`;
       }
+
+      console.log('handleBulkAddConfirm: message feedback', message);
 
       setAddMessage({
         text: message,
@@ -1740,9 +1779,9 @@ function App() {
                     setScanMode('single');
                     setScanning(true);
                   }}
-                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
+                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Camera size={20} weight="bold" className="inline mr-2" />
+                  <Camera size={20} weight="bold" />
                   Scan unique
                 </button>
                 <button
@@ -1750,9 +1789,9 @@ function App() {
                     setScanMode('batch');
                     setScanning(true);
                   }}
-                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md cursor-pointer"
+                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Stack size={20} weight="bold" className="inline mr-2" />
+                  <Stack size={20} weight="bold" />
                   Scan par lot
                 </button>
               </div>
@@ -1763,78 +1802,82 @@ function App() {
                 <strong>Scan par lot</strong> : Scannez plusieurs livres puis validez en une fois
               </p>
 
-              <div className="flex items-center w-full max-w-sm">
-                <div className="flex-1 h-px bg-gray-300"></div>
-                <span className="px-4 text-sm text-gray-500 bg-white">ou</span>
-                <div className="flex-1 h-px bg-gray-300"></div>
-              </div>
+              {/* Recherche ISBN manuelle - Collapsible */}
+              <button
+                onClick={() => setShowIsbnSearch(!showIsbnSearch)}
+                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md"
+              >
+                <MagnifyingGlass size={20} weight="bold" />
+                Recherche par ISBN
+                <CaretDown size={20} weight="bold" className={`transition-transform ${showIsbnSearch ? 'rotate-180' : ''}`} />
+              </button>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                <input
-                  value={isbn}
-                  onChange={(e) => setIsbn(e.target.value)}
-                  placeholder="Saisir un ISBN manuellement"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <button
-                  onClick={() => handleSearch(isbn)}
-                  className="px-6 py-3 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-                >
-                  Rechercher
-                </button>
-              </div>
+              {showIsbnSearch && (
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md animate-fadeIn">
+                  <input
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    placeholder="Saisir un ISBN manuellement"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={() => handleSearch(isbn)}
+                    className="px-6 py-3 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
+                  >
+                    Rechercher
+                  </button>
+                </div>
+              )}
 
-              <div className="flex items-center w-full max-w-sm mt-4">
-                <div className="flex-1 h-px bg-gray-300"></div>
-                <span className="px-4 text-sm text-gray-500 bg-white">
-                  ou rechercher par titre/auteur
-                </span>
-                <div className="flex-1 h-px bg-gray-300"></div>
-              </div>
+              {/* Recherche par titre/auteur - Collapsible */}
+              <button
+                onClick={() => setShowTextSearch(!showTextSearch)}
+                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md mt-2"
+              >
+                <MagnifyingGlass size={20} weight="bold" />
+                Recherche par titre/auteur
+                <CaretDown size={20} weight="bold" className={`transition-transform ${showTextSearch ? 'rotate-180' : ''}`} />
+              </button>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher par titre ou auteur..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !isSearching) {
+              {showTextSearch && (
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md animate-fadeIn">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher par titre ou auteur..."
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" && !isSearching) {
+                        handleTextSearch(searchQuery);
+                        setShowSearchResults(true);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
                       handleTextSearch(searchQuery);
                       setShowSearchResults(true);
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    handleTextSearch(searchQuery);
-                    setShowSearchResults(true);
-                  }}
-                  disabled={isSearching}
-                  className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {isSearching ? (
-                    <>
-                      <Timer size={16} className="inline mr-2" />
-                      Recherche...
-                    </>
-                  ) : "Rechercher"}
-                </button>
-              </div>
+                    }}
+                    disabled={isSearching}
+                    className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {isSearching ? (
+                      <>
+                        <Timer size={16} weight="bold" className="inline mr-2 align-middle" />
+                        Recherche...
+                      </>
+                    ) : "Rechercher"}
+                  </button>
+                </div>
+              )}
 
-              <div className="flex items-center w-full max-w-sm mt-4">
-                <div className="flex-1 h-px bg-gray-300"></div>
-                <span className="px-4 text-sm text-gray-500 bg-white">
-                  ou ajouter manuellement
-                </span>
-                <div className="flex-1 h-px bg-gray-300"></div>
-              </div>
-
+              {/* Ajout manuel - Bouton direct */}
               <button
                 onClick={() => setShowManualAdd(true)}
-                className="px-8 py-3 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md"
+                className="flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-2"
               >
-                <PencilSimple size={16} weight="regular" /> Ajouter un livre manuellement
+                <PencilSimple size={20} weight="bold" />
+                Ajouter un livre manuellement
               </button>
             </div>
           ) : (
@@ -2576,9 +2619,9 @@ function App() {
               <h2 className="text-xl font-bold text-gray-900">Paramètres de notifications</h2>
               <button
                 onClick={() => setShowNotificationSettings(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
               >
-                <X size={20} />
+                <X size={20} weight="bold" />
               </button>
             </div>
             <div className="p-6">

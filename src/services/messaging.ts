@@ -66,7 +66,7 @@ export const getMessagingToken = async (userId: string): Promise<string | null> 
         scope: '/firebase-sw-scope/'
       });
       console.log('✅ Service Worker Firebase enregistré:', registration);
-    } catch (error) {
+    } catch {
       console.log('⚠️ Service Worker Firebase échoué, utilisation du SW principal');
       registration = await navigator.serviceWorker.ready;
     }
@@ -102,7 +102,7 @@ const saveTokenToFirestore = async (userId: string, token: string): Promise<void
       lastTokenUpdate: new Date().toISOString()
     });
     console.log('✅ Token FCM sauvegardé en Firestore');
-  } catch (error) {
+  } catch {
     // Si le document n'existe pas, le créer
     try {
       const userRef = doc(db, 'users', userId);
@@ -120,7 +120,7 @@ const saveTokenToFirestore = async (userId: string, token: string): Promise<void
 };
 
 // Écouter les messages en premier plan
-export const onForegroundMessage = (callback: (payload: any) => void) => {
+export const onForegroundMessage = (callback: (payload: unknown) => void) => {
   if (!messaging) {
     messaging = initializeMessaging();
   }
