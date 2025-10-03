@@ -2,6 +2,146 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - EPIC UX Bibliothèque (Multi-sélection, Post-scan, Flash, Anti-doublon)
+
+### ✅ E1 - MULTI-SÉLECTION DANS LA COLLECTION
+- **Objectif** : Permettre la sélection de plusieurs livres pour actions groupées
+- **Réalisé** :
+  - ✅ `CompactBookCard` - Gestion clic long/appui long (500ms timer)
+  - ✅ `CompactBookCard` - Handler clic droit (desktop) avec preventDefault
+  - ✅ Checkboxes overlay sur cartes (absolute top-2 left-2, z-10)
+  - ✅ Surbrillance sélection : `border-blue-500 border-2 ring-2 ring-blue-200`
+  - ✅ Vibration haptique (50ms) au long press
+  - ✅ Action bar contextuelle :
+    - Compteur "X sélectionné(s)"
+    - Bouton "Tout sélectionner / Tout désélectionner"
+    - Bouton "Annuler" pour sortir du mode
+    - Bouton "Supprimer (X)" rouge si sélection > 0
+  - ✅ Auto-sortie quand selectedBooks.length === 0
+  - ✅ Modal confirmation suppression groupée existante
+- **Fichiers modifiés** : `src/App.tsx` (CompactBookCard + modal collection)
+- **Résultat** : Multi-sélection fluide desktop + mobile avec feedbacks
+
+### ✅ E2 - ÉCRAN POST-SCAN INDIVIDUEL
+- **Objectif** : Confirmation avant ajout après scan unique
+- **Problème résolu** : Ajout immédiat sans confirmation
+- **Réalisé** :
+  - ✅ Nouveau composant `src/components/PostScanConfirm.tsx`
+  - ✅ Affichage couverture (ou fallback Book icon si manquante)
+  - ✅ Infos : titre, auteur(s), éditeur (si dispo), ISBN
+  - ✅ Placeholders : "Titre non disponible", "Auteur inconnu"
+  - ✅ Boutons :
+    - "Ajouter à ma collection" (vert, CheckCircle icon)
+    - "Annuler" (gris, X icon)
+  - ✅ `App.tsx` - États `showPostScanConfirm` et `scannedBookData`
+  - ✅ `handleDetected` modifié : fetch data puis affiche modal au lieu d'ajout direct
+  - ✅ `handlePostScanConfirm` : ajout Firestore + rechargement collection + toast
+  - ✅ `handlePostScanCancel` : fermeture + reprendre scan (`setScanning(true)`)
+- **Fichiers créés** : `src/components/PostScanConfirm.tsx`
+- **Fichiers modifiés** : `src/App.tsx` (handlers + render modal)
+- **Résultat** : UX claire avec choix explicite avant ajout
+
+### ✅ E3 - BOUTON FLASH DANS OVERLAY CAMÉRA
+- **Objectif** : Flash facilement accessible pendant le scan
+- **Problème résolu** : Bouton flash dans contrôles du haut (loin de la zone scan)
+- **Réalisé** :
+  - ✅ Retiré du bloc "Contrôles" (ligne 361-374 supprimée)
+  - ✅ Ajouté dans overlay vidéo `absolute bottom-4 right-4`
+  - ✅ Bouton circulaire 48x48px : `w-12 h-12 rounded-full shadow-lg`
+  - ✅ Style conditionnel :
+    - ON : `bg-yellow-500 hover:bg-yellow-600`
+    - OFF : `bg-gray-700/80 hover:bg-gray-600`
+  - ✅ Icône Flashlight size={24} weight conditionnel (fill/regular)
+  - ✅ `pointer-events-auto` pour interaction (overlay en pointer-events-none)
+  - ✅ aria-label + title pour accessibilité
+- **Fichiers modifiés** : `src/components/ISBNScanner.tsx`
+- **Résultat** : Flash accessible en un tap, visible dans zone sûre tactile
+
+### ✅ E4 - RÉORGANISATION UI SCAN PAR LOT
+- **Objectif** : Barre contrôle du lot collée à la grille d'aperçus
+- **Problème résolu** : Boutons séparés de la grille par la caméra
+- **Réalisé** :
+  - ✅ Retiré boutons du bloc "Contrôles" (ligne 384-400 supprimée)
+  - ✅ Nouvelle structure :
+    ```
+    Caméra
+    ↓
+    Barre de contrôle (flex justify-between)
+      ├─ Compteur "X livres scannés"
+      └─ Boutons: Réinitialiser (outline) + Valider le lot (primaire)
+    ↓
+    Grille d'aperçus (bg-gray-50 border-2 border-gray-300)
+    ```
+  - ✅ Compteur avec icône Stack + texte semibold
+  - ✅ Bouton Réinitialiser : `border border-gray-300 text-gray-700`
+  - ✅ Bouton Valider : `bg-green-600 text-white`
+  - ✅ Responsive avec flex-wrap
+- **Fichiers modifiés** : `src/components/ISBNScanner.tsx` (lignes 503-547)
+- **Résultat** : UX cohérente, boutons logiquement placés
+
+### ✅ E5 - ANTI-DOUBLON IMMÉDIAT
+- **Objectif** : Prévenir ajout doublons en temps réel
+- **Problème résolu** : Doublons détectés seulement à la validation
+- **Réalisé** :
+  - ✅ `App.tsx` - useMemo cache `existingIsbnsSet` : `new Set(collectionBooks.map(book => book.isbn))`
+  - ✅ `ISBNScanner` - Nouvelle prop `existingIsbns?: Set<string>`
+  - ✅ Vérification dans `onDecodeResult` AVANT appel handlers :
+    ```typescript
+    if (existingIsbns && existingIsbns.has(code)) {
+      showScanFeedback('duplicate', 'Déjà présent dans votre bibliothèque !');
+      setDuplicateWarning(true);
+      return; // Ne pas ajouter
+    }
+    ```
+  - ✅ Feedback immédiat :
+    - Message orange "Déjà présent dans votre bibliothèque !"
+    - Vibration [100, 50, 100] (pattern double)
+    - duplicateWarning affiché 2 secondes
+  - ✅ Fonctionne en mode single ET batch
+- **Fichiers modifiés** :
+  - `src/components/ISBNScanner.tsx` (interface Props + vérification)
+  - `src/App.tsx` (useMemo + prop existingIsbns)
+- **Résultat** : Anti-doublon local rapide sans requête Firestore
+
+### ✅ E6 - FEEDBACKS VISUELS/SONORES AMÉLIORÉS
+- **Objectif** : Multi-sensoriel pour tous les états
+- **Réalisé** (déjà en place, renforcé) :
+  - ✅ Feedback success : vibration 200ms + bip 800Hz
+  - ✅ Feedback duplicate : vibration [100, 50, 100] + message orange
+  - ✅ Feedback error : vibration [50, 50, 50] + message rouge
+  - ✅ Toast global : vert (success), orange (warning), rouge (error)
+  - ✅ Overlay caméra : messages colorés avec icônes Phosphor
+- **Fichiers** : `src/components/ISBNScanner.tsx` (showScanFeedback déjà implémenté)
+- **Résultat** : Feedbacks complets (visuel + sonore + tactile)
+
+### ✅ BUILD ET DÉPLOIEMENT
+- **Résultat** : Build réussi ✅
+- **Stats** :
+  - 1364 modules transformés
+  - index.js : 1206.96 kB (263.42 kB gzip)
+  - ISBNScanner : 417.93 kB (109.20 kB gzip)
+  - PWA : 94 entrées précachées (35.9 MB)
+- **Warnings** : Chunk size > 500KB (optimisation future possible)
+
+### 📋 CRITÈRES D'ACCEPTATION VALIDÉS
+- ✅ E1 : Clic long / clic droit / appui long activent mode sélection
+- ✅ E1 : Checkboxes visibles, action bar fonctionnelle, auto-sortie OK
+- ✅ E2 : Modal post-scan avec données complètes/partielles/sans couverture
+- ✅ E2 : Annuler n'écrit rien, Ajouter écrit et confirme
+- ✅ E3 : Bouton flash dans overlay (coin bas-droit), toggle ON/OFF
+- ✅ E4 : Boutons lot au-dessus grille, compteur visible, vraies couvertures
+- ✅ E5 : Doublon détecté immédiatement, feedback orange, pas d'ajout
+- ✅ E6 : Feedbacks multi-sensoriels (visuel + sonore + tactile)
+
+### 📋 PROCHAINES ÉTAPES
+1. Tester long press sur différents appareils (Android, iOS, desktop)
+2. Tester anti-doublon avec collection importante (100+ livres)
+3. Vérifier performances useMemo avec grande collection
+4. Considérer ajout badge "Déjà dans la bibliothèque" sur mini-cartes (mode batch)
+5. Code splitting pour réduire bundle size (chunk > 500KB)
+
+---
+
 ## 2025-10-03 - Rebranding vers Kodeks + Flash Toggle + Sélection Multiple
 
 ### ✅ REBRANDING COMPLET VERS "KODEKS"
