@@ -2,6 +2,59 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - Fix Clic Long + Export CSV Collection
+
+### ✅ FIX : Clic long multi-sélection
+- **Problème** : Le clic long activait la sélection mais déclenchait aussi `onClick`, désélectionnant immédiatement le livre
+- **Solution** : Ajout de `isLongPressRef` pour tracker si c'était un long press
+  - `handlePointerDown` : Met `isLongPressRef.current = false` au début
+  - Timeout 500ms : Met `isLongPressRef.current = true` puis appelle `onLongPress()`
+  - `handleClick` : Si `isLongPressRef.current === true`, empêche `onClick()` et reset le flag
+- **Résultat** : La sélection reste active après un long press ✅
+
+### ✅ FEATURE : Export CSV de la collection
+- **Objectif** : Permettre l'export de toute la collection en CSV pour Excel/LibreOffice
+- **Implémentation** :
+  - **Fonction** `exportCollectionToCSV()` dans App.tsx (lignes 1877-1983)
+  - **Bouton** : En-tête de la modale collection, à côté du bouton Fermer
+    - Visible uniquement en vue grille (`!selectedBook`)
+    - Visible si `collectionBooks.length > 0`
+    - Style : vert avec icône `DownloadSimple` (Phosphor)
+    - Texte responsive : "Exporter CSV" (caché sur mobile)
+  - **Colonnes exportées** :
+    1. ISBN
+    2. Titre
+    3. Auteurs (séparés par `;`)
+    4. Éditeur
+    5. Date de publication
+    6. Nombre de pages
+    7. Catégories (séparées par `;`)
+    8. Statut de lecture (Lu, Non lu, À lire, En cours, Abandonné)
+    9. Type de livre (Physique, Numérique, Audio)
+    10. Note personnelle
+    11. Bibliothèques (noms séparés par `;`)
+    12. Date d'ajout
+  - **Gestion CSV** :
+    - Échappement correct : guillemets doublés, encapsulation si virgules/retours ligne
+    - BOM UTF-8 (`\ufeff`) pour compatibilité Excel
+    - Nom fichier : `kodeks-collection-YYYY-MM-DD.csv`
+  - **Feedback** : Toast de confirmation avec nombre de livres exportés
+
+### Modifications techniques
+- **CollectionBook interface** : Ajout `personalNote?: string` (ligne 97)
+- **Import Phosphor** : `DownloadSimple` (ligne 33)
+- **Modale collection** : Restructuration header avec flex gap-2 pour bouton export
+
+### Fichiers modifiés
+- `src/App.tsx`
+
+### Résultat
+✅ Build réussi (15.97s, 1364 modules)
+✅ Commit `e34aceb` + Push GitHub
+🎯 **Export fonctionnel** : Collection exportable en CSV avec toutes les métadonnées
+
+---
+
 ## 2025-10-03 - REBRANDING : ScanBook → Kodeks
 
 ### Contexte
