@@ -25,6 +25,7 @@ interface Props {
   onDetected?: (code: string) => void; // Mode single
   onBulkScanComplete?: (isbns: string[]) => void; // Mode batch
   onClose: () => void;
+  existingIsbns?: Set<string>; // Pour anti-doublon
 }
 
 // Mini-carte pour afficher un livre scanné dans la pile
@@ -103,7 +104,7 @@ function ScannedBookMiniCard({
   );
 }
 
-export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanComplete, onClose }: Props) {
+export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanComplete, onClose, existingIsbns }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(true);
   const [helpVisible, setHelpVisible] = useState(false);
@@ -128,6 +129,14 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
       setError(null);
       const code = result.getText();
       console.log("Code détecté:", code);
+
+      // Vérifier si déjà dans la bibliothèque
+      if (existingIsbns && existingIsbns.has(code)) {
+        showScanFeedback('duplicate', 'Déjà présent dans votre bibliothèque !');
+        setDuplicateWarning(true);
+        setTimeout(() => setDuplicateWarning(false), 2000);
+        return; // Ne pas ajouter
+      }
 
       if (mode === 'single') {
         // Mode single : afficher feedback et appeler onDetected
@@ -358,21 +367,6 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
           )}
         </button>
 
-        {torchSupported && cameraActive && (
-          <button
-            onClick={toggleTorch}
-            className={`px-3 py-2 rounded text-sm font-medium cursor-pointer ${
-              torchEnabled
-                ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                : "bg-gray-600 hover:bg-gray-700 text-white"
-            }`}
-            title={torchEnabled ? "Désactiver le flash" : "Activer le flash"}
-          >
-            <Flashlight size={16} weight={torchEnabled ? "fill" : "regular"} className="inline mr-2" />
-            Flash {torchEnabled ? "ON" : "OFF"}
-          </button>
-        )}
-
         <button
           onClick={() => setHelpVisible(!helpVisible)}
           className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium cursor-pointer"
@@ -380,25 +374,6 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
           <Question size={16} weight="regular" className="inline mr-2" />
           Aide
         </button>
-
-        {mode === 'batch' && scannedBooks.length > 0 && (
-          <>
-            <button
-              onClick={handleResetBatch}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm font-medium cursor-pointer"
-            >
-              <Trash size={16} weight="regular" className="inline mr-2" />
-              Réinitialiser
-            </button>
-            <button
-              onClick={handleValidateBatch}
-              className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm font-medium cursor-pointer"
-            >
-              <CheckCircle size={16} weight="bold" className="inline mr-2" />
-              Valider le lot
-            </button>
-          </>
-        )}
 
         <button
           onClick={onClose}
@@ -476,6 +451,22 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
               {cameraInfo || "Résolution: HD"}
             </div>
 
+            {/* Bouton Flash overlay - coin bas-droit */}
+            {torchSupported && (
+              <button
+                onClick={toggleTorch}
+                className={`absolute bottom-4 right-4 pointer-events-auto w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all ${
+                  torchEnabled
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                    : "bg-gray-700/80 hover:bg-gray-600 text-white"
+                }`}
+                title={torchEnabled ? "Désactiver le flash" : "Activer le flash"}
+                aria-label={torchEnabled ? "Désactiver le flash" : "Activer le flash"}
+              >
+                <Flashlight size={24} weight={torchEnabled ? "fill" : "regular"} />
+              </button>
+            )}
+
             {/* Feedback visuel universel */}
             {scanFeedback.type && (
               <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg text-white font-semibold text-sm flex items-center gap-2 animate-fadeIn ${
@@ -518,14 +509,35 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         </div>
       )}
 
-      {/* Pile temporaire (mode batch uniquement) */}
+      {/* Barre de contrôle du lot + Pile temporaire (mode batch uniquement) */}
       {mode === 'batch' && scannedBooks.length > 0 && (
-        <div className="mt-6 w-full max-w-2xl">
+        <div className="mt-6 w-full max-w-2xl space-y-4">
+          {/* Barre de contrôle du lot */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Stack size={20} weight="bold" />
+              <span className="font-semibold">{scannedBooks.length} livre{scannedBooks.length > 1 ? 's' : ''} scanné{scannedBooks.length > 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleResetBatch}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+              >
+                <Trash size={16} weight="regular" />
+                Réinitialiser
+              </button>
+              <button
+                onClick={handleValidateBatch}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+              >
+                <CheckCircle size={16} weight="bold" />
+                Valider le lot
+              </button>
+            </div>
+          </div>
+
+          {/* Grille d'aperçus */}
           <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Stack size={18} weight="bold" />
-              Livres scannés ({scannedBooks.length})
-            </h3>
             <div
               className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
               role="list"

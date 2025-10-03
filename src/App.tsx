@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useRef } from "react";
+import { useEffect, useState, lazy, Suspense, useRef, useMemo } from "react";
 import {
   Check,
   Circle,
@@ -35,6 +35,7 @@ import {
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
+import PostScanConfirm from "./components/PostScanConfirm";
 import EditBookModal from "./components/EditBookModal";
 import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
@@ -93,13 +94,20 @@ interface CollectionBook {
 function CompactBookCard({
   book,
   onClick,
+  onLongPress,
+  isSelected,
+  selectionMode,
   userLibraries,
 }: {
   book: CollectionBook;
   onClick: () => void;
+  onLongPress?: () => void;
+  isSelected?: boolean;
+  selectionMode?: boolean;
   userLibraries?: UserLibrary[];
 }) {
   const [coverSrc, setCoverSrc] = useState("/img/default-cover.png");
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Si image personnalisée, l'utiliser en priorité
@@ -123,10 +131,41 @@ function CompactBookCard({
     testImage.onerror = () => setCoverSrc(fallback);
   }, [book.isbn, book.customCoverUrl]);
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button === 2) return; // Ignorer clic droit natif
+    longPressTimerRef.current = setTimeout(() => {
+      if (onLongPress) {
+        onLongPress();
+        if (navigator.vibrate) navigator.vibrate(50);
+      }
+    }, 500);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onLongPress) {
+      onLongPress();
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+  };
+
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02]"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onContextMenu={handleContextMenu}
+      className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02] ${
+        isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : 'border-gray-200'
+      }`}
     >
       {/* Desktop/Tablet : Layout vertical */}
       <div className="hidden md:block">
@@ -136,6 +175,18 @@ function CompactBookCard({
             alt={book.title}
             className="w-full h-full object-contain"
           />
+          {/* Checkbox de sélection */}
+          {selectionMode && (
+            <div className="absolute top-2 left-2 z-10">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => {}} // Géré par onClick de la carte
+                className="w-5 h-5 cursor-pointer accent-blue-600"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
           {/* Badge de lecture en overlay (lecture seule) */}
           <div
             className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full ${
@@ -884,7 +935,22 @@ function App() {
   const [showIsbnSearch, setShowIsbnSearch] = useState(false);
   const [showTextSearch, setShowTextSearch] = useState(false);
 
-  const handleDetected = (code: string) => {
+  // États pour le post-scan confirmation
+  const [showPostScanConfirm, setShowPostScanConfirm] = useState(false);
+  const [scannedBookData, setScannedBookData] = useState<{
+    isbn: string;
+    title?: string;
+    authors?: string[];
+    publisher?: string;
+    coverUrl?: string;
+  } | null>(null);
+
+  // Cache des ISBN existants pour anti-doublon
+  const existingIsbnsSet = useMemo(() => {
+    return new Set(collectionBooks.map(book => book.isbn));
+  }, [collectionBooks]);
+
+  const handleDetected = async (code: string) => {
     setIsbn(code);
     setScanning(false);
 
@@ -893,26 +959,37 @@ function App() {
       navigator.vibrate(200);
     }
 
-    // Lancer la recherche du livre
-    handleSearch(code);
+    // Récupérer les données du livre
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`
+      );
+      const data = await res.json();
+      const volumeInfo = data.items?.[0]?.volumeInfo || null;
 
-    // Scroll automatique vers l'aperçu après un délai pour laisser le temps à l'interface de se mettre à jour
-    setTimeout(() => {
-      // Scroll vers l'aperçu du livre
-      const bookPreview = document.querySelector("[data-book-preview]");
-      if (bookPreview) {
-        bookPreview.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
+      if (volumeInfo) {
+        setScannedBookData({
+          isbn: code,
+          title: volumeInfo.title,
+          authors: volumeInfo.authors,
+          publisher: volumeInfo.publisher,
+          coverUrl: volumeInfo.imageLinks?.thumbnail
         });
+        setShowPostScanConfirm(true);
       } else {
-        // Fallback : scroll vers le bas de la page
-        window.scrollTo({
-          top: window.innerHeight,
-          behavior: "smooth",
+        // Pas de données trouvées, afficher avec données minimales
+        setScannedBookData({
+          isbn: code
         });
+        setShowPostScanConfirm(true);
       }
-    }, 500);
+    } catch (err) {
+      console.error("Erreur lors de la recherche :", err);
+      setScannedBookData({
+        isbn: code
+      });
+      setShowPostScanConfirm(true);
+    }
   };
 
   const handleSearch = async (code: string) => {
@@ -1033,6 +1110,57 @@ function App() {
     if (resultsElement) {
       resultsElement.scrollIntoView({ behavior: "smooth" });
     }
+  };
+
+  const handlePostScanConfirm = async () => {
+    if (!scannedBookData || !user) return;
+
+    setAddingToCollection(true);
+    try {
+      const bookData: Partial<CollectionBook> = {
+        isbn: scannedBookData.isbn,
+        title: scannedBookData.title || 'Titre non disponible',
+        authors: scannedBookData.authors || [],
+        publisher: scannedBookData.publisher,
+        addedAt: new Date().toISOString(),
+        isRead: false,
+      };
+
+      if (scannedBookData.coverUrl) {
+        bookData.customCoverUrl = scannedBookData.coverUrl;
+      }
+
+      const bookRef = doc(db, `users/${user.uid}/collection`, scannedBookData.isbn);
+      await setDoc(bookRef, bookData);
+
+      // Recharger la collection
+      const collectionRef = collection(db, `users/${user.uid}/collection`);
+      const snapshot = await getDocs(collectionRef);
+      const books = snapshot.docs.map(docSnap => ({ ...docSnap.data() } as CollectionBook));
+      setCollectionBooks(books);
+
+      setAddMessage({
+        text: 'Livre ajouté avec succès !',
+        type: 'success'
+      });
+
+      setShowPostScanConfirm(false);
+      setScannedBookData(null);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout:', error);
+      setAddMessage({
+        text: 'Erreur lors de l\'ajout du livre',
+        type: 'error'
+      });
+    } finally {
+      setAddingToCollection(false);
+    }
+  };
+
+  const handlePostScanCancel = () => {
+    setShowPostScanConfirm(false);
+    setScannedBookData(null);
+    setScanning(true); // Reprendre le scan
   };
 
   const handleManualBookSubmit = () => {
@@ -1968,6 +2096,7 @@ function App() {
                 onDetected={scanMode === 'single' ? handleDetected : undefined}
                 onBulkScanComplete={scanMode === 'batch' ? handleBulkScanComplete : undefined}
                 onClose={() => setScanning(false)}
+                existingIsbns={existingIsbnsSet}
               />
             </Suspense>
           )}
@@ -2448,42 +2577,34 @@ function App() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
                       {displayedBooks.map((item) => (
-                        <div key={item.isbn} className="relative">
-                          {selectionMode && (
-                            <div
-                              className="absolute top-2 left-2 z-10"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedBooks.includes(item.isbn)}
-                                onChange={() => {
-                                  setSelectedBooks(prev =>
-                                    prev.includes(item.isbn)
-                                      ? prev.filter(isbn => isbn !== item.isbn)
-                                      : [...prev, item.isbn]
-                                  );
-                                }}
-                                className="w-5 h-5 cursor-pointer accent-blue-600"
-                              />
-                            </div>
-                          )}
-                          <CompactBookCard
-                            book={item}
-                            onClick={() => {
-                              if (!selectionMode) {
-                                setSelectedBook(item);
-                              } else {
-                                setSelectedBooks(prev =>
-                                  prev.includes(item.isbn)
-                                    ? prev.filter(isbn => isbn !== item.isbn)
-                                    : [...prev, item.isbn]
-                                );
-                              }
-                            }}
-                            userLibraries={userLibraries}
-                          />
-                        </div>
+                        <CompactBookCard
+                          key={item.isbn}
+                          book={item}
+                          onClick={() => {
+                            if (!selectionMode) {
+                              setSelectedBook(item);
+                            } else {
+                              setSelectedBooks(prev =>
+                                prev.includes(item.isbn)
+                                  ? prev.filter(isbn => isbn !== item.isbn)
+                                  : [...prev, item.isbn]
+                              );
+                            }
+                          }}
+                          onLongPress={() => {
+                            if (!selectionMode) {
+                              setSelectionMode(true);
+                            }
+                            setSelectedBooks(prev =>
+                              prev.includes(item.isbn)
+                                ? prev
+                                : [...prev, item.isbn]
+                            );
+                          }}
+                          isSelected={selectedBooks.includes(item.isbn)}
+                          selectionMode={selectionMode}
+                          userLibraries={userLibraries}
+                        />
                       ))}
                     </div>
                   )}
@@ -2771,6 +2892,19 @@ function App() {
         onClose={() => setShowAnnouncementManager(false)}
         currentUser={user ? { uid: user.uid, role: 'admin' } : undefined}
       />
+
+      {/* Post-Scan Confirmation Modal */}
+      {showPostScanConfirm && scannedBookData && (
+        <PostScanConfirm
+          isbn={scannedBookData.isbn}
+          title={scannedBookData.title}
+          authors={scannedBookData.authors}
+          publisher={scannedBookData.publisher}
+          coverUrl={scannedBookData.coverUrl}
+          onConfirm={handlePostScanConfirm}
+          onCancel={handlePostScanCancel}
+        />
+      )}
 
       {/* Bulk Add Confirmation Modal */}
       <BulkAddConfirmModal
