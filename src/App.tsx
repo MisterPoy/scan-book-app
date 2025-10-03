@@ -986,7 +986,9 @@ function App() {
 
   // États pour le mode lot recherche manuelle
   const [manualSearchBatchMode, setManualSearchBatchMode] = useState(false);
-  const [selectedSearchResults, setSelectedSearchResults] = useState<GoogleBook[]>([]);
+  const [selectedSearchResults, setSelectedSearchResults] = useState<
+    GoogleBook[]
+  >([]);
 
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -996,14 +998,14 @@ function App() {
     const handleClickOutside = (event: MouseEvent) => {
       if (showExportMenu) {
         const target = event.target as HTMLElement;
-        if (!target.closest('[data-export-menu]')) {
+        if (!target.closest("[data-export-menu]")) {
           setShowExportMenu(false);
         }
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [showExportMenu]);
 
   // États pour le post-scan confirmation
@@ -1963,7 +1965,11 @@ function App() {
       `# Date: ${exportDate}`,
       `# Bibliothèque: ${libraryName || "Collection complète"}`,
       `# Nombre de livres: ${booksToExport.length}`,
-      `# Statistiques: ${stats.lu} lu${stats.lu > 1 ? "s" : ""} | ${stats.a_lire} à lire | ${stats.en_cours} en cours | ${stats.non_lu} non lu${stats.non_lu > 1 ? "s" : ""} | ${stats.abandonne} abandonné${stats.abandonne > 1 ? "s" : ""}`,
+      `# Statistiques: ${stats.lu} lu${stats.lu > 1 ? "s" : ""} | ${
+        stats.a_lire
+      } à lire | ${stats.en_cours} en cours | ${stats.non_lu} non lu${
+        stats.non_lu > 1 ? "s" : ""
+      } | ${stats.abandonne} abandonné${stats.abandonne > 1 ? "s" : ""}`,
       "#",
       "# ==========================================",
       "#",
@@ -2026,11 +2032,7 @@ function App() {
 
     // Échapper les champs contenant des virgules, guillemets ou retours à la ligne
     const escapeCSV = (value: string) => {
-      if (
-        value.includes(",") ||
-        value.includes('"') ||
-        value.includes("\n")
-      ) {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
         return `"${value.replace(/"/g, '""')}"`;
       }
       return value;
@@ -2050,9 +2052,12 @@ function App() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    const filename = libraryId && libraryName
-      ? `kodeks-${libraryName.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.csv`
-      : `kodeks-collection-${new Date().toISOString().split("T")[0]}.csv`;
+    const filename =
+      libraryId && libraryName
+        ? `kodeks-${libraryName.toLowerCase().replace(/\s+/g, "-")}-${
+            new Date().toISOString().split("T")[0]
+          }.csv`
+        : `kodeks-collection-${new Date().toISOString().split("T")[0]}.csv`;
     link.setAttribute("download", filename);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -2060,13 +2065,14 @@ function App() {
     document.body.removeChild(link);
 
     setAddMessage({
-      text: libraryId && libraryName
-        ? `${booksToExport.length} livre${
-            booksToExport.length > 1 ? "s" : ""
-          } de "${libraryName}" exporté${booksToExport.length > 1 ? "s" : ""}`
-        : `${booksToExport.length} livre${
-            booksToExport.length > 1 ? "s" : ""
-          } exporté${booksToExport.length > 1 ? "s" : ""}`,
+      text:
+        libraryId && libraryName
+          ? `${booksToExport.length} livre${
+              booksToExport.length > 1 ? "s" : ""
+            } de "${libraryName}" exporté${booksToExport.length > 1 ? "s" : ""}`
+          : `${booksToExport.length} livre${
+              booksToExport.length > 1 ? "s" : ""
+            } exporté${booksToExport.length > 1 ? "s" : ""}`,
       type: "success",
     });
     setTimeout(() => setAddMessage(null), 3000);
@@ -2421,7 +2427,7 @@ function App() {
               {/* Recherche ISBN manuelle - Collapsible */}
               <button
                 onClick={() => setShowIsbnSearch(!showIsbnSearch)}
-                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md"
+                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md cursor-pointer"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par ISBN
@@ -2443,12 +2449,20 @@ function App() {
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-white rounded-lg shadow-sm">
-                            <MagnifyingGlass size={24} weight="bold" className="text-blue-600" />
+                            <MagnifyingGlass
+                              size={24}
+                              weight="bold"
+                              className="text-blue-600"
+                            />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900 text-base">Recherche ISBN</h3>
+                            <h3 className="font-bold text-gray-900 text-base">
+                              Recherche ISBN
+                            </h3>
                             <p className="text-xs text-gray-600">
-                              {isbnBatchMode ? "Mode lot - Ajoutez plusieurs ISBN" : "Mode unique - Recherche directe"}
+                              {isbnBatchMode
+                                ? "Mode lot - Ajoutez plusieurs ISBN"
+                                : "Mode unique - Recherche directe"}
                             </p>
                           </div>
                         </div>
@@ -2500,7 +2514,9 @@ function App() {
                                 }
                               }
                             }}
-                            placeholder={isbnBatchMode ? "978XXXXXXXXXX" : "Saisir un ISBN"}
+                            placeholder={
+                              isbnBatchMode ? "978XXXXXXXXXX" : "Saisir un ISBN"
+                            }
                             className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono text-sm"
                           />
                           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -2509,7 +2525,9 @@ function App() {
                         </div>
                         <button
                           onClick={() =>
-                            isbnBatchMode ? handleIsbnBatchAdd() : handleSearch(isbn)
+                            isbnBatchMode
+                              ? handleIsbnBatchAdd()
+                              : handleSearch(isbn)
                           }
                           className={`px-6 py-3 text-sm font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow-md ${
                             isbnBatchMode
@@ -2523,12 +2541,22 @@ function App() {
 
                       {/* Preview du lot avec design amélioré */}
                       {isbnBatchMode && (
-                        <div className={`transition-all ${isbnBatchList.length > 0 ? 'opacity-100' : 'opacity-50'}`}>
+                        <div
+                          className={`transition-all ${
+                            isbnBatchList.length > 0
+                              ? "opacity-100"
+                              : "opacity-50"
+                          }`}
+                        >
                           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <div className="p-1.5 bg-green-600 rounded-lg">
-                                  <Stack size={16} weight="bold" className="text-white" />
+                                  <Stack
+                                    size={16}
+                                    weight="bold"
+                                    className="text-white"
+                                  />
                                 </div>
                                 <span className="font-bold text-green-900">
                                   {isbnBatchList.length} ISBN
@@ -2557,20 +2585,32 @@ function App() {
                                       {isbnItem}
                                     </span>
                                     <button
-                                      onClick={() => handleIsbnBatchRemove(isbnItem)}
+                                      onClick={() =>
+                                        handleIsbnBatchRemove(isbnItem)
+                                      }
                                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
                                       title="Retirer"
                                     >
-                                      <X size={16} weight="bold" className="text-red-600" />
+                                      <X
+                                        size={16}
+                                        weight="bold"
+                                        className="text-red-600"
+                                      />
                                     </button>
                                   </div>
                                 ))}
                               </div>
                             ) : (
                               <div className="text-center py-6 text-sm text-green-700">
-                                <Book size={32} weight="regular" className="mx-auto mb-2 opacity-50" />
+                                <Book
+                                  size={32}
+                                  weight="regular"
+                                  className="mx-auto mb-2 opacity-50"
+                                />
                                 <p>Aucun ISBN ajouté</p>
-                                <p className="text-xs opacity-75 mt-1">Saisissez des ISBN ci-dessus</p>
+                                <p className="text-xs opacity-75 mt-1">
+                                  Saisissez des ISBN ci-dessus
+                                </p>
                               </div>
                             )}
                           </div>
@@ -2586,7 +2626,8 @@ function App() {
                           className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                           <CheckCircle size={20} weight="bold" />
-                          Valider le lot ({isbnBatchList.length} livre{isbnBatchList.length > 1 && "s"})
+                          Valider le lot ({isbnBatchList.length} livre
+                          {isbnBatchList.length > 1 && "s"})
                         </button>
                       </div>
                     )}
@@ -2597,7 +2638,7 @@ function App() {
               {/* Recherche par titre/auteur - Collapsible */}
               <button
                 onClick={() => setShowTextSearch(!showTextSearch)}
-                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md mt-2"
+                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md mt-2 cursor-pointer"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par titre/auteur
@@ -2619,12 +2660,20 @@ function App() {
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-white rounded-lg shadow-sm">
-                            <MagnifyingGlass size={24} weight="bold" className="text-green-600" />
+                            <MagnifyingGlass
+                              size={24}
+                              weight="bold"
+                              className="text-green-600"
+                            />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900 text-base">Recherche Titre/Auteur</h3>
+                            <h3 className="font-bold text-gray-900 text-base">
+                              Recherche Titre/Auteur
+                            </h3>
                             <p className="text-xs text-gray-600">
-                              {manualSearchBatchMode ? "Mode sélection - Choisissez plusieurs livres" : "Mode unique - Un livre à la fois"}
+                              {manualSearchBatchMode
+                                ? "Mode sélection - Choisissez plusieurs livres"
+                                : "Mode unique - Un livre à la fois"}
                             </p>
                           </div>
                         </div>
@@ -2689,7 +2738,11 @@ function App() {
                         >
                           {isSearching ? (
                             <>
-                              <Timer size={16} weight="bold" className="inline mr-2 align-middle" />
+                              <Timer
+                                size={16}
+                                weight="bold"
+                                className="inline mr-2 align-middle"
+                              />
                               Recherche...
                             </>
                           ) : (
@@ -2700,15 +2753,28 @@ function App() {
 
                       {/* Preview de la sélection en mode lot */}
                       {manualSearchBatchMode && (
-                        <div className={`transition-all ${selectedSearchResults.length > 0 ? 'opacity-100' : 'opacity-50'}`}>
+                        <div
+                          className={`transition-all ${
+                            selectedSearchResults.length > 0
+                              ? "opacity-100"
+                              : "opacity-50"
+                          }`}
+                        >
                           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <div className="p-1.5 bg-green-600 rounded-lg">
-                                  <Stack size={16} weight="bold" className="text-white" />
+                                  <Stack
+                                    size={16}
+                                    weight="bold"
+                                    className="text-white"
+                                  />
                                 </div>
                                 <span className="font-bold text-green-900">
-                                  {selectedSearchResults.length} livre{selectedSearchResults.length !== 1 && "s"} sélectionné{selectedSearchResults.length !== 1 && "s"}
+                                  {selectedSearchResults.length} livre
+                                  {selectedSearchResults.length !== 1 && "s"}{" "}
+                                  sélectionné
+                                  {selectedSearchResults.length !== 1 && "s"}
                                 </span>
                               </div>
                               {selectedSearchResults.length > 0 && (
@@ -2730,29 +2796,48 @@ function App() {
                                     className="flex items-center gap-3 px-3 py-2 bg-white border border-green-200 rounded-lg shadow-sm group hover:shadow-md transition-all"
                                   >
                                     <img
-                                      src={book.imageLinks?.thumbnail || "/img/default-cover.png"}
+                                      src={
+                                        book.imageLinks?.thumbnail ||
+                                        "/img/default-cover.png"
+                                      }
                                       alt={book.title}
                                       className="w-8 h-12 object-cover rounded"
                                     />
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-gray-900 truncate">{book.title}</p>
-                                      <p className="text-xs text-gray-600 truncate">{book.authors?.join(", ")}</p>
+                                      <p className="text-sm font-semibold text-gray-900 truncate">
+                                        {book.title}
+                                      </p>
+                                      <p className="text-xs text-gray-600 truncate">
+                                        {book.authors?.join(", ")}
+                                      </p>
                                     </div>
                                     <button
-                                      onClick={() => handleManualSearchToggle(book)}
+                                      onClick={() =>
+                                        handleManualSearchToggle(book)
+                                      }
                                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
                                       title="Retirer"
                                     >
-                                      <X size={16} weight="bold" className="text-red-600" />
+                                      <X
+                                        size={16}
+                                        weight="bold"
+                                        className="text-red-600"
+                                      />
                                     </button>
                                   </div>
                                 ))}
                               </div>
                             ) : (
                               <div className="text-center py-6 text-sm text-green-700">
-                                <Book size={32} weight="regular" className="mx-auto mb-2 opacity-50" />
+                                <Book
+                                  size={32}
+                                  weight="regular"
+                                  className="mx-auto mb-2 opacity-50"
+                                />
                                 <p>Aucun livre sélectionné</p>
-                                <p className="text-xs opacity-75 mt-1">Lancez une recherche et cliquez sur les livres</p>
+                                <p className="text-xs opacity-75 mt-1">
+                                  Lancez une recherche et cliquez sur les livres
+                                </p>
                               </div>
                             )}
                           </div>
@@ -2761,17 +2846,21 @@ function App() {
                     </div>
 
                     {/* Footer action bar - seulement si sélection non vide */}
-                    {manualSearchBatchMode && selectedSearchResults.length > 0 && (
-                      <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
-                        <button
-                          onClick={handleManualSearchBatchValidate}
-                          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle size={20} weight="bold" />
-                          Valider la sélection ({selectedSearchResults.length} livre{selectedSearchResults.length > 1 && "s"})
-                        </button>
-                      </div>
-                    )}
+                    {manualSearchBatchMode &&
+                      selectedSearchResults.length > 0 && (
+                        <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
+                          <button
+                            onClick={handleManualSearchBatchValidate}
+                            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={20} weight="bold" />
+                            Valider la sélection ({
+                              selectedSearchResults.length
+                            }{" "}
+                            livre{selectedSearchResults.length > 1 && "s"})
+                          </button>
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
@@ -3160,7 +3249,9 @@ function App() {
                           >
                             <Books size={16} weight="bold" />
                             <div>
-                              <div className="font-medium">Toute la collection</div>
+                              <div className="font-medium">
+                                Toute la collection
+                              </div>
                               <div className="text-xs text-gray-500">
                                 {collectionBooks.length} livre
                                 {collectionBooks.length > 1 && "s"}
@@ -3175,19 +3266,28 @@ function App() {
                                 Par bibliothèque
                               </div>
                               {userLibraries.map((library) => {
-                                const bookCount = collectionBooks.filter((book) =>
-                                  book.libraries?.includes(library.id)
+                                const bookCount = collectionBooks.filter(
+                                  (book) => book.libraries?.includes(library.id)
                                 ).length;
                                 return (
                                   <button
                                     key={library.id}
-                                    onClick={() => exportCollectionToCSV(library.id)}
+                                    onClick={() =>
+                                      exportCollectionToCSV(library.id)
+                                    }
                                     disabled={bookCount === 0}
                                     className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    <span>{renderLibraryIcon(library.icon || "BK", 16)}</span>
+                                    <span>
+                                      {renderLibraryIcon(
+                                        library.icon || "BK",
+                                        16
+                                      )}
+                                    </span>
                                     <div className="flex-1">
-                                      <div className="font-medium">{library.name}</div>
+                                      <div className="font-medium">
+                                        {library.name}
+                                      </div>
                                       <div className="text-xs text-gray-500">
                                         {bookCount} livre{bookCount > 1 && "s"}
                                       </div>
