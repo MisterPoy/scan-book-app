@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**7 commits principaux** :
+**9 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -15,6 +15,71 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 5. Export CSV par bibliothèque avec dropdown menu
 6. Documentation complète JOURNAL.md
 7. Fix UX: Déplacement bouton "Ajouter manuellement"
+8. Amélioration export CSV avec métadonnées et formatage dates
+9. Fix icônes PWA avec logo Kodeks
+
+---
+
+### ✅ FIX : Icônes PWA avec Logo Kodeks
+
+**Problème** : Les icônes PWA utilisaient toujours l'ancien SVG générique au lieu du nouveau logo Kodeks
+
+**Solution** : Modification du script de génération pour utiliser `kodeks-logo.png`
+
+**Modifications** :
+- **scripts/generate-icons.js** :
+  - Changement source : `icon-base.svg` → `kodeks-logo.png`
+  - Ajout option `fit: 'contain'` pour préserver les proportions
+  - Fond transparent pour meilleure intégration
+- **Régénération** de toutes les icônes (72×72 à 512×512)
+
+**Résultat** :
+- ✅ Logo Kodeks visible dans l'écran d'accueil Android/iOS
+- ✅ Icônes splash screen cohérentes avec l'identité visuelle
+- ✅ Tailles optimisées (4KB à 172KB selon résolution)
+
+**Fichiers modifiés** :
+- `scripts/generate-icons.js`
+- `public/icons/icon-*.png` (×8 fichiers régénérés)
+
+---
+
+### ✅ AMÉLIORATION : Export CSV Enrichi
+
+**Problème** : Export CSV basique sans contexte ni dates lisibles
+
+**Solution** : Ajout métadonnées + formatage dates + statistiques
+
+**Modifications dans `src/App.tsx`** :
+
+1. **Fonction `formatDate()`** (lignes 1929-1942) :
+   - Convertit timestamps ISO → `JJ/MM/AAAA HH:MM`
+   - Gestion erreurs avec fallback sur valeur originale
+
+2. **Calcul statistiques** (lignes 1944-1956) :
+   - Comptage automatique par statut (lu, à lire, en cours, non lu, abandonné)
+   - Stats dynamiques selon livres exportés
+
+3. **Section métadonnées** (lignes 1958-1970) :
+   ```
+   # Export Kodeks
+   # Date: 03/10/2025 14:48
+   # Bibliothèque: Romans Fantastiques (ou "Collection complète")
+   # Nombre de livres: 42
+   # Statistiques: 28 lus | 10 à lire | 4 en cours | 0 non lu | 0 abandonné
+   #
+   # ==========================================
+   #
+   ```
+
+4. **Dates formatées** (ligne 2023) :
+   - Colonne "Date d'ajout" : `15/03/2025 14:30` au lieu de ISO timestamp
+
+**Résultat** :
+- ✅ CSV plus professionnel et informatif
+- ✅ Compatible Excel/Google Sheets/LibreOffice
+- ✅ Lignes `#` ignorées comme commentaires par tableurs
+- ✅ Analyse facilitée avec contexte d'export
 
 ---
 

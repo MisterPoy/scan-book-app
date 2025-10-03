@@ -1925,6 +1925,50 @@ function App() {
       return;
     }
 
+    // Fonction pour formater les dates
+    const formatDate = (dateString: string) => {
+      if (!dateString) return "";
+      try {
+        const date = new Date(dateString);
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      } catch {
+        return dateString;
+      }
+    };
+
+    // Calculer les statistiques
+    const stats = {
+      lu: 0,
+      non_lu: 0,
+      a_lire: 0,
+      en_cours: 0,
+      abandonne: 0,
+    };
+
+    booksToExport.forEach((book) => {
+      const status = book.readingStatus || (book.isRead ? "lu" : "non_lu");
+      stats[status as keyof typeof stats]++;
+    });
+
+    // Créer les métadonnées
+    const now = new Date();
+    const exportDate = formatDate(now.toISOString());
+    const metadata = [
+      "# Export Kodeks",
+      `# Date: ${exportDate}`,
+      `# Bibliothèque: ${libraryName || "Collection complète"}`,
+      `# Nombre de livres: ${booksToExport.length}`,
+      `# Statistiques: ${stats.lu} lu${stats.lu > 1 ? "s" : ""} | ${stats.a_lire} à lire | ${stats.en_cours} en cours | ${stats.non_lu} non lu${stats.non_lu > 1 ? "s" : ""} | ${stats.abandonne} abandonné${stats.abandonne > 1 ? "s" : ""}`,
+      "#",
+      "# ==========================================",
+      "#",
+    ];
+
     // Créer les en-têtes CSV
     const headers = [
       "ISBN",
@@ -1976,7 +2020,7 @@ function App() {
           "",
         book.personalNote || "",
         libraryNames || "",
-        book.addedAt || "",
+        formatDate(book.addedAt) || "",
       ];
     });
 
@@ -1994,6 +2038,7 @@ function App() {
 
     // Construire le CSV
     const csvContent = [
+      ...metadata,
       headers.map(escapeCSV).join(","),
       ...rows.map((row) => row.map(escapeCSV).join(",")),
     ].join("\n");
