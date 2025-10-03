@@ -49,7 +49,7 @@ export const useNotifications = (userId: string | null) => {
         new Notification(notifPayload.notification?.title || 'Nouvelle notification', {
           body: notifPayload.notification?.body,
           icon: '/icons/icon-192x192.png',
-          tag: 'scanbook-foreground'
+          tag: 'kodeks-foreground'
         });
       }
     });
@@ -128,10 +128,10 @@ export const useNotifications = (userId: string | null) => {
   // Tester une notification
   const testNotification = useCallback(() => {
     if (Notification.permission === 'granted') {
-      new Notification('Test - ScanBook', {
-        body: 'Les notifications fonctionnent correctement ! 🎉',
+      new Notification('Test - Kodeks', {
+        body: 'Les notifications fonctionnent correctement !',
         icon: '/icons/icon-192x192.png',
-        tag: 'scanbook-test'
+        tag: 'kodeks-test'
       });
       return true;
     }

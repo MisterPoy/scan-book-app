@@ -46,7 +46,7 @@ export const getUsersWithNotificationsEnabled = async (): Promise<UserWithToken[
 
 // Créer le payload de notification
 const createNotificationPayload = (announcement: Announcement) => {
-  const title = 'Nouvelle annonce - ScanBook';
+  const title = 'Nouvelle annonce - Kodeks';
   const body = announcement.title;
 
   return {
@@ -175,7 +175,7 @@ export const sendTestNotificationToUser = async (userToken: string): Promise<voi
   const testAnnouncement: Announcement = {
     id: 'test-' + Date.now(),
     title: 'Test de notification push',
-    message: 'Ceci est un test de notification depuis ScanBook',
+    message: 'Ceci est un test de notification depuis Kodeks',
     priority: 'medium',
     type: 'info',
     displayMode: 'banner',

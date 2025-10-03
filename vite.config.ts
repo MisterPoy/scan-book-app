@@ -13,8 +13,8 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Scan Book App - Gestionnaire de Bibliothèque',
-        short_name: 'ScanBook',
+        name: 'Kodeks - Gestionnaire de Bibliothèque',
+        short_name: 'Kodeks',
         description: 'Application de gestion de bibliothèque personnelle avec scanner ISBN',
         theme_color: '#3B82F6',
         background_color: '#ffffff',

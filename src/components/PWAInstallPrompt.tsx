@@ -29,7 +29,7 @@ export default function PWAInstallPrompt() {
         </div>
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-sm mb-1">
-            Installer ScanBook
+            Installer Kodeks
           </h3>
           <p className="text-xs text-gray-600 mb-3">
             Accédez rapidement à votre bibliothèque depuis votre écran d'accueil
