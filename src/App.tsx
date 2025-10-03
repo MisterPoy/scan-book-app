@@ -31,6 +31,7 @@ import {
   Bell,
   Stack,
   DownloadSimple,
+  CheckCircle,
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -979,6 +980,10 @@ function App() {
   const [showIsbnSearch, setShowIsbnSearch] = useState(false);
   const [showTextSearch, setShowTextSearch] = useState(false);
 
+  // États pour le mode lot ISBN
+  const [isbnBatchMode, setIsbnBatchMode] = useState(false);
+  const [isbnBatchList, setIsbnBatchList] = useState<string[]>([]);
+
   // États pour le post-scan confirmation
   const [showPostScanConfirm, setShowPostScanConfirm] = useState(false);
   const [scannedBookData, setScannedBookData] = useState<{
@@ -1861,6 +1866,7 @@ function App() {
       // Fermer la modale
       setShowBulkConfirmModal(false);
       setBulkScannedIsbns([]);
+      setIsbnBatchList([]); // Nettoyer aussi le lot ISBN si applicable
     } catch (error) {
       console.error("Erreur lors de l'ajout groupé:", error);
       setAddMessage({
@@ -1982,6 +1988,68 @@ function App() {
       type: "success",
     });
     setTimeout(() => setAddMessage(null), 3000);
+  };
+
+  const handleIsbnBatchAdd = () => {
+    if (!isbn.trim()) {
+      setAddMessage({
+        text: "Veuillez saisir un ISBN",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    // Vérifier si déjà dans le lot
+    if (isbnBatchList.includes(isbn.trim())) {
+      setAddMessage({
+        text: "ISBN déjà dans le lot",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    // Vérifier si déjà dans la collection
+    if (existingIsbnsSet.has(isbn.trim())) {
+      setAddMessage({
+        text: "Livre déjà dans votre bibliothèque",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    // Ajouter au lot
+    setIsbnBatchList([...isbnBatchList, isbn.trim()]);
+    setIsbn(""); // Vider le champ pour le prochain
+
+    // Feedback visuel
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
+
+  const handleIsbnBatchRemove = (isbnToRemove: string) => {
+    setIsbnBatchList(isbnBatchList.filter((i) => i !== isbnToRemove));
+  };
+
+  const handleIsbnBatchValidate = () => {
+    if (isbnBatchList.length === 0) {
+      setAddMessage({
+        text: "Aucun ISBN à valider",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    // Réutiliser le système de validation par lot existant
+    setBulkScannedIsbns(isbnBatchList);
+    setShowBulkConfirmModal(true);
+  };
+
+  const handleIsbnBatchReset = () => {
+    setIsbnBatchList([]);
+    setIsbn("");
   };
 
   const handleDeleteAccount = async () => {
@@ -2239,19 +2307,127 @@ function App() {
               </button>
 
               {showIsbnSearch && (
-                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md animate-fadeIn">
-                  <input
-                    value={isbn}
-                    onChange={(e) => setIsbn(e.target.value)}
-                    placeholder="Saisir un ISBN manuellement"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={() => handleSearch(isbn)}
-                    className="px-6 py-3 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-                  >
-                    Rechercher
-                  </button>
+                <div className="flex flex-col gap-4 w-full max-w-2xl animate-fadeIn">
+                  {/* Toggle mode lot */}
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => {
+                        setIsbnBatchMode(false);
+                        setIsbnBatchList([]);
+                        setIsbn("");
+                      }}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                        !isbnBatchMode
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      ISBN unique
+                    </button>
+                    <button
+                      onClick={() => setIsbnBatchMode(true)}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                        isbnBatchMode
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      <Stack size={16} weight="bold" className="inline mr-2" />
+                      ISBN par lot
+                    </button>
+                  </div>
+
+                  {/* Champ de saisie */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      value={isbn}
+                      onChange={(e) => setIsbn(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (isbnBatchMode) {
+                            handleIsbnBatchAdd();
+                          } else {
+                            handleSearch(isbn);
+                          }
+                        }
+                      }}
+                      placeholder={
+                        isbnBatchMode
+                          ? "Saisir un ISBN puis appuyer sur Ajouter"
+                          : "Saisir un ISBN manuellement"
+                      }
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={() =>
+                        isbnBatchMode
+                          ? handleIsbnBatchAdd()
+                          : handleSearch(isbn)
+                      }
+                      className={`px-6 py-3 text-sm font-medium text-white rounded-lg transition-colors cursor-pointer ${
+                        isbnBatchMode
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "bg-gray-600 hover:bg-gray-700"
+                      }`}
+                    >
+                      {isbnBatchMode ? "Ajouter au lot" : "Rechercher"}
+                    </button>
+                  </div>
+
+                  {/* Grille du lot ISBN */}
+                  {isbnBatchMode && isbnBatchList.length > 0 && (
+                    <div className="space-y-3">
+                      {/* Barre de contrôle */}
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Stack size={20} weight="bold" />
+                          <span className="font-semibold">
+                            {isbnBatchList.length} ISBN
+                            {isbnBatchList.length > 1 ? "s" : ""} dans le lot
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleIsbnBatchReset}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+                          >
+                            <Trash size={16} weight="regular" />
+                            Réinitialiser
+                          </button>
+                          <button
+                            onClick={handleIsbnBatchValidate}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+                          >
+                            <CheckCircle size={16} weight="bold" />
+                            Valider le lot
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Liste des ISBN */}
+                      <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                        <div className="flex flex-wrap gap-2">
+                          {isbnBatchList.map((isbnItem, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm"
+                            >
+                              <span className="text-sm font-mono text-gray-700">
+                                {isbnItem}
+                              </span>
+                              <button
+                                onClick={() => handleIsbnBatchRemove(isbnItem)}
+                                className="p-1 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                title="Retirer"
+                              >
+                                <X size={16} weight="bold" className="text-red-600" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
