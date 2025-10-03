@@ -29,7 +29,8 @@ import {
   Megaphone,
   Crown,
   Bell,
-  Stack
+  Stack,
+  DownloadSimple,
 } from "phosphor-react";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
@@ -51,7 +52,12 @@ import Footer from "./components/Footer";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
-import { onAuthStateChanged, getRedirectResult, deleteUser, type User } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  getRedirectResult,
+  deleteUser,
+  type User,
+} from "firebase/auth";
 import {
   doc,
   setDoc,
@@ -88,6 +94,7 @@ interface CollectionBook {
   // Nouveau champ pour les bibliothèques personnalisées
   libraries?: string[]; // IDs des bibliothèques
   categories?: string[]; // Catégories Google Books
+  personalNote?: string; // Note personnelle de l'utilisateur
 }
 
 // Composant vue compacte pour la grille
@@ -108,6 +115,7 @@ function CompactBookCard({
 }) {
   const [coverSrc, setCoverSrc] = useState("/img/default-cover.png");
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
 
   useEffect(() => {
     // Si image personnalisée, l'utiliser en priorité
@@ -133,7 +141,9 @@ function CompactBookCard({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) return; // Ignorer clic droit natif
+    isLongPressRef.current = false;
     longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
       if (onLongPress) {
         onLongPress();
         if (navigator.vibrate) navigator.vibrate(50);
@@ -148,6 +158,16 @@ function CompactBookCard({
     }
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Empêcher onClick si c'était un long press
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      e.preventDefault();
+      return;
+    }
+    onClick();
+  };
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onLongPress) {
@@ -158,13 +178,15 @@ function CompactBookCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onContextMenu={handleContextMenu}
       className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02] ${
-        isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : 'border-gray-200'
+        isSelected
+          ? "border-blue-500 border-2 ring-2 ring-blue-200"
+          : "border-gray-200"
       }`}
     >
       {/* Desktop/Tablet : Layout vertical */}
@@ -292,7 +314,7 @@ function CompactBookCard({
                     className="px-1 py-0.5 rounded text-xs text-white font-medium"
                     style={{ backgroundColor: library.color || "#3B82F6" }}
                   >
-                    {renderLibraryIcon(library.icon || 'BK', 16)} {library.name}
+                    {renderLibraryIcon(library.icon || "BK", 16)} {library.name}
                   </span>
                 ) : null;
               })}
@@ -406,7 +428,7 @@ function CompactBookCard({
                     className="px-1 py-0.5 rounded text-xs text-white font-medium"
                     style={{ backgroundColor: library.color || "#3B82F6" }}
                   >
-                    {renderLibraryIcon(library.icon || 'BK', 16)}
+                    {renderLibraryIcon(library.icon || "BK", 16)}
                   </span>
                 ) : null;
               })}
@@ -572,7 +594,11 @@ function CollectionBookCard({
                   : "bg-blue-500 text-white hover:bg-blue-600"
               }`}
             >
-              {uploadingCover ? <Clock size={16} weight="regular" /> : <Camera size={16} weight="regular" />}
+              {uploadingCover ? (
+                <Clock size={16} weight="regular" />
+              ) : (
+                <Camera size={16} weight="regular" />
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -695,7 +721,8 @@ function CollectionBookCard({
                       style={{ backgroundColor: library.color || "#3B82F6" }}
                       title={`Retirer de ${library.name}`}
                     >
-                      {renderLibraryIcon(library.icon || 'BK', 16)} {library.name} <X size={12} />
+                      {renderLibraryIcon(library.icon || "BK", 16)}{" "}
+                      {library.name} <X size={12} />
                     </button>
                   ) : null;
                 })}
@@ -743,7 +770,11 @@ function CollectionBookCard({
                 {bookDetails.description && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <Book size={16} weight="regular" className="inline mr-2" />
+                      <Book
+                        size={16}
+                        weight="regular"
+                        className="inline mr-2"
+                      />
                       Résumé
                     </h4>
                     <div
@@ -768,11 +799,7 @@ function CollectionBookCard({
                         }
                         className="text-blue-600 hover:text-blue-700 text-xs mt-2 font-medium inline-flex items-center gap-1 cursor-pointer"
                       >
-                        {showFullDescription ? (
-                          <>Lire moins</>
-                        ) : (
-                          <>Lire plus</>
-                        )}
+                        {showFullDescription ? <>Lire moins</> : <>Lire plus</>}
                       </button>
                     )}
                   </div>
@@ -781,7 +808,11 @@ function CollectionBookCard({
                 {bookDetails.publishedDate && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <CalendarBlank size={16} weight="regular" className="inline mr-2" />
+                      <CalendarBlank
+                        size={16}
+                        weight="regular"
+                        className="inline mr-2"
+                      />
                       Publication
                     </h4>
                     <p className="text-xs text-gray-600">
@@ -793,7 +824,11 @@ function CollectionBookCard({
                 {bookDetails.publisher && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <Buildings size={16} weight="regular" className="inline mr-2" />
+                      <Buildings
+                        size={16}
+                        weight="regular"
+                        className="inline mr-2"
+                      />
                       Éditeur
                     </h4>
                     <p className="text-xs text-gray-600">
@@ -805,7 +840,11 @@ function CollectionBookCard({
                 {bookDetails.pageCount && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <FileText size={16} weight="regular" className="inline mr-2" />
+                      <FileText
+                        size={16}
+                        weight="regular"
+                        className="inline mr-2"
+                      />
                       Pages
                     </h4>
                     <p className="text-xs text-gray-600">
@@ -818,7 +857,11 @@ function CollectionBookCard({
                   bookDetails.categories.length > 0 && (
                     <div>
                       <h4 className="font-medium text-gray-900 text-xs mb-1">
-                        <Tag size={16} weight="regular" className="inline mr-2" />
+                        <Tag
+                          size={16}
+                          weight="regular"
+                          className="inline mr-2"
+                        />
                         Catégories
                       </h4>
                       <div className="flex flex-wrap gap-1">
@@ -921,13 +964,14 @@ function App() {
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] =
+    useState(false);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
 
   // États pour le mode multi-scan
-  const [scanMode, setScanMode] = useState<'single' | 'batch'>('single');
+  const [scanMode, setScanMode] = useState<"single" | "batch">("single");
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
 
@@ -947,7 +991,7 @@ function App() {
 
   // Cache des ISBN existants pour anti-doublon
   const existingIsbnsSet = useMemo(() => {
-    return new Set(collectionBooks.map(book => book.isbn));
+    return new Set(collectionBooks.map((book) => book.isbn));
   }, [collectionBooks]);
 
   const handleDetected = async (code: string) => {
@@ -973,20 +1017,20 @@ function App() {
           title: volumeInfo.title,
           authors: volumeInfo.authors,
           publisher: volumeInfo.publisher,
-          coverUrl: volumeInfo.imageLinks?.thumbnail
+          coverUrl: volumeInfo.imageLinks?.thumbnail,
         });
         setShowPostScanConfirm(true);
       } else {
         // Pas de données trouvées, afficher avec données minimales
         setScannedBookData({
-          isbn: code
+          isbn: code,
         });
         setShowPostScanConfirm(true);
       }
     } catch (err) {
       console.error("Erreur lors de la recherche :", err);
       setScannedBookData({
-        isbn: code
+        isbn: code,
       });
       setShowPostScanConfirm(true);
     }
@@ -1022,14 +1066,20 @@ function App() {
       );
       const googleData = await googleRes.json();
       const googleBooks: GoogleBook[] =
-        googleData.items?.map((item: {volumeInfo: GoogleBook & {industryIdentifiers?: Array<{type: string; identifier: string}>}}) => ({
-          ...item.volumeInfo,
-          isbn:
-            item.volumeInfo?.industryIdentifiers?.find(
-              (id) => id.type === "ISBN_13" || id.type === "ISBN_10"
-            )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
-          source: "Google Books",
-        })) || [];
+        googleData.items?.map(
+          (item: {
+            volumeInfo: GoogleBook & {
+              industryIdentifiers?: Array<{ type: string; identifier: string }>;
+            };
+          }) => ({
+            ...item.volumeInfo,
+            isbn:
+              item.volumeInfo?.industryIdentifiers?.find(
+                (id) => id.type === "ISBN_13" || id.type === "ISBN_10"
+              )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
+            source: "Google Books",
+          })
+        ) || [];
 
       allBooks = [...googleBooks];
 
@@ -1119,7 +1169,7 @@ function App() {
     try {
       const bookData: Partial<CollectionBook> = {
         isbn: scannedBookData.isbn,
-        title: scannedBookData.title || 'Titre non disponible',
+        title: scannedBookData.title || "Titre non disponible",
         authors: scannedBookData.authors || [],
         publisher: scannedBookData.publisher,
         addedAt: new Date().toISOString(),
@@ -1130,27 +1180,33 @@ function App() {
         bookData.customCoverUrl = scannedBookData.coverUrl;
       }
 
-      const bookRef = doc(db, `users/${user.uid}/collection`, scannedBookData.isbn);
+      const bookRef = doc(
+        db,
+        `users/${user.uid}/collection`,
+        scannedBookData.isbn
+      );
       await setDoc(bookRef, bookData);
 
       // Recharger la collection
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
-      const books = snapshot.docs.map(docSnap => ({ ...docSnap.data() } as CollectionBook));
+      const books = snapshot.docs.map(
+        (docSnap) => ({ ...docSnap.data() } as CollectionBook)
+      );
       setCollectionBooks(books);
 
       setAddMessage({
-        text: 'Livre ajouté avec succès !',
-        type: 'success'
+        text: "Livre ajouté avec succès !",
+        type: "success",
       });
 
       setShowPostScanConfirm(false);
       setScannedBookData(null);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error);
+      console.error("Erreur lors de l'ajout:", error);
       setAddMessage({
-        text: 'Erreur lors de l\'ajout du livre',
-        type: 'error'
+        text: "Erreur lors de l'ajout du livre",
+        type: "error",
       });
     } finally {
       setAddingToCollection(false);
@@ -1228,7 +1284,7 @@ function App() {
     setAddMessage(null);
 
     try {
-      const ref = doc(db, `users/${user.uid}/collection`, book.isbn || '');
+      const ref = doc(db, `users/${user.uid}/collection`, book.isbn || "");
       const docData: Record<string, unknown> = {
         title: book.title,
         authors: book.authors || [],
@@ -1288,10 +1344,13 @@ function App() {
   const fetchCollection = async (uid: string) => {
     try {
       const snapshot = await getDocs(collection(db, `users/${uid}/collection`));
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      } as CollectionBook & { id: string }));
+      const list = snapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as CollectionBook & { id: string })
+      );
       setCollectionBooks(list);
     } catch (err) {
       console.error("Erreur récupération collection:", err);
@@ -1418,18 +1477,23 @@ function App() {
       if (user.uid === ADMIN_UID) {
         // C'est Greg - s'assurer qu'il a le statut admin
         if (!userDoc.exists() || !userDoc.data()?.isAdmin) {
-          await setDoc(userRef, {
-            email: "dreegoald@gmail.com",
-            isAdmin: true,
-            displayName: user.displayName,
-            lastLogin: new Date().toISOString()
-          }, { merge: true });
+          await setDoc(
+            userRef,
+            {
+              email: "dreegoald@gmail.com",
+              isAdmin: true,
+              displayName: user.displayName,
+              lastLogin: new Date().toISOString(),
+            },
+            { merge: true }
+          );
           console.log("✅ Statut admin configuré pour Greg");
         }
         setIsAdmin(true);
       } else {
         // Autre utilisateur - vérifier le statut admin existant
-        const adminStatus = userDoc.exists() && userDoc.data()?.isAdmin === true;
+        const adminStatus =
+          userDoc.exists() && userDoc.data()?.isAdmin === true;
         setIsAdmin(adminStatus);
         console.log("Statut admin configuré:", adminStatus);
       }
@@ -1612,7 +1676,9 @@ function App() {
         if (Array.isArray(obj)) return obj.filter((item) => item !== undefined);
         if (typeof obj === "object") {
           const cleaned: Record<string, unknown> = {};
-          for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+          for (const [key, value] of Object.entries(
+            obj as Record<string, unknown>
+          )) {
             if (value !== undefined) {
               cleaned[key] = cleanObject(value);
             }
@@ -1674,7 +1740,12 @@ function App() {
 
     const updatedBook = {
       ...bookToUpdate,
-      readingStatus: newStatus as "lu" | "non_lu" | "a_lire" | "en_cours" | "abandonne",
+      readingStatus: newStatus as
+        | "lu"
+        | "non_lu"
+        | "a_lire"
+        | "en_cours"
+        | "abandonne",
       isRead: newStatus === "lu", // Sync avec l'ancien champ isRead
     };
 
@@ -1729,11 +1800,14 @@ function App() {
     setShowBulkConfirmModal(true);
   };
 
-  const handleBulkAddConfirm = async (isbns: string[], personalNotes: Record<string, string>) => {
+  const handleBulkAddConfirm = async (
+    isbns: string[],
+    personalNotes: Record<string, string>
+  ) => {
     if (!user) {
       setAddMessage({
-        text: 'Vous devez être connecté pour ajouter des livres',
-        type: 'error'
+        text: "Vous devez être connecté pour ajouter des livres",
+        type: "error",
       });
       return;
     }
@@ -1750,37 +1824,48 @@ function App() {
       // Recharger la collection depuis Firestore
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
-      const books = snapshot.docs.map(doc => ({ ...doc.data() } as CollectionBook));
+      const books = snapshot.docs.map(
+        (doc) => ({ ...doc.data() } as CollectionBook)
+      );
       setCollectionBooks(books);
 
       // Afficher le feedback
       const { added, duplicates, errors } = response;
-      let message = '';
+      let message = "";
 
       if (added.length > 0) {
-        message += `${added.length} livre${added.length > 1 ? 's' : ''} ajouté${added.length > 1 ? 's' : ''} avec succès`;
+        message += `${added.length} livre${added.length > 1 ? "s" : ""} ajouté${
+          added.length > 1 ? "s" : ""
+        } avec succès`;
       }
       if (duplicates.length > 0) {
-        message += message ? ` • ${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''} ignoré${duplicates.length > 1 ? 's' : ''}` : `${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''} ignoré${duplicates.length > 1 ? 's' : ''}`;
+        message += message
+          ? ` • ${duplicates.length} doublon${
+              duplicates.length > 1 ? "s" : ""
+            } ignoré${duplicates.length > 1 ? "s" : ""}`
+          : `${duplicates.length} doublon${
+              duplicates.length > 1 ? "s" : ""
+            } ignoré${duplicates.length > 1 ? "s" : ""}`;
       }
       if (errors.length > 0) {
-        message += message ? ` • ${errors.length} erreur${errors.length > 1 ? 's' : ''}` : `${errors.length} erreur${errors.length > 1 ? 's' : ''}`;
+        message += message
+          ? ` • ${errors.length} erreur${errors.length > 1 ? "s" : ""}`
+          : `${errors.length} erreur${errors.length > 1 ? "s" : ""}`;
       }
 
       setAddMessage({
-        text: message || 'Opération terminée',
-        type: errors.length > 0 && added.length === 0 ? 'error' : 'success'
+        text: message || "Opération terminée",
+        type: errors.length > 0 && added.length === 0 ? "error" : "success",
       });
 
       // Fermer la modale
       setShowBulkConfirmModal(false);
       setBulkScannedIsbns([]);
-
     } catch (error) {
-      console.error('Erreur lors de l\'ajout groupé:', error);
+      console.error("Erreur lors de l'ajout groupé:", error);
       setAddMessage({
-        text: 'Erreur lors de l\'ajout des livres',
-        type: 'error'
+        text: "Erreur lors de l'ajout des livres",
+        type: "error",
       });
       setTimeout(() => setAddMessage(null), 5000);
     }
@@ -1791,17 +1876,125 @@ function App() {
     setBulkScannedIsbns([]);
   };
 
+  const exportCollectionToCSV = () => {
+    if (collectionBooks.length === 0) {
+      setAddMessage({
+        text: "Aucun livre à exporter",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    // Créer les en-têtes CSV
+    const headers = [
+      "ISBN",
+      "Titre",
+      "Auteurs",
+      "Éditeur",
+      "Date de publication",
+      "Nombre de pages",
+      "Catégories",
+      "Statut de lecture",
+      "Type de livre",
+      "Note personnelle",
+      "Bibliothèques",
+      "Date d'ajout",
+    ];
+
+    // Convertir les livres en lignes CSV
+    const rows = collectionBooks.map((book) => {
+      const status = book.readingStatus || (book.isRead ? "lu" : "non_lu");
+      const statusLabels = {
+        lu: "Lu",
+        non_lu: "Non lu",
+        a_lire: "À lire",
+        en_cours: "En cours",
+        abandonne: "Abandonné",
+      };
+
+      const typeLabels = {
+        physique: "Physique",
+        numerique: "Numérique",
+        audio: "Audio",
+      };
+
+      const libraryNames = book.libraries
+        ?.map((libId) => userLibraries.find((lib) => lib.id === libId)?.name)
+        .filter(Boolean)
+        .join("; ");
+
+      return [
+        book.isbn || "",
+        book.title || "",
+        book.authors?.join("; ") || "",
+        book.publisher || "",
+        book.publishedDate || "",
+        book.pageCount?.toString() || "",
+        book.categories?.join("; ") || "",
+        statusLabels[status as keyof typeof statusLabels] || "",
+        typeLabels[(book.bookType || "physique") as keyof typeof typeLabels] ||
+          "",
+        book.personalNote || "",
+        libraryNames || "",
+        book.addedAt || "",
+      ];
+    });
+
+    // Échapper les champs contenant des virgules, guillemets ou retours à la ligne
+    const escapeCSV = (value: string) => {
+      if (
+        value.includes(",") ||
+        value.includes('"') ||
+        value.includes("\n")
+      ) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    // Construire le CSV
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(",")),
+    ].join("\n");
+
+    // Créer le blob et télécharger
+    const blob = new Blob(["\ufeff" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `kodeks-collection-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setAddMessage({
+      text: `${collectionBooks.length} livre${
+        collectionBooks.length > 1 ? "s" : ""
+      } exporté${collectionBooks.length > 1 ? "s" : ""} en CSV`,
+      type: "success",
+    });
+    setTimeout(() => setAddMessage(null), 3000);
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
 
     const confirmDelete = window.confirm(
       "⚠️ ATTENTION : Cette action est irréversible.\n\n" +
-      "Toutes vos données seront définitivement supprimées :\n" +
-      "• Votre collection de livres\n" +
-      "• Vos bibliothèques personnalisées\n" +
-      "• Vos notes et paramètres\n" +
-      "• Votre compte utilisateur\n\n" +
-      "Êtes-vous absolument sûr de vouloir continuer ?"
+        "Toutes vos données seront définitivement supprimées :\n" +
+        "• Votre collection de livres\n" +
+        "• Vos bibliothèques personnalisées\n" +
+        "• Vos notes et paramètres\n" +
+        "• Votre compte utilisateur\n\n" +
+        "Êtes-vous absolument sûr de vouloir continuer ?"
     );
 
     if (!confirmDelete) return;
@@ -1816,7 +2009,9 @@ function App() {
       // 1. Supprimer tous les livres de la collection
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const booksSnapshot = await getDocs(collectionRef);
-      const deletePromises = booksSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      const deletePromises = booksSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
       await Promise.all(deletePromises);
 
       // 2. Supprimer le document utilisateur principal si existe
@@ -1830,18 +2025,17 @@ function App() {
 
       // 4. Afficher message de confirmation
       setAddMessage({
-        text: 'Votre compte a été supprimé avec succès',
-        type: 'success'
+        text: "Votre compte a été supprimé avec succès",
+        type: "success",
       });
 
       // 5. Fermer la modale
       setShowNotificationSettings(false);
-
     } catch (error) {
-      console.error('Erreur lors de la suppression du compte:', error);
+      console.error("Erreur lors de la suppression du compte:", error);
       setAddMessage({
-        text: 'Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.',
-        type: 'error'
+        text: "Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.",
+        type: "error",
       });
     }
   };
@@ -1868,10 +2062,16 @@ function App() {
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
-              <img src="/kodeksLogoSeul.png" alt="Kodeks" className="h-8 w-8 sm:h-10 sm:w-10" />
-              <span>Kodeks</span>
-            </h1>
+            <div className="flex items-center gap-3">
+              <img
+                src="/kodeksLogoSeul.png"
+                alt="Kodeks"
+                className="h-8 w-8 sm:h-10 sm:w-10"
+              />
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
+                <span>Kodeks</span>
+              </h1>
+            </div>
             <nav className="flex-shrink-0">
               {user ? (
                 <div className="flex items-center gap-1 sm:gap-4">
@@ -1880,7 +2080,9 @@ function App() {
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                   >
                     <span className="hidden sm:inline">Ma Collection</span>
-                    <span className="sm:hidden"><Books size={20} weight="bold" /></span>
+                    <span className="sm:hidden">
+                      <Books size={20} weight="bold" />
+                    </span>
                     {collectionBooks.length > 0 && (
                       <span className="bg-blue-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {collectionBooks.length}
@@ -1892,7 +2094,9 @@ function App() {
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                   >
                     <span className="hidden sm:inline">Bibliothèques</span>
-                    <span className="sm:hidden"><FolderOpen size={20} weight="bold" /></span>
+                    <span className="sm:hidden">
+                      <FolderOpen size={20} weight="bold" />
+                    </span>
                     {userLibraries.length > 0 && (
                       <span className="bg-green-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                         {userLibraries.length}
@@ -1905,7 +2109,9 @@ function App() {
                       className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                     >
                       <span className="hidden sm:inline">Admin</span>
-                      <span className="sm:hidden"><Megaphone size={20} weight="bold" /></span>
+                      <span className="sm:hidden">
+                        <Megaphone size={20} weight="bold" />
+                      </span>
                     </button>
                   )}
                   <button
@@ -1913,11 +2119,19 @@ function App() {
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
                   >
                     <span className="hidden sm:inline">Notifications</span>
-                    <span className="sm:hidden"><Bell size={20} weight="bold" /></span>
+                    <span className="sm:hidden">
+                      <Bell size={20} weight="bold" />
+                    </span>
                   </button>
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
-                    {isAdmin && <Crown size={16} weight="bold" className="ml-2 text-blue-600" />}
+                    {isAdmin && (
+                      <Crown
+                        size={16}
+                        weight="bold"
+                        className="ml-2 text-blue-600"
+                      />
+                    )}
                   </span>
                   <button
                     onClick={() => signOut(auth)}
@@ -1925,7 +2139,9 @@ function App() {
                     title="Se déconnecter"
                   >
                     <span className="hidden sm:inline">Se déconnecter</span>
-                    <span className="sm:hidden"><Door size={20} weight="bold" /></span>
+                    <span className="sm:hidden">
+                      <Door size={20} weight="bold" />
+                    </span>
                   </button>
                 </div>
               ) : (
@@ -1978,7 +2194,7 @@ function App() {
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button
                   onClick={() => {
-                    setScanMode('single');
+                    setScanMode("single");
                     setScanning(true);
                   }}
                   className="flex-1 px-6 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
@@ -1988,7 +2204,7 @@ function App() {
                 </button>
                 <button
                   onClick={() => {
-                    setScanMode('batch');
+                    setScanMode("batch");
                     setScanning(true);
                   }}
                   className="flex-1 px-6 py-4 text-base font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
@@ -1999,9 +2215,11 @@ function App() {
               </div>
 
               <p className="text-sm text-gray-600 text-center max-w-md">
-                <strong>Scan unique</strong> : Scannez un livre et ajoutez-le immédiatement
+                <strong>Scan unique</strong> : Scannez un livre et ajoutez-le
+                immédiatement
                 <br />
-                <strong>Scan par lot</strong> : Scannez plusieurs livres puis validez en une fois
+                <strong>Scan par lot</strong> : Scannez plusieurs livres puis
+                validez en une fois
               </p>
 
               {/* Recherche ISBN manuelle - Collapsible */}
@@ -2011,7 +2229,13 @@ function App() {
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par ISBN
-                <CaretDown size={20} weight="bold" className={`transition-transform ${showIsbnSearch ? 'rotate-180' : ''}`} />
+                <CaretDown
+                  size={20}
+                  weight="bold"
+                  className={`transition-transform ${
+                    showIsbnSearch ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
               {showIsbnSearch && (
@@ -2038,7 +2262,13 @@ function App() {
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par titre/auteur
-                <CaretDown size={20} weight="bold" className={`transition-transform ${showTextSearch ? 'rotate-180' : ''}`} />
+                <CaretDown
+                  size={20}
+                  weight="bold"
+                  className={`transition-transform ${
+                    showTextSearch ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
               {showTextSearch && (
@@ -2065,10 +2295,16 @@ function App() {
                   >
                     {isSearching ? (
                       <>
-                        <Timer size={16} weight="bold" className="inline mr-2 align-middle" />
+                        <Timer
+                          size={16}
+                          weight="bold"
+                          className="inline mr-2 align-middle"
+                        />
                         Recherche...
                       </>
-                    ) : "Rechercher"}
+                    ) : (
+                      "Rechercher"
+                    )}
                   </button>
                 </div>
               )}
@@ -2076,25 +2312,31 @@ function App() {
               {/* Ajout manuel - Bouton direct */}
               <button
                 onClick={() => setShowManualAdd(true)}
-                className="flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-2"
+                className="flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-2 z-50 cursor-pointer"
               >
                 <PencilSimple size={20} weight="bold" />
                 Ajouter un livre manuellement
               </button>
             </div>
           ) : (
-            <Suspense fallback={
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 shadow-xl">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-center text-gray-600">Chargement du scanner...</p>
+            <Suspense
+              fallback={
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 shadow-xl">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-center text-gray-600">
+                      Chargement du scanner...
+                    </p>
+                  </div>
                 </div>
-              </div>
-            }>
+              }
+            >
               <ISBNScanner
                 mode={scanMode}
-                onDetected={scanMode === 'single' ? handleDetected : undefined}
-                onBulkScanComplete={scanMode === 'batch' ? handleBulkScanComplete : undefined}
+                onDetected={scanMode === "single" ? handleDetected : undefined}
+                onBulkScanComplete={
+                  scanMode === "batch" ? handleBulkScanComplete : undefined
+                }
                 onClose={() => setScanning(false)}
                 existingIsbns={existingIsbnsSet}
               />
@@ -2284,19 +2526,21 @@ function App() {
                       disabled={addingToCollection}
                       className="px-8 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors shadow-md"
                     >
-                      {addingToCollection
-                        ? (
-                          <>
-                            <Timer size={16} className="inline mr-2" />
-                            Ajout en cours...
-                          </>
-                        )
-                        : (
-                          <>
-                            <Download size={16} weight="bold" className="inline mr-2" />
-                            Ajouter à ma collection
-                          </>
-                        )}
+                      {addingToCollection ? (
+                        <>
+                          <Timer size={16} className="inline mr-2" />
+                          Ajout en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Download
+                            size={16}
+                            weight="bold"
+                            className="inline mr-2"
+                          />
+                          Ajouter à ma collection
+                        </>
+                      )}
                     </button>
 
                     {addMessage && (
@@ -2323,9 +2567,22 @@ function App() {
                 {/* Encart informatif RGPD */}
                 <div className="mt-8 text-xs text-gray-500 text-center max-w-2xl mx-auto">
                   <p>
-                    Vos données sont stockées de manière sécurisée via Firebase (Google).
-                    Consultez nos <a href="/mentions-legales" className="underline hover:text-blue-600">mentions légales</a>{" "}
-                    et notre <a href="/confidentialite" className="underline hover:text-blue-600">politique de confidentialité</a>.
+                    Vos données sont stockées de manière sécurisée via Firebase
+                    (Google). Consultez nos{" "}
+                    <a
+                      href="/mentions-legales"
+                      className="underline hover:text-blue-600"
+                    >
+                      mentions légales
+                    </a>{" "}
+                    et notre{" "}
+                    <a
+                      href="/confidentialite"
+                      className="underline hover:text-blue-600"
+                    >
+                      politique de confidentialité
+                    </a>
+                    .
                   </p>
                 </div>
               </div>
@@ -2341,10 +2598,17 @@ function App() {
             {/* Header avec navigation */}
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  <Books size={20} weight="bold" className="inline mr-2" />
-                  Ma Collection
-                </h2>
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/kodeksLogoSeul.png"
+                    alt="Kodeks"
+                    className="h-8 w-8 sm:h-10 sm:w-10"
+                  />
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {/* <Books size={20} weight="bold" className="inline mr-2" /> */}
+                    Ma Collection
+                  </h2>
+                </div>
                 {selectedBook && (
                   <button
                     onClick={() => setSelectedBook(null)}
@@ -2354,16 +2618,28 @@ function App() {
                   </button>
                 )}
               </div>
-              <button
-                onClick={() => {
-                  setShowCollectionModal(false);
-                  setSelectedBook(null);
-                }}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
-                aria-label="Fermer"
-              >
-                <X size={24} weight="bold" />
-              </button>
+              <div className="flex items-center gap-2">
+                {!selectedBook && collectionBooks.length > 0 && (
+                  <button
+                    onClick={exportCollectionToCSV}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer"
+                    title="Exporter la collection en CSV"
+                  >
+                    <DownloadSimple size={18} weight="bold" />
+                    <span className="hidden sm:inline">Exporter CSV</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowCollectionModal(false);
+                    setSelectedBook(null);
+                  }}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+                  aria-label="Fermer"
+                >
+                  <X size={24} weight="bold" />
+                </button>
+              </div>
             </div>
 
             {/* Navigation par bibliothèques */}
@@ -2371,7 +2647,11 @@ function App() {
               <div className="bg-gray-50 border-b px-6 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="font-medium text-gray-900 text-sm">
-                    <FolderOpen size={16} weight="regular" className="inline mr-2" />
+                    <FolderOpen
+                      size={16}
+                      weight="regular"
+                      className="inline mr-2"
+                    />
                     Naviguer par bibliothèque :
                   </span>
                 </div>
@@ -2405,7 +2685,9 @@ function App() {
                             : {}
                         }
                       >
-                        <span>{renderLibraryIcon(library.icon || 'BK', 20)}</span>
+                        <span>
+                          {renderLibraryIcon(library.icon || "BK", 20)}
+                        </span>
                         <span>
                           {library.name} ({bookCount})
                         </span>
@@ -2417,7 +2699,10 @@ function App() {
             )}
 
             {/* Contenu */}
-            <div ref={collectionModalScrollRef} className="flex-1 overflow-y-auto p-6">
+            <div
+              ref={collectionModalScrollRef}
+              className="flex-1 overflow-y-auto p-6"
+            >
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
@@ -2507,19 +2792,26 @@ function App() {
                     {selectionMode && (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">
-                          {selectedBooks.length} sélectionné{selectedBooks.length > 1 ? 's' : ''}
+                          {selectedBooks.length} sélectionné
+                          {selectedBooks.length > 1 ? "s" : ""}
                         </span>
                         <button
                           onClick={() => {
-                            if (selectedBooks.length === displayedBooks.length) {
+                            if (
+                              selectedBooks.length === displayedBooks.length
+                            ) {
                               setSelectedBooks([]);
                             } else {
-                              setSelectedBooks(displayedBooks.map(book => book.isbn));
+                              setSelectedBooks(
+                                displayedBooks.map((book) => book.isbn)
+                              );
                             }
                           }}
                           className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
                         >
-                          {selectedBooks.length === displayedBooks.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                          {selectedBooks.length === displayedBooks.length
+                            ? "Tout désélectionner"
+                            : "Tout sélectionner"}
                         </button>
                         <button
                           onClick={() => {
@@ -2570,7 +2862,11 @@ function App() {
                         }
                         className="inline-flex items-center gap-2 px-6 py-3 md:px-6 md:py-3 w-full md:w-auto bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer text-center justify-center"
                       >
-                        <ArrowsClockwise size={16} weight="regular" className="inline mr-2" />
+                        <ArrowsClockwise
+                          size={16}
+                          weight="regular"
+                          className="inline mr-2"
+                        />
                         Réinitialiser tous les filtres
                       </button>
                     </div>
@@ -2584,9 +2880,9 @@ function App() {
                             if (!selectionMode) {
                               setSelectedBook(item);
                             } else {
-                              setSelectedBooks(prev =>
+                              setSelectedBooks((prev) =>
                                 prev.includes(item.isbn)
-                                  ? prev.filter(isbn => isbn !== item.isbn)
+                                  ? prev.filter((isbn) => isbn !== item.isbn)
                                   : [...prev, item.isbn]
                               );
                             }
@@ -2595,7 +2891,7 @@ function App() {
                             if (!selectionMode) {
                               setSelectionMode(true);
                             }
-                            setSelectedBooks(prev =>
+                            setSelectedBooks((prev) =>
                               prev.includes(item.isbn)
                                 ? prev
                                 : [...prev, item.isbn]
@@ -2642,7 +2938,8 @@ function App() {
           <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-2xl font-bold text-gray-900">
-                <PencilSimple size={16} weight="regular" /> Ajouter un livre manuellement
+                <PencilSimple size={16} weight="regular" /> Ajouter un livre
+                manuellement
               </h2>
               <button
                 onClick={() => {
@@ -2890,7 +3187,7 @@ function App() {
       <AnnouncementManager
         isOpen={showAnnouncementManager}
         onClose={() => setShowAnnouncementManager(false)}
-        currentUser={user ? { uid: user.uid, role: 'admin' } : undefined}
+        currentUser={user ? { uid: user.uid, role: "admin" } : undefined}
       />
 
       {/* Post-Scan Confirmation Modal */}
@@ -2927,7 +3224,9 @@ function App() {
                   Confirmer la suppression
                 </h2>
                 <p className="text-gray-700">
-                  Êtes-vous sûr de vouloir supprimer <strong>{selectedBooks.length}</strong> livre{selectedBooks.length > 1 ? 's' : ''} de votre collection ?
+                  Êtes-vous sûr de vouloir supprimer{" "}
+                  <strong>{selectedBooks.length}</strong> livre
+                  {selectedBooks.length > 1 ? "s" : ""} de votre collection ?
                 </p>
                 <p className="text-sm text-red-600 mt-2">
                   Cette action est irréversible.
@@ -2948,21 +3247,30 @@ function App() {
 
                     // Supprimer tous les livres sélectionnés
                     await Promise.all(
-                      selectedBooks.map(isbn =>
+                      selectedBooks.map((isbn) =>
                         deleteDoc(doc(db, `users/${user.uid}/collection`, isbn))
                       )
                     );
 
                     // Recharger la collection
-                    const collectionRef = collection(db, `users/${user.uid}/collection`);
+                    const collectionRef = collection(
+                      db,
+                      `users/${user.uid}/collection`
+                    );
                     const snapshot = await getDocs(collectionRef);
-                    const books = snapshot.docs.map(docSnap => ({ ...docSnap.data() } as CollectionBook));
+                    const books = snapshot.docs.map(
+                      (docSnap) => ({ ...docSnap.data() } as CollectionBook)
+                    );
                     setCollectionBooks(books);
 
                     // Feedback
                     setAddMessage({
-                      text: `${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''} supprimé${selectedBooks.length > 1 ? 's' : ''} avec succès`,
-                      type: 'success'
+                      text: `${selectedBooks.length} livre${
+                        selectedBooks.length > 1 ? "s" : ""
+                      } supprimé${
+                        selectedBooks.length > 1 ? "s" : ""
+                      } avec succès`,
+                      type: "success",
                     });
 
                     // Réinitialiser
@@ -2970,17 +3278,21 @@ function App() {
                     setSelectionMode(false);
                     setShowBulkDeleteModal(false);
                   } catch (error) {
-                    console.error('Erreur lors de la suppression groupée:', error);
+                    console.error(
+                      "Erreur lors de la suppression groupée:",
+                      error
+                    );
                     setAddMessage({
-                      text: 'Erreur lors de la suppression des livres',
-                      type: 'error'
+                      text: "Erreur lors de la suppression des livres",
+                      type: "error",
                     });
                   }
                 }}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer flex items-center gap-2"
               >
                 <Trash size={16} weight="bold" />
-                Supprimer {selectedBooks.length} livre{selectedBooks.length > 1 ? 's' : ''}
+                Supprimer {selectedBooks.length} livre
+                {selectedBooks.length > 1 ? "s" : ""}
               </button>
             </div>
           </div>
@@ -3023,9 +3335,12 @@ function App() {
               </h3>
 
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="font-semibold text-red-900 mb-2">Supprimer mon compte</h4>
+                <h4 className="font-semibold text-red-900 mb-2">
+                  Supprimer mon compte
+                </h4>
                 <p className="text-sm text-red-700 mb-4">
-                  Cette action est irréversible. Toutes vos données (livres, bibliothèques, notes) seront définitivement supprimées.
+                  Cette action est irréversible. Toutes vos données (livres,
+                  bibliothèques, notes) seront définitivement supprimées.
                 </p>
                 <button
                   onClick={handleDeleteAccount}
@@ -3048,8 +3363,8 @@ function App() {
 
       {/* Toast Notification */}
       <Toast
-        message={addMessage?.text || ''}
-        type={addMessage?.type || 'info'}
+        message={addMessage?.text || ""}
+        type={addMessage?.type || "info"}
         isVisible={!!addMessage}
         onClose={() => setAddMessage(null)}
       />
