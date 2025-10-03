@@ -2,6 +2,65 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - Phase B : Notifications Robustes (B1-B3)
+
+### ✅ Phase B complétée : Notifications Robustes
+
+**Contexte** : Suite à l'audit et backlog, implémentation de la Phase B pour améliorer la fiabilité et le monitoring du système de notifications push.
+
+#### B1 - Idempotence stricte
+**Problème** : Risque d'envoi de notifications en double lors de high volume ou retries
+**Solution** :
+- Création `firestore.indexes.json` avec index composite (announcementId, userId, status)
+- Ajout cache Map en mémoire dans `notificationHistory.ts`
+- Query optimisée avec `limit(1)` pour arrêt dès premier résultat trouvé
+- Fonction `clearNotificationCache()` pour invalidation session
+
+**Fichiers modifiés** :
+- `firestore.indexes.json` (NEW) - Index composite pour performance
+- `src/services/notificationHistory.ts` - Cache + hasNotificationBeenSent optimisé
+
+#### B2 - Logs structurés
+**Problème** : Logs génériques, difficile de débugger erreurs FCM
+**Solution** :
+- Création types structurés : `NotificationStatus`, `NotificationPriority`, `NotificationErrorCode`
+- Interface `NotificationHistory` enrichie : `deliveredAt`, `errorCode`, `errorMessage`, `deviceInfo`
+- Collection deviceInfo automatique (userAgent, platform, language)
+- Stats détaillées : `failureRate`, `deliveryRate` calculés
+- Mapping erreurs FCM : TOKEN_INVALID, PERMISSION_DENIED, NETWORK_ERROR, QUOTA_EXCEEDED, UNKNOWN
+
+**Fichiers modifiés** :
+- `src/types/notification.ts` (NEW) - Types complets + constantes erreur
+- `src/services/notificationHistory.ts` - recordNotificationSent avec deviceInfo + stats
+- `src/services/notificationSender.ts` - Mapping erreurs dans catch block
+
+#### B3 - Panel Admin Stats
+**Problème** : Stats basiques, pas de visualisation graphique ni retry
+**Solution** :
+- Installation `recharts` pour graphiques
+- Composant `NotificationStats` amélioré avec :
+  - Graphiques PieChart + BarChart par annonce
+  - Vue expandable avec détails (graphiques + liste erreurs)
+  - Bouton "Relancer les échecs" avec spinner
+  - Affichage codes erreur + messages + deviceInfo
+  - Métriques temps réel (taux échec, taux délivrance)
+
+**Fichiers modifiés** :
+- `src/components/NotificationStats.tsx` - Graphiques recharts + bouton retry
+- `package.json` - Ajout recharts
+
+#### Commit
+```
+git commit: "Feature: Phase B - Notifications Robustes (B1-B3)"
+```
+
+#### Prochaines étapes
+- Phase C : Scanner UX (C1-C3) - Boutons sticky, persistance flash, feedbacks in-camera
+- Phase D : Accessibilité RGPD (D1-D4) - Focus trap, aria-labels, RGPD
+- Phase E : Performance DX (E1-E3) - Bundle, images, icons
+
+---
+
 ## 2025-10-04 - Audit Complet & Backlog Post-Audit
 
 ### 📋 Audit complet de l'application
