@@ -23,5 +23,14 @@ service cloud.firestore {
       // Only admins can create, update, or delete announcements
       allow create, update, delete: if isAdmin();
     }
+
+    // Scheduled notifications rules
+    match /scheduled_notifications/{notificationId} {
+      // Only admins can read scheduled notifications
+      allow read: if isAdmin();
+
+      // Only admins can create, update, or delete scheduled notifications
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

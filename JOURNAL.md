@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**17 commits principaux** :
+**18 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -25,6 +25,63 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 15. Fix: Responsive boutons sélection multiple mobile
 16. Fix: Responsive boutons collapsibles recherche (tablettes)
 17. Fix: Responsive header navigation badges (tablettes)
+18. Fix: Règles Firestore pour notifications programmées
+
+---
+
+### ✅ FIX : Règles Firestore pour Notifications Programmées
+
+**Problème** : Impossible de créer/modifier des notifications programmées (admin)
+
+**Erreur Console** :
+```
+FirebaseError: Missing or insufficient permissions
+POST https://firestore.googleapis.com/.../Firestore/Write/... 400 (Bad Request)
+```
+
+**Cause** :
+- Collection `scheduled_notifications` utilisée par le code
+- **Aucune règle Firestore définie** pour cette collection
+- Toutes opérations (read, create, update, delete) bloquées par défaut
+
+**Solution** : Ajout des règles manquantes dans `firestore.rules`
+
+**Modifications dans `firestore.rules`** (lignes 27-34) :
+
+```javascript
+// Scheduled notifications rules
+match /scheduled_notifications/{notificationId} {
+  // Only admins can read scheduled notifications
+  allow read: if isAdmin();
+
+  // Only admins can create, update, or delete scheduled notifications
+  allow create, update, delete: if isAdmin();
+}
+```
+
+**Permissions** :
+- **Read** : Admin uniquement
+- **Create** : Admin uniquement (planifier notification)
+- **Update** : Admin uniquement (toggle actif/inactif)
+- **Delete** : Admin uniquement (supprimer notification)
+
+**Déploiement requis** :
+1. ⚠️ **IMPORTANT** : Copier ces nouvelles règles
+2. Aller dans **Firebase Console** → Firestore → **Rules**
+3. Coller les nouvelles règles complètes
+4. Cliquer sur **Publier**
+
+**Résultat** :
+- ✅ Admins peuvent créer notifications programmées
+- ✅ Admins peuvent activer/désactiver notifications
+- ✅ Admins peuvent supprimer notifications
+- ✅ Utilisateurs normaux : aucun accès (sécurisé)
+- ✅ Plus d'erreur "Missing or insufficient permissions"
+
+**Fichiers modifiés** :
+- `firestore.rules` : Ajout règles `scheduled_notifications`
+
+**⚠️ Action manuelle requise** : Déployer les règles dans Firebase Console !
 
 ---
 
