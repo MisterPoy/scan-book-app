@@ -7,12 +7,37 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**5 commits principaux** :
+**7 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
 4. Refonte UI/UX unifiée (design system card-based)
 5. Export CSV par bibliothèque avec dropdown menu
+6. Documentation complète JOURNAL.md
+7. Fix UX: Déplacement bouton "Ajouter manuellement"
+
+---
+
+### ✅ FIX UX : Positionnement Bouton Ajout Manuel (Commit 4942155)
+
+**Problème** : Le bouton "Ajouter un livre manuellement" était positionné AVANT les résultats de recherche, perturbant le flux de lecture
+
+**Solution** : Déplacement logique du bouton après toutes les sections de recherche
+
+**Nouveau flux utilisateur** :
+1. Sections de recherche (ISBN + Titre/Auteur)
+2. Résultats de recherche (si présents)
+3. Détail du livre sélectionné (si applicable)
+4. **PUIS** bouton "Ajouter un livre manuellement"
+
+**Modifications** :
+- Déplacé de ligne 2734 → ligne 3048
+- Positionné juste avant `</main>`
+- Conditionnel sur `!scanning` (visible uniquement hors scan)
+- Centré avec margins appropriées
+- Container wrapper pour meilleur alignement
+
+**Résultat** : L'ajout manuel devient un dernier recours logique après avoir épuisé les options de recherche ✅
 
 ---
 
