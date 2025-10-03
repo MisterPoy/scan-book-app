@@ -2295,28 +2295,28 @@ function App() {
                 <div className="flex items-center gap-1 sm:gap-4">
                   <button
                     onClick={() => setShowCollectionModal(true)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   >
-                    <span className="hidden sm:inline">Ma Collection</span>
-                    <span className="sm:hidden">
-                      <Books size={20} weight="bold" />
+                    <span className="hidden lg:inline">Ma Collection</span>
+                    <span className="lg:hidden">
+                      <Books size={18} weight="bold" />
                     </span>
                     {collectionBooks.length > 0 && (
-                      <span className="bg-blue-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
+                      <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
                         {collectionBooks.length}
                       </span>
                     )}
                   </button>
                   <button
                     onClick={() => setShowLibraryManager(true)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   >
-                    <span className="hidden sm:inline">Bibliothèques</span>
-                    <span className="sm:hidden">
-                      <FolderOpen size={20} weight="bold" />
+                    <span className="hidden lg:inline">Bibliothèques</span>
+                    <span className="lg:hidden">
+                      <FolderOpen size={18} weight="bold" />
                     </span>
                     {userLibraries.length > 0 && (
-                      <span className="bg-green-600 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
+                      <span className="bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
                         {userLibraries.length}
                       </span>
                     )}
@@ -2324,21 +2324,21 @@ function App() {
                   {isAdmin && (
                     <button
                       onClick={() => setShowAnnouncementManager(true)}
-                      className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                     >
-                      <span className="hidden sm:inline">Admin</span>
-                      <span className="sm:hidden">
-                        <Megaphone size={20} weight="bold" />
+                      <span className="hidden lg:inline">Admin</span>
+                      <span className="lg:hidden">
+                        <Megaphone size={18} weight="bold" />
                       </span>
                     </button>
                   )}
                   <button
                     onClick={() => setShowNotificationSettings(true)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 sm:gap-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   >
-                    <span className="hidden sm:inline">Notifications</span>
-                    <span className="sm:hidden">
-                      <Bell size={20} weight="bold" />
+                    <span className="hidden lg:inline">Notifications</span>
+                    <span className="lg:hidden">
+                      <Bell size={18} weight="bold" />
                     </span>
                   </button>
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">

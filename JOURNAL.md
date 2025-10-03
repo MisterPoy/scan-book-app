@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**16 commits principaux** :
+**17 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -24,6 +24,49 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 14. Fix: Position recherche + responsive mobile
 15. Fix: Responsive boutons sélection multiple mobile
 16. Fix: Responsive boutons collapsibles recherche (tablettes)
+17. Fix: Responsive header navigation badges (tablettes)
+
+---
+
+### ✅ FIX : Responsive Header Navigation Badges (Tablettes)
+
+**Problème** : Badges de navigation ("Ma Collection 31", "Bibliothèques 3") débordaient du header sur écrans moyens (838px)
+
+**Cause** :
+- Breakpoint `sm:inline` (640px) affichait le texte complet trop tôt
+- Sur tablettes (768-1024px), texte + badge trop large
+- Badges numériques poussés hors du container
+
+**Solution** : Breakpoint plus élevé + optimisations responsive
+
+**Modifications dans `src/App.tsx`** (lignes 2296-2343) :
+
+1. **Breakpoint texte** : `hidden sm:inline` → `hidden lg:inline`
+   - Sur <1024px : affiche **icônes uniquement** + badges
+   - Sur ≥1024px : affiche **texte complet**
+   - Résolution du débordement sur 838px
+
+2. **Icônes** : `size={20}` → `size={18}` (plus compacts)
+
+3. **Padding responsive** : `px-2 sm:px-4` → `px-2 sm:px-3`
+   - Réduit largeur des boutons
+
+4. **Gap** : `gap-1 sm:gap-2` → `gap-1` (fixe, compact)
+
+5. **Badges numériques** :
+   - Ajout `min-w-[1.25rem] text-center` (largeur min cohérente)
+   - Simplifié : `px-1.5 sm:px-2` → `px-1.5`
+
+6. **Boutons** : Ajout `whitespace-nowrap` (empêche casse)
+
+**Résultat** :
+- ✅ Plus de débordement badges sur tablettes (768-1024px)
+- ✅ Icônes + badges sur écrans moyens
+- ✅ Texte complet sur grands écrans uniquement
+- ✅ Interface compacte et professionnelle
+- ✅ Badges toujours visibles et alignés
+
+**Fichiers modifiés** : `src/App.tsx` (4 boutons navigation header)
 
 ---
 
