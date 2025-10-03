@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**13 commits principaux** :
+**15 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -21,6 +21,51 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 11. Style: cursor-pointer sur boutons recherche
 12. Style: cursor-pointer sur tous les boutons interactifs
 13. Feature: Recherche textuelle dans la collection
+14. Fix: Position recherche + responsive mobile
+15. Fix: Responsive boutons sélection multiple mobile
+
+---
+
+### ✅ FIX : Responsive Boutons Sélection Multiple Mobile
+
+**Problème** : Bouton "Supprimer (X)" débordait de l'écran en mode mobile
+
+**Cause** : Container flex sans `flex-wrap`, boutons trop larges pour petits écrans
+
+**Solution** : Amélioration responsive complète de la barre d'actions
+
+**Modifications dans `src/App.tsx`** (lignes 3514-3556) :
+
+1. **Container flex-wrap** :
+   ```tsx
+   className="flex items-center gap-2 flex-wrap"
+   ```
+
+2. **Texte anti-casse** :
+   - Ajout `whitespace-nowrap` sur tous les boutons
+   - Évite les retours à la ligne inattendus dans les boutons
+
+3. **Padding/Taille responsive** :
+   - `px-2 sm:px-3` : padding réduit sur mobile
+   - `text-xs sm:text-sm` : texte plus petit sur mobile
+   - `gap-1 sm:gap-2` : espacement icône/texte adaptatif
+
+4. **Texte conditionnel bouton Supprimer** :
+   ```tsx
+   <span className="hidden xs:inline">Supprimer ({selectedBooks.length})</span>
+   <span className="inline xs:hidden">({selectedBooks.length})</span>
+   ```
+   - Sur très petit écran : affiche `(X)` seulement
+   - Sur écran normal : affiche `Supprimer (X)`
+
+**Résultat** :
+- ✅ Boutons passent à la ligne si nécessaire (flex-wrap)
+- ✅ Texte compact sur mobile (xs/sm variants)
+- ✅ Plus de débordement horizontal
+- ✅ UX cohérente tous formats d'écran
+- ✅ Icône poubelle toujours visible
+
+**Fichier modifié** : `src/App.tsx`
 
 ---
 

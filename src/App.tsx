@@ -3440,19 +3440,9 @@ function App() {
               ) : (
                 /* Vue grille compacte */
                 <div>
-                  {/* Panel de filtres */}
-                  <FiltersPanel
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    availableGenres={availableGenres}
-                    bookCount={collectionBooks.length}
-                    filteredCount={displayedBooks.length}
-                    userLibraries={userLibraries}
-                  />
-
                   {/* Barre de recherche textuelle */}
-                  <div className="mb-6 mt-4">
-                    <div className="relative max-w-md">
+                  <div className="mb-4">
+                    <div className="relative w-full">
                       <input
                         type="text"
                         value={collectionSearchQuery}
@@ -3481,6 +3471,16 @@ function App() {
                       </p>
                     )}
                   </div>
+
+                  {/* Panel de filtres */}
+                  <FiltersPanel
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    availableGenres={availableGenres}
+                    bookCount={collectionBooks.length}
+                    filteredCount={displayedBooks.length}
+                    userLibraries={userLibraries}
+                  />
 
                   <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                     <div className="flex items-center gap-4">
@@ -3511,8 +3511,8 @@ function App() {
                       </div>
                     )}
                     {selectionMode && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-gray-600 whitespace-nowrap">
                           {selectedBooks.length} sélectionné
                           {selectedBooks.length > 1 ? "s" : ""}
                         </span>
@@ -3528,7 +3528,7 @@ function App() {
                               );
                             }
                           }}
-                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors whitespace-nowrap"
                         >
                           {selectedBooks.length === displayedBooks.length
                             ? "Tout désélectionner"
@@ -3539,17 +3539,18 @@ function App() {
                             setSelectionMode(false);
                             setSelectedBooks([]);
                           }}
-                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
                         >
                           Annuler
                         </button>
                         {selectedBooks.length > 0 && (
                           <button
                             onClick={() => setShowBulkDeleteModal(true)}
-                            className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-2"
+                            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
                           >
                             <Trash size={16} weight="bold" />
-                            Supprimer ({selectedBooks.length})
+                            <span className="hidden xs:inline">Supprimer ({selectedBooks.length})</span>
+                            <span className="inline xs:hidden">({selectedBooks.length})</span>
                           </button>
                         )}
                       </div>
