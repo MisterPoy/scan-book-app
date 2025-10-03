@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**9 commits principaux** :
+**10 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -17,6 +17,54 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 7. Fix UX: Déplacement bouton "Ajouter manuellement"
 8. Amélioration export CSV avec métadonnées et formatage dates
 9. Fix icônes PWA avec logo Kodeks
+10. Ajout Footer avec crédits développeur et réseaux sociaux
+
+---
+
+### ✅ FEATURE : Footer avec Crédits Développeur
+
+**Objectif** : Ajouter une identité professionnelle avec liens vers réseaux sociaux du développeur
+
+**Solution** : Amélioration complète du composant Footer
+
+**Modifications dans `src/components/Footer.tsx`** :
+
+1. **Section crédits** :
+   - Texte "Développé avec passion par GregDev"
+   - Lien vers portfolio avec style branded
+
+2. **Liens sociaux** (4 boutons) :
+   - Instagram : https://www.instagram.com/gregdevweb/
+   - LinkedIn : https://www.linkedin.com/in/
+   - GitHub : https://github.com/MisterPoy
+   - Portfolio : https://misterpoy.github.io/GregDev-PortFolio/
+
+3. **Icônes Phosphor** :
+   - `InstagramLogo`, `LinkedinLogo`, `GithubLogo`, `Globe`
+   - Couleurs hover personnalisées par réseau (pink, blue, gray, green)
+   - Animation scale-110 au survol
+
+4. **Design system** :
+   - Gradient background `from-white to-gray-50`
+   - Boutons avec bordure 2px et shadow-md au hover
+   - Liens légaux conservés (Mentions légales + Confidentialité)
+   - Copyright dynamique avec année courante
+   - Version de l'app (1.0.0 - PWA)
+
+**Structure hiérarchique** :
+1. Crédits développeur (centré, gras pour "GregDev")
+2. 4 boutons sociaux (icônes 20×20, espacement gap-3)
+3. Liens légaux (séparateur | sur desktop)
+4. Copyright + Version (texte gris clair)
+
+**Résultat** :
+- ✅ Footer professionnel et moderne
+- ✅ Visibilité du développeur GregDev
+- ✅ Accès facile aux réseaux sociaux
+- ✅ Cohérence avec design system Kodeks
+- ✅ Responsive (mobile-friendly)
+
+**Fichier modifié** : `src/components/Footer.tsx`
 
 ---
 
