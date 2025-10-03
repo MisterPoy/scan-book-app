@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**10 commits principaux** :
+**13 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -18,6 +18,55 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 8. Amélioration export CSV avec métadonnées et formatage dates
 9. Fix icônes PWA avec logo Kodeks
 10. Ajout Footer avec crédits développeur et réseaux sociaux
+11. Style: cursor-pointer sur boutons recherche
+12. Style: cursor-pointer sur tous les boutons interactifs
+13. Feature: Recherche textuelle dans la collection
+
+---
+
+### ✅ FEATURE : Recherche Textuelle dans la Collection
+
+**Problème** : Pas de moyen rapide de chercher un livre par titre/auteur dans la collection (uniquement des filtres par statut/bibliothèque)
+
+**Solution** : Ajout d'une barre de recherche textuelle après les filtres
+
+**Modifications dans `src/App.tsx`** :
+
+1. **Nouvel état** (ligne 997) :
+   ```typescript
+   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
+   ```
+
+2. **Logique de filtrage en cascade** (lignes 2254-2272) :
+   - **Étape 1** : Filtres avancés → `baseFilteredBooks` (hook `useBookFilters`)
+   - **Étape 2** : Filtre bibliothèque → `libraryFilteredBooks`
+   - **Étape 3** : Recherche textuelle → `displayedBooks` (final)
+
+3. **Algorithme de recherche** :
+   - Recherche insensible à la casse (`.toLowerCase()`)
+   - 3 champs testés : **titre**, **auteurs**, **ISBN**
+   - Logique OR (au moins 1 correspondance suffit)
+
+4. **UI de recherche** (lignes 3453-3483) :
+   - Input avec icône loupe (gauche) et bouton X (droite si texte)
+   - Placeholder : "Rechercher par titre, auteur ou ISBN..."
+   - Bouton X pour réinitialiser rapidement
+   - Compteur de résultats sous le champ (si recherche active)
+
+**Design** :
+- Input bordure 2px avec focus ring bleu
+- Max-width 28rem (max-w-md) pour meilleure ergonomie
+- Icône `MagnifyingGlass` (Phosphor) 20px
+- Affichage dynamique : `{count} résultat(s) pour "{query}"`
+
+**Résultat** :
+- ✅ Recherche instantanée (pas de bouton nécessaire)
+- ✅ Fonctionne avec les filtres existants (cascade)
+- ✅ UX fluide avec reset rapide (bouton X)
+- ✅ Feedback visuel immédiat (compteur résultats)
+- ✅ Performance optimale (filtrage mémoire, pas de DB)
+
+**Fichier modifié** : `src/App.tsx`
 
 ---
 

@@ -993,6 +993,9 @@ function App() {
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
 
+  // État pour la recherche textuelle dans la collection
+  const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
+
   // Fermer le menu d'export si on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -2249,11 +2252,24 @@ function App() {
   );
 
   // Filtrage par bibliothèque sélectionnée
-  const displayedBooks = selectedLibraryView
+  const libraryFilteredBooks = selectedLibraryView
     ? baseFilteredBooks.filter((book) =>
         book.libraries?.includes(selectedLibraryView)
       )
     : baseFilteredBooks;
+
+  // Filtrage par recherche textuelle
+  const displayedBooks = collectionSearchQuery.trim()
+    ? libraryFilteredBooks.filter((book) => {
+        const query = collectionSearchQuery.toLowerCase();
+        const titleMatch = book.title?.toLowerCase().includes(query);
+        const authorMatch = book.authors?.some((author) =>
+          author.toLowerCase().includes(query)
+        );
+        const isbnMatch = book.isbn?.toLowerCase().includes(query);
+        return titleMatch || authorMatch || isbnMatch;
+      })
+    : libraryFilteredBooks;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -3433,6 +3449,38 @@ function App() {
                     filteredCount={displayedBooks.length}
                     userLibraries={userLibraries}
                   />
+
+                  {/* Barre de recherche textuelle */}
+                  <div className="mb-6 mt-4">
+                    <div className="relative max-w-md">
+                      <input
+                        type="text"
+                        value={collectionSearchQuery}
+                        onChange={(e) => setCollectionSearchQuery(e.target.value)}
+                        placeholder="Rechercher par titre, auteur ou ISBN..."
+                        className="w-full px-4 py-3 pl-11 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                      />
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <MagnifyingGlass size={20} weight="bold" />
+                      </div>
+                      {collectionSearchQuery && (
+                        <button
+                          onClick={() => setCollectionSearchQuery("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                          aria-label="Effacer la recherche"
+                        >
+                          <X size={20} weight="bold" />
+                        </button>
+                      )}
+                    </div>
+                    {collectionSearchQuery && (
+                      <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+                        <MagnifyingGlass size={14} weight="regular" />
+                        {displayedBooks.length} résultat
+                        {displayedBooks.length > 1 ? "s" : ""} pour "{collectionSearchQuery}"
+                      </p>
+                    )}
+                  </div>
 
                   <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                     <div className="flex items-center gap-4">
