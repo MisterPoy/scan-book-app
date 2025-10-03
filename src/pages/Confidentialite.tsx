@@ -27,7 +27,7 @@ export default function Confidentialite() {
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
               <p className="text-blue-900">
                 <Shield size={20} weight="bold" className="inline mr-2" />
-                ScanBook App respecte votre vie privée et s'engage à protéger vos données personnelles conformément au RGPD.
+                Kodeks respecte votre vie privée et s'engage à protéger vos données personnelles conformément au RGPD.
               </p>
             </div>
           </section>
@@ -174,7 +174,7 @@ export default function Confidentialite() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Cookies et traceurs</h2>
             <div className="pl-8 space-y-2">
-              <p>ScanBook App utilise uniquement des cookies strictement nécessaires au fonctionnement :</p>
+              <p>Kodeks utilise uniquement des cookies strictement nécessaires au fonctionnement :</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>Cookies d'authentification Firebase (session utilisateur)</li>
                 <li>Stockage local pour le cache PWA (fonctionnement hors ligne)</li>

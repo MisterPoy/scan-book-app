@@ -825,6 +825,11 @@ function App() {
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const collectionModalScrollRef = useRef<HTMLDivElement>(null);
   const [addingToCollection, setAddingToCollection] = useState(false);
+
+  // États pour la sélection multiple
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [addMessage, setAddMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -1735,9 +1740,9 @@ function App() {
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-              <Books size={20} weight="bold" className="inline mr-2" />
-              Ma Bibliothèque
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
+              <img src="/kodeksLogoSeul.png" alt="Kodeks" className="h-8 w-8 sm:h-10 sm:w-10" />
+              <span>Kodeks</span>
             </h1>
             <nav className="flex-shrink-0">
               {user ? (
@@ -2342,21 +2347,71 @@ function App() {
                     userLibraries={userLibraries}
                   />
 
-                  <div className="flex justify-between items-center mb-6">
-                    <p className="text-gray-600">
-                      {displayedBooks.length} livre
-                      {displayedBooks.length > 1 ? "s" : ""} affiché
-                      {displayedBooks.length > 1 ? "s" : ""}
-                      {displayedBooks.length !== collectionBooks.length && (
-                        <span className="text-gray-400">
-                          {" "}
-                          sur {collectionBooks.length}
-                        </span>
+                  <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                      <p className="text-gray-600">
+                        {displayedBooks.length} livre
+                        {displayedBooks.length > 1 ? "s" : ""} affiché
+                        {displayedBooks.length > 1 ? "s" : ""}
+                        {displayedBooks.length !== collectionBooks.length && (
+                          <span className="text-gray-400">
+                            {" "}
+                            sur {collectionBooks.length}
+                          </span>
+                        )}
+                      </p>
+                      {!selectionMode && displayedBooks.length > 0 && (
+                        <button
+                          onClick={() => setSelectionMode(true)}
+                          className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md cursor-pointer transition-colors flex items-center gap-2"
+                        >
+                          <Check size={16} weight="bold" />
+                          Sélectionner
+                        </button>
                       )}
-                    </p>
-                    <div className="text-sm text-gray-500">
-                      Cliquez sur un livre pour voir les détails
                     </div>
+                    {!selectionMode && (
+                      <div className="text-sm text-gray-500">
+                        Cliquez sur un livre pour voir les détails
+                      </div>
+                    )}
+                    {selectionMode && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                          {selectedBooks.length} sélectionné{selectedBooks.length > 1 ? 's' : ''}
+                        </span>
+                        <button
+                          onClick={() => {
+                            if (selectedBooks.length === displayedBooks.length) {
+                              setSelectedBooks([]);
+                            } else {
+                              setSelectedBooks(displayedBooks.map(book => book.isbn));
+                            }
+                          }}
+                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
+                        >
+                          {selectedBooks.length === displayedBooks.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectionMode(false);
+                            setSelectedBooks([]);
+                          }}
+                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        {selectedBooks.length > 0 && (
+                          <button
+                            onClick={() => setShowBulkDeleteModal(true)}
+                            className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-2"
+                          >
+                            <Trash size={16} weight="bold" />
+                            Supprimer ({selectedBooks.length})
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {displayedBooks.length === 0 ? (
@@ -2393,12 +2448,42 @@ function App() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
                       {displayedBooks.map((item) => (
-                        <CompactBookCard
-                          key={item.isbn}
-                          book={item}
-                          onClick={() => setSelectedBook(item)}
-                          userLibraries={userLibraries}
-                        />
+                        <div key={item.isbn} className="relative">
+                          {selectionMode && (
+                            <div
+                              className="absolute top-2 left-2 z-10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedBooks.includes(item.isbn)}
+                                onChange={() => {
+                                  setSelectedBooks(prev =>
+                                    prev.includes(item.isbn)
+                                      ? prev.filter(isbn => isbn !== item.isbn)
+                                      : [...prev, item.isbn]
+                                  );
+                                }}
+                                className="w-5 h-5 cursor-pointer accent-blue-600"
+                              />
+                            </div>
+                          )}
+                          <CompactBookCard
+                            book={item}
+                            onClick={() => {
+                              if (!selectionMode) {
+                                setSelectedBook(item);
+                              } else {
+                                setSelectedBooks(prev =>
+                                  prev.includes(item.isbn)
+                                    ? prev.filter(isbn => isbn !== item.isbn)
+                                    : [...prev, item.isbn]
+                                );
+                              }
+                            }}
+                            userLibraries={userLibraries}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -2694,6 +2779,79 @@ function App() {
         onConfirm={handleBulkAddConfirm}
         onCancel={handleBulkAddCancel}
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Warning size={24} weight="bold" className="text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  Confirmer la suppression
+                </h2>
+                <p className="text-gray-700">
+                  Êtes-vous sûr de vouloir supprimer <strong>{selectedBooks.length}</strong> livre{selectedBooks.length > 1 ? 's' : ''} de votre collection ?
+                </p>
+                <p className="text-sm text-red-600 mt-2">
+                  Cette action est irréversible.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!user) return;
+
+                    // Supprimer tous les livres sélectionnés
+                    await Promise.all(
+                      selectedBooks.map(isbn =>
+                        deleteDoc(doc(db, `users/${user.uid}/collection`, isbn))
+                      )
+                    );
+
+                    // Recharger la collection
+                    const collectionRef = collection(db, `users/${user.uid}/collection`);
+                    const snapshot = await getDocs(collectionRef);
+                    const books = snapshot.docs.map(docSnap => ({ ...docSnap.data() } as CollectionBook));
+                    setCollectionBooks(books);
+
+                    // Feedback
+                    setAddMessage({
+                      text: `${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''} supprimé${selectedBooks.length > 1 ? 's' : ''} avec succès`,
+                      type: 'success'
+                    });
+
+                    // Réinitialiser
+                    setSelectedBooks([]);
+                    setSelectionMode(false);
+                    setShowBulkDeleteModal(false);
+                  } catch (error) {
+                    console.error('Erreur lors de la suppression groupée:', error);
+                    setAddMessage({
+                      text: 'Erreur lors de la suppression des livres',
+                      type: 'error'
+                    });
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <Trash size={16} weight="bold" />
+                Supprimer {selectedBooks.length} livre{selectedBooks.length > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal (Notifications + Gestion du compte) */}
       {showNotificationSettings && (

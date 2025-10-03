@@ -17,7 +17,7 @@ export default function MentionsLegales() {
             Retour
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Mentions Légales</h1>
-          <p className="text-gray-600 mt-2">Informations légales sur ScanBook App</p>
+          <p className="text-gray-600 mt-2">Informations légales sur Kodeks</p>
         </div>
 
         {/* Contenu */}
@@ -29,7 +29,7 @@ export default function MentionsLegales() {
               Éditeur de l'application
             </h2>
             <div className="pl-8 space-y-2">
-              <p><strong>Nom de l'application :</strong> ScanBook App</p>
+              <p><strong>Nom de l'application :</strong> Kodeks</p>
               <p><strong>Responsable de publication :</strong> GregDev</p>
               <p className="flex items-center gap-2">
                 <Envelope size={16} weight="bold" />
@@ -79,7 +79,7 @@ export default function MentionsLegales() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Limitation de responsabilité</h2>
             <div className="pl-8 space-y-2">
-              <p>ScanBook App est fourni "tel quel" sans garantie d'aucune sorte.</p>
+              <p>Kodeks est fourni "tel quel" sans garantie d'aucune sorte.</p>
               <p>L'éditeur ne peut être tenu responsable des dommages directs ou indirects résultant de l'utilisation de cette application.</p>
               <p>Les informations sur les livres proviennent de l'API Google Books et peuvent contenir des erreurs ou être incomplètes.</p>
             </div>

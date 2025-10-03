@@ -23,7 +23,7 @@ export default function Footer() {
           </Link>
         </div>
         <div className="text-center mt-3 text-xs text-gray-500">
-          ScanBook App - {new Date().getFullYear()}
+          Kodeks - {new Date().getFullYear()}
         </div>
       </div>
     </footer>

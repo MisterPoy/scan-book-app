@@ -12,7 +12,8 @@ import {
   WarningCircle,
   Trash,
   Stack,
-  ArrowsClockwise
+  ArrowsClockwise,
+  Flashlight
 } from "phosphor-react";
 import { fetchBookMetadata, getOpenLibraryCoverUrl } from "../utils/bookApi";
 import type { ScannedBook } from "../types/bulkAdd";
@@ -117,6 +118,10 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     type: 'success' | 'duplicate' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
+
+  // États pour le flash/torch
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
 
   const { ref } = useZxing({
     onDecodeResult(result) {
@@ -263,7 +268,7 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     onBulkScanComplete?.(isbns);
   };
 
-  // Obtenir les infos de la caméra quand elle est active
+  // Obtenir les infos de la caméra et détecter le support du flash
   useEffect(() => {
     if (cameraActive && ref.current && ref.current.srcObject) {
       const stream = ref.current.srcObject as MediaStream;
@@ -274,10 +279,39 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
           `${settings.width}x${settings.height} @${settings.frameRate || 30}fps`
         );
         console.log("Paramètres caméra réels:", settings);
+
+        // Détecter le support du flash/torch
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities && 'torch' in capabilities) {
+          setTorchSupported(true);
+          console.log("Flash/torch supporté");
+        } else {
+          setTorchSupported(false);
+          console.log("Flash/torch non supporté");
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraActive, ref.current?.srcObject]);
+
+  // Fonction pour activer/désactiver le flash
+  const toggleTorch = async () => {
+    if (!ref.current || !ref.current.srcObject || !torchSupported) return;
+
+    const stream = ref.current.srcObject as MediaStream;
+    const videoTrack = stream.getVideoTracks()[0];
+
+    try {
+      await videoTrack.applyConstraints({
+        // @ts-expect-error: torch n'est pas dans les types TypeScript standard
+        advanced: [{ torch: !torchEnabled }]
+      });
+      setTorchEnabled(!torchEnabled);
+      console.log(`Flash ${!torchEnabled ? 'activé' : 'désactivé'}`);
+    } catch (error) {
+      console.error("Erreur lors de l'activation du flash:", error);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center">
@@ -323,6 +357,21 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
             </>
           )}
         </button>
+
+        {torchSupported && cameraActive && (
+          <button
+            onClick={toggleTorch}
+            className={`px-3 py-2 rounded text-sm font-medium cursor-pointer ${
+              torchEnabled
+                ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                : "bg-gray-600 hover:bg-gray-700 text-white"
+            }`}
+            title={torchEnabled ? "Désactiver le flash" : "Activer le flash"}
+          >
+            <Flashlight size={16} weight={torchEnabled ? "fill" : "regular"} className="inline mr-2" />
+            Flash {torchEnabled ? "ON" : "OFF"}
+          </button>
+        )}
 
         <button
           onClick={() => setHelpVisible(!helpVisible)}
