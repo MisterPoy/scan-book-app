@@ -988,6 +988,24 @@ function App() {
   const [manualSearchBatchMode, setManualSearchBatchMode] = useState(false);
   const [selectedSearchResults, setSelectedSearchResults] = useState<GoogleBook[]>([]);
 
+  // État pour le menu d'export CSV
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Fermer le menu d'export si on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showExportMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('[data-export-menu]')) {
+          setShowExportMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showExportMenu]);
+
   // États pour le post-scan confirmation
   const [showPostScanConfirm, setShowPostScanConfirm] = useState(false);
   const [scannedBookData, setScannedBookData] = useState<{
@@ -1887,10 +1905,20 @@ function App() {
     setBulkScannedIsbns([]);
   };
 
-  const exportCollectionToCSV = () => {
-    if (collectionBooks.length === 0) {
+  const exportCollectionToCSV = (libraryId?: string) => {
+    const booksToExport = libraryId
+      ? collectionBooks.filter((book) => book.libraries?.includes(libraryId))
+      : collectionBooks;
+
+    const libraryName = libraryId
+      ? userLibraries.find((lib) => lib.id === libraryId)?.name
+      : null;
+
+    if (booksToExport.length === 0) {
       setAddMessage({
-        text: "Aucun livre à exporter",
+        text: libraryId
+          ? "Aucun livre dans cette bibliothèque"
+          : "Aucun livre à exporter",
         type: "error",
       });
       setTimeout(() => setAddMessage(null), 3000);
@@ -1914,7 +1942,7 @@ function App() {
     ];
 
     // Convertir les livres en lignes CSV
-    const rows = collectionBooks.map((book) => {
+    const rows = booksToExport.map((book) => {
       const status = book.readingStatus || (book.isRead ? "lu" : "non_lu");
       const statusLabels = {
         lu: "Lu",
@@ -1977,22 +2005,27 @@ function App() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `kodeks-collection-${new Date().toISOString().split("T")[0]}.csv`
-    );
+    const filename = libraryId && libraryName
+      ? `kodeks-${libraryName.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.csv`
+      : `kodeks-collection-${new Date().toISOString().split("T")[0]}.csv`;
+    link.setAttribute("download", filename);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     setAddMessage({
-      text: `${collectionBooks.length} livre${
-        collectionBooks.length > 1 ? "s" : ""
-      } exporté${collectionBooks.length > 1 ? "s" : ""} en CSV`,
+      text: libraryId && libraryName
+        ? `${booksToExport.length} livre${
+            booksToExport.length > 1 ? "s" : ""
+          } de "${libraryName}" exporté${booksToExport.length > 1 ? "s" : ""}`
+        : `${booksToExport.length} livre${
+            booksToExport.length > 1 ? "s" : ""
+          } exporté${booksToExport.length > 1 ? "s" : ""}`,
       type: "success",
     });
     setTimeout(() => setAddMessage(null), 3000);
+    setShowExportMenu(false); // Fermer le menu après export
   };
 
   const handleIsbnBatchAdd = () => {
@@ -3051,14 +3084,74 @@ function App() {
               </div>
               <div className="flex items-center gap-2">
                 {!selectedBook && collectionBooks.length > 0 && (
-                  <button
-                    onClick={exportCollectionToCSV}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer"
-                    title="Exporter la collection en CSV"
-                  >
-                    <DownloadSimple size={18} weight="bold" />
-                    <span className="hidden sm:inline">Exporter CSV</span>
-                  </button>
+                  <div className="relative" data-export-menu>
+                    <button
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer"
+                      title="Exporter en CSV"
+                    >
+                      <DownloadSimple size={18} weight="bold" />
+                      <span className="hidden sm:inline">Exporter CSV</span>
+                      <CaretDown
+                        size={14}
+                        weight="bold"
+                        className={`transition-transform ${
+                          showExportMenu ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {/* Dropdown menu */}
+                    {showExportMenu && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn">
+                        <div className="p-2">
+                          <button
+                            onClick={() => exportCollectionToCSV()}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors flex items-center gap-2"
+                          >
+                            <Books size={16} weight="bold" />
+                            <div>
+                              <div className="font-medium">Toute la collection</div>
+                              <div className="text-xs text-gray-500">
+                                {collectionBooks.length} livre
+                                {collectionBooks.length > 1 && "s"}
+                              </div>
+                            </div>
+                          </button>
+
+                          {userLibraries.length > 0 && (
+                            <>
+                              <div className="h-px bg-gray-200 my-2" />
+                              <div className="text-xs font-semibold text-gray-500 px-3 py-1">
+                                Par bibliothèque
+                              </div>
+                              {userLibraries.map((library) => {
+                                const bookCount = collectionBooks.filter((book) =>
+                                  book.libraries?.includes(library.id)
+                                ).length;
+                                return (
+                                  <button
+                                    key={library.id}
+                                    onClick={() => exportCollectionToCSV(library.id)}
+                                    disabled={bookCount === 0}
+                                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <span>{renderLibraryIcon(library.icon || "BK", 16)}</span>
+                                    <div className="flex-1">
+                                      <div className="font-medium">{library.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        {bookCount} livre{bookCount > 1 && "s"}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
                 <button
                   onClick={() => {
