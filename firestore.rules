@@ -7,9 +7,13 @@ service cloud.firestore {
     }
 
     // Function to check if user is admin
+    // TODO: Migrer vers Custom Claims Firebase Auth (voir docs/firebase-admin-setup.md)
+    // Pour l'instant: vérifier UID admin (depuis .env) + champ isAdmin en Firestore
     function isAdmin() {
       return request.auth != null && (
-        request.auth.uid == "wpZJ2pZ0zOdaw68optxamlkjRg13" || // Greg's UID
+        // IMPORTANT: Mettre à jour cet UID avec la valeur de VITE_ADMIN_UID
+        // Actuellement: wpZJ2pZ0zOdaw68optxamlkjRg13 (Greg)
+        request.auth.uid == "wpZJ2pZ0zOdaw68optxamlkjRg13" ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
       );

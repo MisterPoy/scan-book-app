@@ -3,8 +3,8 @@ import { app } from '../firebase';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-// VAPID Key de Firebase Console
-const VAPID_KEY = 'BKaUGPhun4u6WYA2df24FxSB7mexr7PCahJmsYPL-G3MNWMu_vNSlb2dn4Y5AR479s5QCCYWn_hSNCytvmFeKbQ';
+// VAPID Key depuis les variables d'environnement
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 let messaging: Messaging | null = null;
 
@@ -56,15 +56,8 @@ export const getMessagingToken = async (userId: string): Promise<string | null> 
       return null;
     }
 
-    // Enregistrer le service worker Firebase avec un scope spécifique
-    let registration;
-    try {
-      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-        scope: '/firebase-sw-scope/'
-      });
-    } catch {
-      registration = await navigator.serviceWorker.ready;
-    }
+    // Utiliser le service worker PWA principal (qui gère aussi FCM)
+    const registration = await navigator.serviceWorker.ready;
 
     // Obtenir le token FCM
     const token = await getToken(messaging, {

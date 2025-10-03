@@ -1496,8 +1496,8 @@ function App() {
       return;
     }
 
-    // UID administrateur de Greg
-    const ADMIN_UID = "wpZJ2pZ0zOdaw68optxamlkjRg13";
+    // UID administrateur depuis les variables d'environnement
+    const ADMIN_UID = import.meta.env.VITE_ADMIN_UID;
 
     try {
       const userRef = doc(db, "users", user.uid);
