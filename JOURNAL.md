@@ -2,6 +2,343 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - MEGA UPDATE : Modes Lot + UX Unifiée + Export CSV Avancé
+
+### 📦 Vue d'ensemble
+Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
+
+**5 commits principaux** :
+1. Fix clic long + Export CSV collection
+2. Mode lot pour recherche ISBN
+3. Mode lot pour recherche manuelle (sélection multiple)
+4. Refonte UI/UX unifiée (design system card-based)
+5. Export CSV par bibliothèque avec dropdown menu
+
+---
+
+### ✅ FIX : Clic long multi-sélection (Commit e34aceb)
+
+**Problème** : Le clic long activait la sélection mais déclenchait aussi `onClick`, désélectionnant immédiatement le livre
+
+**Solution** : Pattern avec `useRef` pour tracker l'état du long press
+```typescript
+const isLongPressRef = useRef(false);
+
+handlePointerDown: isLongPressRef.current = false au démarrage
+Timeout 500ms: isLongPressRef.current = true puis onLongPress()
+handleClick: Si isLongPressRef.current === true → preventDefault + return
+```
+
+**Résultat** : La sélection reste active après un long press ✅
+
+---
+
+### ✅ FEATURE : Export CSV Collection Complète (Commit e34aceb)
+
+**Objectif** : Exporter toute la collection en CSV compatible Excel/LibreOffice
+
+**Implémentation** :
+- Fonction `exportCollectionToCSV()` dans App.tsx (lignes ~1877-1983)
+- Bouton "Exporter CSV" en-tête modale collection
+- Icône `DownloadSimple` (Phosphor)
+- Visible uniquement en vue grille (`!selectedBook`)
+
+**12 colonnes exportées** :
+1. ISBN
+2. Titre
+3. Auteurs (séparés par `;`)
+4. Éditeur
+5. Date de publication
+6. Nombre de pages
+7. Catégories (séparées par `;`)
+8. Statut de lecture (Lu, Non lu, À lire, En cours, Abandonné)
+9. Type de livre (Physique, Numérique, Audio)
+10. Note personnelle
+11. Bibliothèques (noms séparés par `;`)
+12. Date d'ajout
+
+**Gestion CSV** :
+- Échappement correct : guillemets doublés, encapsulation si virgules/retours ligne
+- BOM UTF-8 (`\ufeff`) pour compatibilité Excel
+- Nom fichier : `kodeks-collection-YYYY-MM-DD.csv`
+
+**Ajout interface** : `personalNote?: string` dans `CollectionBook`
+
+---
+
+### ✅ FEATURE : Mode Lot ISBN (Commit 5c6b3cc)
+
+**Objectif** : Permettre l'ajout de plusieurs ISBN avant validation groupée
+
+**Fonctionnalités** :
+- Toggle "ISBN unique" / "ISBN par lot"
+- Ajout multiple avec validation anti-doublon (lot + collection)
+- Liste des ISBN avec badges affichant chaque ISBN
+- Bouton X pour retirer un ISBN du lot
+- Barre de contrôle : Compteur + Réinitialiser + Valider
+- Support touche Entrée
+- Réutilisation modale `BulkConfirmModal`
+
+**Nouveaux états** :
+```typescript
+isbnBatchMode: boolean
+isbnBatchList: string[]
+```
+
+**Nouveaux handlers** :
+- `handleIsbnBatchAdd()`: Ajoute ISBN avec validations
+- `handleIsbnBatchRemove(isbn)`: Retire du lot
+- `handleIsbnBatchValidate()`: Ouvre modale confirmation
+- `handleIsbnBatchReset()`: Vide le lot
+
+**UI** : Toggle bleu/vert, input adaptatif, grille badges ISBN
+
+---
+
+### ✅ FEATURE : Mode Lot Recherche Manuelle (Commit 621e3a3)
+
+**Objectif** : Sélectionner plusieurs livres dans les résultats de recherche avant ajout groupé
+
+**Fonctionnalités** :
+- Toggle "Recherche unique" / "Sélection multiple"
+- Checkboxes sur cards résultats
+- Clic sur card = toggle sélection (au lieu d'afficher détails)
+- Mise en surbrillance verte pour livres sélectionnés
+- Badge "Déjà dans la collection" pour livres existants (non-sélectionnables)
+- Preview avec thumbnails 8x12
+- Barre contrôle : Compteur + Vider + Valider
+
+**Nouveaux états** :
+```typescript
+manualSearchBatchMode: boolean
+selectedSearchResults: GoogleBook[]
+```
+
+**Nouveaux handlers** :
+- `handleManualSearchToggle(book)`: Toggle sélection avec vérifications
+- `handleManualSearchBatchValidate()`: Valide avec filtre ISBN undefined
+- `handleManualSearchBatchReset()`: Vide sélection
+
+**UI Cards modifiées** :
+- Checkbox en top-left (z-10)
+- Border verte si sélectionné
+- Opacité réduite si déjà en collection
+- Badge informatif
+
+---
+
+### ✅ UX REFONTE : Design System Unifié (Commit 42db362)
+
+**Problème** : UI dispersée et incohérente entre modes ISBN et recherche manuelle
+
+**Solution** : Refonte totale avec design system card-based moderne
+
+#### Nouveau Design System
+
+**Structure unifiée** :
+```
+┌─────────────────────────────────────┐
+│ Header (gradient coloré)           │
+│ - Icône + Titre + Description      │
+│ - Toggle compact (Unique/Lot)      │
+├─────────────────────────────────────┤
+│ Body (padding cohérent)            │
+│ - Zone input avec icône intégrée   │
+│ - Preview area (toujours visible)  │
+│   - Gradient vert                  │
+│   - Header avec compteur           │
+│   - Items scroll (max-h-40)        │
+│   - État vide avec illustration    │
+├─────────────────────────────────────┤
+│ Footer (si items présents)         │
+│ - Action bar sticky gradient gris  │
+│ - Bouton validation pleine largeur │
+└─────────────────────────────────────┘
+```
+
+**Principes UX appliqués** :
+1. **Progressive disclosure** : Éléments selon contexte
+2. **Visual hierarchy** : Header > Input > Preview > Actions
+3. **Feedback immédiat** : États vides avec illustrations
+4. **Cohérence** : Même structure pour les 2 modes
+
+#### ISBN - Améliorations détaillées
+
+**Header** :
+- Gradient `from-blue-50 to-indigo-50`
+- Icône `MagnifyingGlass` dans badge blanc + shadow
+- Titre "Recherche ISBN" + description contextuelle
+- Toggle compact avec états colorés (bleu/vert)
+
+**Input** :
+- Font mono pour ISBN
+- Border-2 + focus ring-2
+- Icône loupe absolute right
+- Placeholder contextuel
+
+**Preview** :
+- Toujours visible (opacity-50 si vide)
+- Gradient `from-green-50 to-emerald-50`
+- Scrollbar customisée (scrollbar-thin)
+- Items hover → shadow-md
+- Bouton X opacity-0 → opacity-100 au hover
+- État vide : Icône Book + message explicatif
+
+#### Recherche Titre/Auteur - Améliorations
+
+**Différences** :
+- Gradient vert au lieu de bleu
+- Toggle "Unique/Sélection"
+- Preview montre thumbnails 8x12 + titre/auteurs tronqués
+
+**États vides** :
+- Icône illustrative Book size-32
+- Message principal
+- Sous-message (text-xs opacity-75)
+
+#### Couleurs & Animations
+
+**Couleurs** :
+- Unique: blue-600
+- Lot/Sélection: green-600
+- Preview: gradient green-50 to emerald-50
+- Footer: gradient gray-50 to gray-100
+
+**Animations** :
+- transition-all sur interactifs
+- hover:shadow-md/lg profondeur
+- opacity transitions révéler/cacher
+- animate-fadeIn dropdown
+
+**Accessibilité** :
+- Focus states ring-2
+- Hiérarchie visuelle claire
+- Textes descriptifs
+- Hover states évidents
+
+**Responsive** :
+- max-w-3xl containers
+- flex-wrap headers
+- Toggles lisibles mobile
+
+---
+
+### ✅ FEATURE : Export CSV par Bibliothèque (Commit 7f74219)
+
+**Objectif** : Permettre export filtré par bibliothèque via dropdown élégant
+
+#### Fonctionnalités
+
+**Options d'export** :
+- Toute la collection (défaut)
+- Par bibliothèque spécifique
+
+**Nom fichier adaptatif** :
+- Collection: `kodeks-collection-YYYY-MM-DD.csv`
+- Bibliothèque: `kodeks-{nom}-YYYY-MM-DD.csv` (lowercase, tirets)
+
+#### Dropdown Menu Moderne
+
+**Design** :
+- Bouton avec `DownloadSimple` + `CaretDown` rotatif
+- Menu absolu right-0, shadow-xl, border-2
+- Width w-64 pour lisibilité
+- Animation fadeIn
+
+**Structure menu** :
+1. Option "Toute la collection"
+   - Icône Books
+   - Compteur livres
+2. Séparateur (si bibliothèques)
+3. Label "Par bibliothèque"
+4. Liste bibliothèques
+   - Icône personnalisée
+   - Nom + compteur
+   - Disabled si 0 livres
+
+**Interactions** :
+- Clic option → export + fermeture
+- Clic extérieur → fermeture (useEffect)
+- Hover states items
+
+#### Modifications Techniques
+
+**Fonction modifiée** :
+```typescript
+exportCollectionToCSV(libraryId?: string)
+- Filtre si libraryId fourni
+- Nom fichier contextuel
+- Message toast personnalisé
+```
+
+**Nouveau state** :
+```typescript
+showExportMenu: boolean
+```
+
+**useEffect** :
+- Listener click document
+- Cleanup au unmount
+- Attribute `data-export-menu`
+
+**Messages adaptés** :
+- Collection: "{X} livre(s) exporté(s)"
+- Bibliothèque: "{X} livre(s) de \"{Nom}\" exporté(s)"
+
+---
+
+## 📊 Bilan Technique
+
+### Fichiers modifiés
+- `src/App.tsx` (toutes les modifications)
+
+### Nouveaux états (7)
+1. `isbnBatchMode: boolean`
+2. `isbnBatchList: string[]`
+3. `manualSearchBatchMode: boolean`
+4. `selectedSearchResults: GoogleBook[]`
+5. `showExportMenu: boolean`
+6. `isLongPressRef: useRef<boolean>`
+
+### Nouveaux handlers (8)
+1. `handleIsbnBatchAdd()`
+2. `handleIsbnBatchRemove()`
+3. `handleIsbnBatchValidate()`
+4. `handleIsbnBatchReset()`
+5. `handleManualSearchToggle()`
+6. `handleManualSearchBatchValidate()`
+7. `handleManualSearchBatchReset()`
+8. `exportCollectionToCSV(libraryId?)`
+
+### Imports ajoutés
+- `CheckCircle` (Phosphor)
+
+### Performance
+- useMemo pour `existingIsbnsSet`
+- Nettoyage états après validation
+- useEffect cleanup listeners
+
+---
+
+## 🎯 Prochaines étapes recommandées
+
+1. **Tests utilisateurs** :
+   - Tester modes lot sur différents devices
+   - Valider UX dropdown export
+   - Vérifier compatibilité CSV Excel
+
+2. **Optimisations potentielles** :
+   - Code splitting pour réduire bundle size (actuellement 1.2MB)
+   - Lazy loading composants modaux
+   - Cache service worker pour assets
+
+3. **Documentation** :
+   - Screenshots nouveaux workflows
+   - Guide utilisateur modes lot
+   - FAQ export CSV
+
+---
+
 ## 2025-10-03 - Fix Clic Long + Export CSV Collection
 
 ### ✅ FIX : Clic long multi-sélection
