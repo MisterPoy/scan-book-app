@@ -2,6 +2,40 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - REBRANDING : ScanBook → Kodeks
+
+### Contexte
+L'application a été renommée de "Scan Book App" / "ScanBook" vers **Kodeks**. Logo fourni : `kodeksLogoSeul.png`.
+
+### Modifications effectuées
+- ✅ **Logo** : Copie de `I:\MrPoyDocs\ProjetsDevPerso\bibliothèque\kodeksLogoSeul.png` → `public/kodeks-logo.png`
+- ✅ **Manifest PWA** (vite.config.ts) :
+  - `name: "Kodeks - Gestionnaire de Bibliothèque"`
+  - `short_name: "Kodeks"`
+- ✅ **Manifest public** (public/manifest.json) : déjà à jour avec "Kodeks"
+- ✅ **HTML title** (index.html) : déjà "Kodeks - Gestionnaire de Bibliothèque"
+- ✅ **PWAInstallPrompt** (src/components/PWAInstallPrompt.tsx) :
+  - "Installer Kodeks" au lieu de "Installer ScanBook"
+- ✅ **Notifications** :
+  - `useNotifications.ts` : tags changés de `scanbook-*` vers `kodeks-*`
+  - `useNotifications.ts` : titre test "Test - Kodeks"
+  - `notificationSender.ts` : "Nouvelle annonce - Kodeks"
+  - `notificationSender.ts` : message test "depuis Kodeks"
+
+### Fichiers modifiés
+- `vite.config.ts`
+- `public/kodeks-logo.png` (nouveau fichier)
+- `src/components/PWAInstallPrompt.tsx`
+- `src/hooks/useNotifications.ts`
+- `src/services/notificationSender.ts`
+
+### Résultat
+✅ Build réussi (15.07s, 1364 modules)
+✅ Commit `2389143` + Push GitHub
+🎯 **Identité unifiée** : L'app s'appelle désormais Kodeks partout (code, PWA, notifications)
+
+---
+
 ## 2025-10-03 - EPIC UX Bibliothèque (Multi-sélection, Post-scan, Flash, Anti-doublon)
 
 ### ✅ E1 - MULTI-SÉLECTION DANS LA COLLECTION
