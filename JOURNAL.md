@@ -2,6 +2,126 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - Conformité RGPD Complète
+
+### ✅ PAGES LÉGALES
+- **Objectif** : Fournir les mentions légales et politique de confidentialité conformes RGPD
+- **Réalisé** :
+  - ✅ Création `src/pages/MentionsLegales.tsx`
+    - Informations éditeur et hébergeur
+    - Propriété intellectuelle
+    - Limitation de responsabilité
+    - Loi applicable
+  - ✅ Création `src/pages/Confidentialite.tsx`
+    - Données collectées (email, livres, bibliothèques)
+    - Finalité (gestion bibliothèque, aucun marketing)
+    - Hébergement Firebase + Vercel
+    - Mesures de sécurité (HTTPS, règles Firestore)
+    - Droits RGPD (accès, rectification, effacement, portabilité)
+    - Durée de conservation
+    - Cookies strictement nécessaires
+  - ✅ Design responsive avec icônes Phosphor
+  - ✅ Bouton retour avec useNavigate()
+- **Fichiers créés** :
+  - `src/pages/MentionsLegales.tsx`
+  - `src/pages/Confidentialite.tsx`
+
+### ✅ ROUTING ET FOOTER
+- **Objectif** : Rendre les pages légales accessibles partout
+- **Réalisé** :
+  - ✅ Installation `react-router-dom` (v7.9.3)
+  - ✅ Configuration BrowserRouter dans `src/main.tsx`
+  - ✅ Routes `/mentions-legales` et `/confidentialite`
+  - ✅ Création composant `src/components/Footer.tsx`
+    - Liens vers les deux pages légales
+    - Icônes FileText et Shield de Phosphor
+    - Année dynamique avec `new Date().getFullYear()`
+  - ✅ Intégration Footer dans App.tsx
+- **Fichiers créés** : `src/components/Footer.tsx`
+- **Fichiers modifiés** :
+  - `src/main.tsx` (BrowserRouter + Routes)
+  - `src/App.tsx` (import Footer)
+  - `package.json` (react-router-dom)
+
+### ✅ CONSENTEMENT À L'INSCRIPTION
+- **Objectif** : Obtenir le consentement explicite avant création de compte
+- **Réalisé** :
+  - ✅ Ajout texte de consentement dans `src/components/login.tsx`
+  - ✅ Affiché uniquement en mode inscription (`isRegister === true`)
+  - ✅ Liens target="_blank" vers `/confidentialite` et `/mentions-legales`
+  - ✅ Style discret (text-xs text-gray-600)
+- **Fichiers modifiés** : `src/components/login.tsx` (lignes 185-197)
+
+### ✅ DROIT À L'OUBLI - SUPPRESSION DE COMPTE
+- **Objectif** : Permettre à l'utilisateur de supprimer définitivement son compte
+- **Réalisé** :
+  - ✅ Import `deleteUser` de Firebase Auth
+  - ✅ Fonction `handleDeleteAccount` dans App.tsx
+    - Double confirmation (window.confirm)
+    - Avertissement sur l'irréversibilité
+    - Suppression de tous les livres (`users/${uid}/collection`)
+    - Suppression du document utilisateur (`users/${uid}`)
+    - Suppression du compte Firebase Auth
+    - Message de confirmation Toast
+  - ✅ Refonte modale "Paramètres" :
+    - Ancien titre "Paramètres de notifications" → "Paramètres"
+    - Section Notifications (avec Bell icon)
+    - Section Gestion du compte (avec Warning icon rouge)
+    - Encart rouge avec bouton "Supprimer définitivement mon compte"
+    - Trash icon + texte d'avertissement
+  - ✅ Max-height + overflow-y-auto pour modale scrollable
+- **Fichiers modifiés** : `src/App.tsx` (lignes 1660-1713, 2698-2749)
+
+### ✅ ENCART INFORMATIF RGPD
+- **Objectif** : Informer l'utilisateur sur le stockage de ses données
+- **Réalisé** :
+  - ✅ Ajout texte informatif sur page d'accueil (Home)
+  - ✅ Visible pour utilisateurs connectés ET non connectés
+  - ✅ Liens vers `/mentions-legales` et `/confidentialite`
+  - ✅ Style discret (text-xs text-gray-500)
+- **Fichiers modifiés** : `src/App.tsx` (lignes 2133-2140)
+
+### ✅ BUILD FINAL
+- **Résultat** : Build réussi sans erreurs ✅
+- **Warnings** : Uniquement avertissements de bundle size (normaux)
+- **Stats** :
+  - 1363 modules transformés
+  - 87 entrées précachées PWA (32.6 MB)
+  - index.js : 1199.52 kB (261.84 kB gzip)
+
+### 📋 CRITÈRES D'ACCEPTATION RGPD VALIDÉS
+- ✅ Pages légales (Mentions légales + Confidentialité) accessibles
+- ✅ Consentement affiché à l'inscription
+- ✅ Suppression de compte fonctionnelle (front + Firebase)
+- ✅ Utilisateur informé dès la Home
+- ✅ Footer présent sur toutes les pages
+
+### 📋 À FAIRE CÔTÉ FIREBASE CONSOLE (par utilisateur Greg)
+1. **Firestore Rules** : Appliquer les règles de sécurité
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{userId}/collection/{bookId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
+2. **Authentication** : Vérifier que seul Email/Password est activé
+3. **Tester isolation** : Vérifier qu'un utilisateur A ne peut pas lire les données de B
+
+### 📋 PROCHAINES ÉTAPES
+1. ✅ Toutes les tâches RGPD sont complètes
+2. Tester en production la suppression de compte
+3. Surveiller les logs d'erreurs
+4. Optimiser bundle size si nécessaire (code splitting)
+
+---
+
 ## 2025-10-03 - Système de Feedback Visuel pour Validation de Lot
 
 ### ✅ CRÉATION COMPOSANT TOAST

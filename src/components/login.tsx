@@ -182,6 +182,20 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
         </button>
       </form>
 
+      {/* Texte de consentement RGPD - uniquement en mode inscription */}
+      {isRegister && (
+        <p className="text-xs text-gray-600 mt-3 mb-3 text-center">
+          En créant un compte, vous acceptez la{" "}
+          <a href="/confidentialite" target="_blank" className="underline text-blue-600">
+            politique de confidentialité
+          </a>{" "}
+          et les{" "}
+          <a href="/mentions-legales" target="_blank" className="underline text-blue-600">
+            mentions légales
+          </a>.
+        </p>
+      )}
+
       {/* Mot de passe oublié - seulement en mode connexion */}
       {!isRegister && (
         <p className="text-center mb-3">

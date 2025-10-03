@@ -14,6 +14,7 @@ import {
   CaretUp,
   CaretDown,
   Trash,
+  Warning,
   FolderOpen,
   CalendarBlank,
   Buildings,
@@ -45,10 +46,11 @@ import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import ScrollToTop from "./components/ScrollToTop";
 import ModalScrollToTop from "./components/ModalScrollToTop";
 import Toast from "./components/Toast";
+import Footer from "./components/Footer";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
-import { onAuthStateChanged, getRedirectResult, type User } from "firebase/auth";
+import { onAuthStateChanged, getRedirectResult, deleteUser, type User } from "firebase/auth";
 import {
   doc,
   setDoc,
@@ -1656,6 +1658,61 @@ function App() {
     setBulkScannedIsbns([]);
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    const confirmDelete = window.confirm(
+      "⚠️ ATTENTION : Cette action est irréversible.\n\n" +
+      "Toutes vos données seront définitivement supprimées :\n" +
+      "• Votre collection de livres\n" +
+      "• Vos bibliothèques personnalisées\n" +
+      "• Vos notes et paramètres\n" +
+      "• Votre compte utilisateur\n\n" +
+      "Êtes-vous absolument sûr de vouloir continuer ?"
+    );
+
+    if (!confirmDelete) return;
+
+    const confirmDeleteFinal = window.confirm(
+      "Dernière confirmation : Voulez-vous vraiment supprimer définitivement votre compte ?"
+    );
+
+    if (!confirmDeleteFinal) return;
+
+    try {
+      // 1. Supprimer tous les livres de la collection
+      const collectionRef = collection(db, `users/${user.uid}/collection`);
+      const booksSnapshot = await getDocs(collectionRef);
+      const deletePromises = booksSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+
+      // 2. Supprimer le document utilisateur principal si existe
+      const userDocRef = doc(db, `users/${user.uid}`);
+      await deleteDoc(userDocRef).catch(() => {
+        // Document peut ne pas exister, c'est OK
+      });
+
+      // 3. Supprimer le compte Firebase Auth
+      await deleteUser(user);
+
+      // 4. Afficher message de confirmation
+      setAddMessage({
+        text: 'Votre compte a été supprimé avec succès',
+        type: 'success'
+      });
+
+      // 5. Fermer la modale
+      setShowNotificationSettings(false);
+
+    } catch (error) {
+      console.error('Erreur lors de la suppression du compte:', error);
+      setAddMessage({
+        text: 'Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.',
+        type: 'error'
+      });
+    }
+  };
+
   // Utilisation du hook de filtres
   const { filteredBooks: baseFilteredBooks, availableGenres } = useBookFilters(
     collectionBooks,
@@ -2128,6 +2185,15 @@ function App() {
                     Se connecter pour ajouter
                   </button>
                 )}
+
+                {/* Encart informatif RGPD */}
+                <div className="mt-8 text-xs text-gray-500 text-center max-w-2xl mx-auto">
+                  <p>
+                    Vos données sont stockées de manière sécurisée via Firebase (Google).
+                    Consultez nos <a href="/mentions-legales" className="underline hover:text-blue-600">mentions légales</a>{" "}
+                    et notre <a href="/confidentialite" className="underline hover:text-blue-600">politique de confidentialité</a>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -2629,25 +2695,54 @@ function App() {
         onCancel={handleBulkAddCancel}
       />
 
-      {/* Notification Settings Modal */}
+      {/* Settings Modal (Notifications + Gestion du compte) */}
       {showNotificationSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Paramètres de notifications</h2>
+              <h2 className="text-xl font-bold text-gray-900">Paramètres</h2>
               <button
                 onClick={() => setShowNotificationSettings(false)}
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+                aria-label="Fermer"
               >
                 <X size={20} weight="bold" />
               </button>
             </div>
-            <div className="p-6">
+
+            {/* Notifications */}
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Bell size={20} weight="bold" />
+                Notifications
+              </h3>
               <NotificationSettings
                 userId={user?.uid || null}
                 userName={user?.displayName}
                 isAdmin={isAdmin}
               />
+            </div>
+
+            {/* Gestion du compte */}
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Warning size={20} weight="bold" className="text-red-600" />
+                Gestion du compte
+              </h3>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="font-semibold text-red-900 mb-2">Supprimer mon compte</h4>
+                <p className="text-sm text-red-700 mb-4">
+                  Cette action est irréversible. Toutes vos données (livres, bibliothèques, notes) seront définitivement supprimées.
+                </p>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
+                >
+                  <Trash size={18} weight="bold" />
+                  Supprimer définitivement mon compte
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2666,6 +2761,9 @@ function App() {
         isVisible={!!addMessage}
         onClose={() => setAddMessage(null)}
       />
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
