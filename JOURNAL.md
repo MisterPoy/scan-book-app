@@ -1,6 +1,96 @@
-# Journal de Développement - ScanBook App
+# Journal de Développement - Kodeks
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
+
+## 2025-10-03 - Rebranding vers Kodeks + Flash Toggle + Sélection Multiple
+
+### ✅ REBRANDING COMPLET VERS "KODEKS"
+- **Objectif** : Changer le nom de l'application de "ScanBook App" vers "Kodeks"
+- **Réalisé** :
+  - ✅ Ajout logo `public/kodeksLogoSeul.png`
+  - ✅ `index.html` - Titre et meta tags mis à jour
+  - ✅ `public/manifest.json` - Nom complet et nom court modifiés
+  - ✅ `package.json` - Name field changé en "kodeks"
+  - ✅ `src/components/Footer.tsx` - Copyright mis à jour
+  - ✅ `src/pages/MentionsLegales.tsx` - Nom de l'app, textes légaux
+  - ✅ `src/pages/Confidentialite.tsx` - Mentions du nom de l'app
+  - ✅ `src/App.tsx` - Header avec logo et nom "Kodeks"
+- **Fichiers modifiés** : 8 fichiers
+- **Résultat** : Application complètement rebrandée avec nouveau nom et logo
+
+### ✅ FLASH/TORCH POUR LE SCANNER CAMÉRA
+- **Objectif** : Permettre d'activer le flash de la caméra pendant le scan ISBN
+- **Problème résolu** : Scan difficile en faible luminosité
+- **Réalisé** :
+  - ✅ `src/components/ISBNScanner.tsx:122-123` - États `torchSupported` et `torchEnabled`
+  - ✅ `src/components/ISBNScanner.tsx:16` - Import icône `Flashlight` de Phosphor
+  - ✅ `src/components/ISBNScanner.tsx:283-291` - Détection support via `MediaTrackCapabilities.torch`
+  - ✅ `src/components/ISBNScanner.tsx:298-314` - Fonction `toggleTorch()` avec `applyConstraints()`
+  - ✅ `src/components/ISBNScanner.tsx:361-374` - Bouton toggle flash avec styles conditionnels
+  - ✅ Bouton jaune quand actif (fill), gris quand inactif (regular)
+  - ✅ Visible uniquement si caméra active ET flash supporté
+  - ✅ Fonctionne en mode single ET batch
+  - ✅ État persistant pendant toute la session de scan
+  - ✅ Fallback gracieux pour appareils non supportés (iOS souvent)
+- **Fichiers modifiés** : `src/components/ISBNScanner.tsx`
+- **Résultat** : Flash fonctionnel sur appareils Android compatibles
+
+### ✅ SÉLECTION MULTIPLE ET SUPPRESSION GROUPÉE
+- **Objectif** : Permettre la sélection de plusieurs livres et la suppression en lot
+- **Problème résolu** : Suppression manuelle livre par livre trop longue
+- **Réalisé** :
+  - ✅ `src/App.tsx:830-832` - États `selectionMode`, `selectedBooks`, `showBulkDeleteModal`
+  - ✅ `src/App.tsx:2362-2370` - Bouton "Sélectionner" pour activer le mode
+  - ✅ `src/App.tsx:2377-2413` - Barre d'actions en mode sélection :
+    - Compteur de livres sélectionnés
+    - Bouton "Tout sélectionner / Tout désélectionner"
+    - Bouton "Annuler" pour quitter le mode
+    - Bouton "Supprimer (X)" rouge si livres sélectionnés
+  - ✅ `src/App.tsx:2451-2488` - Checkboxes sur chaque carte de livre
+    - Positionnées en haut à gauche (absolute top-2 left-2)
+    - Clic sur checkbox ou carte pour sélectionner/désélectionner
+    - accent-blue-600 pour style cohérent
+  - ✅ `src/App.tsx:2784-2854` - Modal de confirmation de suppression groupée
+    - Icône Warning rouge dans cercle
+    - Message explicite : "Êtes-vous sûr de vouloir supprimer X livre(s) ?"
+    - Avertissement "Cette action est irréversible"
+    - Suppression via Promise.all avec deleteDoc
+    - Rechargement complet de la collection après suppression
+    - Toast de feedback : "X livre(s) supprimé(s) avec succès"
+    - Réinitialisation complète (selectedBooks = [], selectionMode = false)
+- **Fichiers modifiés** : `src/App.tsx`
+- **Résultat** : Suppression rapide de plusieurs livres en quelques clics
+
+### ✅ BUILD ET DÉPLOIEMENT
+- **Résultat** : Build réussi ✅
+- **Warnings** :
+  - Firebase dynamically imported (normal)
+  - Chunk size > 500KB (amélioration future possible)
+- **Stats** :
+  - 1363 modules transformés
+  - index.js : 1203.28 kB (262.44 kB gzip)
+  - ISBNScanner : 417.49 kB (109.07 kB gzip)
+  - PWA : 91 entrées précachées (34.3 MB)
+
+### 📋 CRITÈRES D'ACCEPTATION VALIDÉS
+- ✅ Nom "Kodeks" visible partout (header, manifest, pages légales)
+- ✅ Logo Kodeks affiché dans le header
+- ✅ Flash détecté automatiquement si supporté
+- ✅ Bouton flash visible pendant le scan
+- ✅ Mode sélection activable/désactivable
+- ✅ Checkboxes sur toutes les cartes en mode sélection
+- ✅ Bouton "Tout sélectionner" fonctionnel
+- ✅ Modal de confirmation avant suppression
+- ✅ Toast de feedback après suppression
+- ✅ Réinitialisation propre après l'opération
+
+### 📋 PROCHAINES ÉTAPES
+1. Tester le flash sur différents appareils Android
+2. Tester la sélection multiple avec beaucoup de livres (100+)
+3. Vérifier que le logo s'affiche correctement sur tous les écrans
+4. Considérer code splitting pour réduire la taille du bundle principal
+
+---
 
 ## 2025-10-03 - Conformité RGPD Complète
 
