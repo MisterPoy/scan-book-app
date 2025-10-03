@@ -2730,15 +2730,6 @@ function App() {
                   </div>
                 </div>
               )}
-
-              {/* Ajout manuel - Bouton direct */}
-              <button
-                onClick={() => setShowManualAdd(true)}
-                className="flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-2 z-50 cursor-pointer"
-              >
-                <PencilSimple size={20} weight="bold" />
-                Ajouter un livre manuellement
-              </button>
             </div>
           ) : (
             <Suspense
@@ -3051,6 +3042,19 @@ function App() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Ajout manuel - Bouton direct */}
+        {!scanning && (
+          <div className="text-center mt-8 mb-6">
+            <button
+              onClick={() => setShowManualAdd(true)}
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md cursor-pointer"
+            >
+              <PencilSimple size={20} weight="bold" />
+              Ajouter un livre manuellement
+            </button>
           </div>
         )}
       </main>
