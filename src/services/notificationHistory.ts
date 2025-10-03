@@ -8,37 +8,53 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
-
-// Interface pour l'historique des notifications
-interface NotificationHistory {
-  id?: string;
-  announcementId: string;
-  userId: string;
-  fcmToken: string;
-  sentAt: string;
-  status: 'sent' | 'failed' | 'delivered';
-  priority: 'low' | 'medium' | 'high';
-  retryCount?: number;
-  error?: string;
-}
+import type {
+  NotificationHistory,
+  NotificationStatus,
+  NotificationPriority,
+  NotificationStats
+} from '../types/notification';
 
 const NOTIFICATION_HISTORY_COLLECTION = 'notification_history';
 
+// Cache en mémoire pour la session admin (éviter requêtes répétées)
+const notificationCache = new Map<string, boolean>();
+
+// Clé de cache
+const getCacheKey = (announcementId: string, userId: string): string => {
+  return `${announcementId}:${userId}`;
+};
+
 // Vérifier si une notification a déjà été envoyée à un utilisateur pour une annonce
+// Utilise un cache local + index composite Firestore pour performance optimale
 export const hasNotificationBeenSent = async (
   announcementId: string,
   userId: string
 ): Promise<boolean> => {
+  // Vérifier le cache d'abord
+  const cacheKey = getCacheKey(announcementId, userId);
+  const cached = notificationCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
+    // Requête optimisée avec index composite + limit(1) pour idempotence stricte
     const q = query(
       collection(db, NOTIFICATION_HISTORY_COLLECTION),
       where('announcementId', '==', announcementId),
       where('userId', '==', userId),
-      where('status', '==', 'sent')
+      where('status', '==', 'sent'),
+      limit(1) // Arrêter dès le premier résultat trouvé
     );
 
     const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const hasSent = !querySnapshot.empty;
+
+    // Mettre en cache le résultat
+    notificationCache.set(cacheKey, hasSent);
+
+    return hasSent;
   } catch (error) {
     console.error('Erreur vérification historique notification:', error);
     // En cas d'erreur, on autorise l'envoi pour ne pas bloquer
@@ -46,16 +62,30 @@ export const hasNotificationBeenSent = async (
   }
 };
 
-// Enregistrer l'envoi d'une notification
+// Vider le cache (à appeler après envoi de notifications)
+export const clearNotificationCache = (): void => {
+  notificationCache.clear();
+};
+
+// Enregistrer l'envoi d'une notification avec logs structurés
 export const recordNotificationSent = async (
   announcementId: string,
   userId: string,
   fcmToken: string,
-  priority: 'low' | 'medium' | 'high',
-  status: 'sent' | 'failed' = 'sent',
-  error?: string
+  priority: NotificationPriority,
+  status: NotificationStatus = 'sent',
+  errorCode?: string,
+  errorMessage?: string,
+  retryCount: number = 0
 ): Promise<void> => {
   try {
+    // Collecter les informations du device
+    const deviceInfo = {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+    };
+
     const notificationRecord: NotificationHistory = {
       announcementId,
       userId,
@@ -63,11 +93,17 @@ export const recordNotificationSent = async (
       sentAt: new Date().toISOString(),
       status,
       priority,
-      retryCount: 0,
-      ...(error && { error })
+      retryCount,
+      deviceInfo,
+      ...(errorCode && { errorCode }),
+      ...(errorMessage && { errorMessage }),
     };
 
     await addDoc(collection(db, NOTIFICATION_HISTORY_COLLECTION), notificationRecord);
+
+    // Invalider le cache pour cette combinaison annonce/utilisateur
+    const cacheKey = getCacheKey(announcementId, userId);
+    notificationCache.set(cacheKey, status === 'sent');
   } catch (error) {
     console.error('Erreur enregistrement historique notification:', error);
     // Ne pas faire échouer l'envoi si l'enregistrement échoue
@@ -152,12 +188,8 @@ export const cleanupOldNotificationHistory = async (): Promise<void> => {
   }
 };
 
-// Obtenir des statistiques sur les notifications
-export const getNotificationStats = async (announcementId: string): Promise<{
-  totalSent: number;
-  totalFailed: number;
-  totalUsers: number;
-}> => {
+// Obtenir des statistiques détaillées sur les notifications
+export const getNotificationStats = async (announcementId: string): Promise<NotificationStats> => {
   try {
     const q = query(
       collection(db, NOTIFICATION_HISTORY_COLLECTION),
@@ -167,26 +199,53 @@ export const getNotificationStats = async (announcementId: string): Promise<{
     const querySnapshot = await getDocs(q);
     let totalSent = 0;
     let totalFailed = 0;
+    let totalPending = 0;
+    let totalDelivered = 0;
     const uniqueUsers = new Set<string>();
 
     querySnapshot.forEach((doc) => {
       const data = doc.data() as NotificationHistory;
       uniqueUsers.add(data.userId);
 
-      if (data.status === 'sent') {
-        totalSent++;
-      } else if (data.status === 'failed') {
-        totalFailed++;
+      switch (data.status) {
+        case 'sent':
+          totalSent++;
+          break;
+        case 'failed':
+          totalFailed++;
+          break;
+        case 'pending':
+          totalPending++;
+          break;
+        case 'delivered':
+          totalDelivered++;
+          break;
       }
     });
+
+    const totalAttempts = totalSent + totalFailed + totalPending + totalDelivered;
+    const failureRate = totalAttempts > 0 ? (totalFailed / totalAttempts) * 100 : 0;
+    const deliveryRate = totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0;
 
     return {
       totalSent,
       totalFailed,
-      totalUsers: uniqueUsers.size
+      totalPending,
+      totalDelivered,
+      totalUsers: uniqueUsers.size,
+      failureRate: Math.round(failureRate * 100) / 100,
+      deliveryRate: Math.round(deliveryRate * 100) / 100,
     };
   } catch (error) {
     console.error('Erreur récupération statistiques:', error);
-    return { totalSent: 0, totalFailed: 0, totalUsers: 0 };
+    return {
+      totalSent: 0,
+      totalFailed: 0,
+      totalPending: 0,
+      totalDelivered: 0,
+      totalUsers: 0,
+      failureRate: 0,
+      deliveryRate: 0,
+    };
   }
 };

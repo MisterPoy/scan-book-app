@@ -115,20 +115,45 @@ export const triggerNotificationForAnnouncement = async (announcement: Announcem
       return;
     }
 
-    // 3. Envoyer les notifications et enregistrer l'historique
+    // 3. Envoyer les notifications et enregistrer l'historique avec logs structurés
     for (const user of eligibleUsers) {
       try {
         await sendNotificationToUsers(announcement, [user.fcmToken]);
-        await recordNotificationSent(announcement.id, user.id, user.fcmToken, announcement.priority);
+        await recordNotificationSent(
+          announcement.id,
+          user.id,
+          user.fcmToken,
+          announcement.priority,
+          'sent',
+          undefined,
+          undefined,
+          0
+        );
       } catch (error) {
         console.error(`❌ Erreur envoi notification à l'utilisateur ${user.id}:`, error);
+
+        // Déterminer le code d'erreur
+        let errorCode = 'UNKNOWN';
+        let errorMessage = 'Erreur inconnue';
+
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          // Mapper les erreurs FCM connues
+          if (errorMessage.includes('token')) errorCode = 'TOKEN_INVALID';
+          else if (errorMessage.includes('permission')) errorCode = 'PERMISSION_DENIED';
+          else if (errorMessage.includes('network')) errorCode = 'NETWORK_ERROR';
+          else if (errorMessage.includes('quota')) errorCode = 'QUOTA_EXCEEDED';
+        }
+
         await recordNotificationSent(
           announcement.id,
           user.id,
           user.fcmToken,
           announcement.priority,
           'failed',
-          error instanceof Error ? error.message : 'Erreur inconnue'
+          errorCode,
+          errorMessage,
+          0
         );
       }
     }
