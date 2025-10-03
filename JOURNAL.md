@@ -7,7 +7,7 @@
 ### 📦 Vue d'ensemble
 Grande refonte des fonctionnalités d'ajout groupé avec unification complète de l'UI/UX selon les meilleures pratiques modernes.
 
-**15 commits principaux** :
+**16 commits principaux** :
 1. Fix clic long + Export CSV collection
 2. Mode lot pour recherche ISBN
 3. Mode lot pour recherche manuelle (sélection multiple)
@@ -23,6 +23,54 @@ Grande refonte des fonctionnalités d'ajout groupé avec unification complète d
 13. Feature: Recherche textuelle dans la collection
 14. Fix: Position recherche + responsive mobile
 15. Fix: Responsive boutons sélection multiple mobile
+16. Fix: Responsive boutons collapsibles recherche (tablettes)
+
+---
+
+### ✅ FIX : Responsive Boutons Collapsibles Recherche (Tablettes)
+
+**Problème** : Boutons "Recherche par ISBN" et "Recherche par titre/auteur" débordaient de l'écran sur tablettes/laptops moyens (792px)
+
+**Cause** :
+- `max-w-md` (448px) trop restrictif pour cette plage de résolution
+- Ne s'adaptait pas au container parent `max-w-4xl`
+- Débordement horizontal visible sur écrans 792×903px
+
+**Solution** : Suppression de `max-w-md` et padding responsive
+
+**Modifications dans `src/App.tsx`** :
+
+1. **Bouton "Recherche par ISBN"** (ligne 2446) :
+   ```tsx
+   // AVANT
+   className="... px-6 py-3 ... w-full max-w-md ..."
+
+   // APRÈS
+   className="... px-4 sm:px-6 py-3 ... w-full ..."
+   ```
+
+2. **Bouton "Recherche par titre/auteur"** (ligne 2657) :
+   ```tsx
+   // AVANT
+   className="... px-6 py-3 ... w-full max-w-md mt-2 ..."
+
+   // APRÈS
+   className="... px-4 sm:px-6 py-3 ... w-full mt-2 ..."
+   ```
+
+**Changements** :
+- ❌ Retiré : `max-w-md` (trop restrictif)
+- ✅ Ajouté : `px-4 sm:px-6` (padding responsive)
+- ✅ Conservé : `w-full` (s'adapte au parent)
+
+**Résultat** :
+- ✅ Boutons s'adaptent correctement à toutes résolutions
+- ✅ Plus de débordement sur tablettes (768-1024px)
+- ✅ Padding réduit sur mobile, normal sur desktop
+- ✅ Container parent `max-w-4xl` contrôle la largeur max
+- ✅ UX cohérente sur tous formats (mobile, tablette, desktop)
+
+**Fichier modifié** : `src/App.tsx` (2 boutons collapsibles)
 
 ---
 

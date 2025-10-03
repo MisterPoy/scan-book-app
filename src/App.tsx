@@ -2443,7 +2443,7 @@ function App() {
               {/* Recherche ISBN manuelle - Collapsible */}
               <button
                 onClick={() => setShowIsbnSearch(!showIsbnSearch)}
-                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full cursor-pointer"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par ISBN
@@ -2654,7 +2654,7 @@ function App() {
               {/* Recherche par titre/auteur - Collapsible */}
               <button
                 onClick={() => setShowTextSearch(!showTextSearch)}
-                className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full max-w-md mt-2 cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full mt-2 cursor-pointer"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par titre/auteur
