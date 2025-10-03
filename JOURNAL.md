@@ -2,6 +2,283 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - Audit Complet & Backlog Post-Audit
+
+### 📋 Audit complet de l'application
+
+**Date** : 04/10/2025
+**Portée** : Front-end React+TS, Vite, PWA, Firebase (Auth/Firestore/Storage/Messaging), Tailwind v4
+
+#### Stack confirmée
+- React 19, Vite 7, TypeScript 5.8
+- Tailwind 4, vite-plugin-pwa
+- Firebase (Auth, Firestore, Storage, Messaging)
+- react-zxing pour scan ISBN
+
+#### ✅ Points forts identifiés
+1. Structure claire `src/components|hooks|services|types|pages`
+2. PWA configurée (manifest Vite, cache OpenLibrary, installation + SW)
+3. Scanner ISBN lazy-loaded, ajout par lot, upload images avec resize client
+4. Annonces admin + historique notifications + opt-in + panel test
+5. Pages Mentions légales et Confidentialité présentes
+
+#### ⚠️ Points d'attention critiques
+
+**A - Sécurité / PWA (PRIORITÉ HAUTE)**
+
+1. **Service Worker dupliqué** :
+   - SW FCM en compat v9.0.0 (`public/firebase-messaging-sw.js`)
+   - SW PWA généré par VitePWA
+   - ❌ Risque de collision et incohérences
+
+2. **Manifeste dupliqué** :
+   - VitePWA génère un manifest
+   - `public/manifest.json` existe aussi
+   - ❌ Risque de divergence métadonnées
+
+3. **Config Firebase exposée** :
+   - Clés dans `public/firebase-messaging-sw.js` en dur
+   - VAPID key hardcodée dans `src/services/messaging.ts`
+   - ❌ Impossible de varier par environnement (dev/prod)
+
+4. **Firestore Rules** :
+   - UID admin hardcodé dans les rules (`wpZJ2pZ0zOdaw68optxamlkjRg13`)
+   - ❌ Doit utiliser custom claims Firebase Auth
+   - ❌ Pas de tests des rules (emulator)
+
+**B - Notifications (FONCTIONNELLES)**
+
+1. **Idempotence faible** :
+   - `hasNotificationBeenSent()` sans index composite Firestore
+   - ❌ Risque de doublons sur gros volumes
+
+2. **Logs incomplets** :
+   - Pas de `errorCode`, `retryCount` structurés
+   - ❌ Debug difficile en cas d'échec
+
+3. **Panel Admin limité** :
+   - Pas de stats agrégées par annonce
+   - ❌ Pas de relance ciblée
+
+**C - UX Scanner & Lot**
+
+1. **Boutons positionnement** :
+   - "Réinitialiser / Valider le lot" sous l'aperçu
+   - ❌ Demande : sticky top au-dessus
+
+2. **Flash toggle** :
+   - Pas de mémorisation préférence utilisateur
+   - ❌ État non persisté entre sessions
+
+3. **Retours visuels scanner** :
+   - Feedbacks existants mais améliorables
+   - ❌ Manque badge in-camera temps réel
+
+**D - Accessibilité & RGPD**
+
+1. **Focus management** :
+   - Modales sans focus trap
+   - ❌ Navigation clavier incomplète
+
+2. **Aria-labels** :
+   - Manquants sur certains boutons (flash, modes)
+
+3. **RGPD notifications** :
+   - Pas de registre consentement (date, device)
+   - Pas de politique rétention/suppression
+
+**E - Performance & DX**
+
+1. **Bundle** :
+   - Scanner déjà lazy ✅
+   - Vérifier react-zxing dynamic import
+
+2. **Images** :
+   - Resize OK ✅
+   - Manque : limites poids, strip EXIF
+
+3. **Scripts** :
+   - `generate-icons.js` sans gestion d'erreurs robuste
+
+---
+
+### 📦 Backlog Post-Audit (Priorisé)
+
+#### **PHASE A - Sécurité & Infrastructure (CRITIQUE)**
+
+**A1. Unification Service Worker** ⚠️ BLOQUANT
+- [ ] Migrer SW FCM en SDK modular (v9+)
+- [ ] Fusionner avec VitePWA via `injectManifest`
+- [ ] Un seul SW pour PWA + notifications
+- **Fichiers** : `vite.config.ts`, `public/firebase-messaging-sw.js`
+- **Impact** : Évite collisions, simplifie maintenance
+
+**A2. Manifeste unique** ⚠️ BLOQUANT
+- [ ] Supprimer `public/manifest.json`
+- [ ] Laisser VitePWA générer seul via config
+- [ ] Vérifier cohérence icônes/couleurs
+- **Fichiers** : `public/manifest.json`, `vite.config.ts`
+- **Impact** : Évite métadonnées conflictuelles
+
+**A3. Environnements & Secrets** ⚠️ CRITIQUE
+- [ ] Déplacer `firebaseConfig` vers `.env`
+- [ ] Déplacer `VAPID_KEY` vers `.env`
+- [ ] Injecter dans SW au build-time (Vite)
+- [ ] Créer `.env.example` avec toutes les vars
+- **Fichiers** : `src/firebase.ts`, `src/services/messaging.ts`, `.env`
+- **Impact** : Multi-env (dev/staging/prod)
+
+**A4. Firestore Rules - Custom Claims** ⚠️ CRITIQUE
+- [ ] Supprimer UID hardcodé des rules
+- [ ] Utiliser custom claims `admin: true`
+- [ ] Script Cloud Function pour set claims
+- [ ] Tests Emulator rules
+- **Fichiers** : `firestore.rules`, `functions/` (nouveau)
+- **Impact** : Sécurité production, scalabilité
+
+**A5. CSP & Headers Sécurité**
+- [ ] Ajouter CSP via hébergeur (Netlify/Vercel)
+- [ ] Headers: `Permissions-Policy`, `Referrer-Policy`, `X-Content-Type-Options`
+- **Fichiers** : `netlify.toml` ou `vercel.json`
+- **Impact** : Protection XSS, leaks
+
+---
+
+#### **PHASE B - Notifications Robustes**
+
+**B1. Idempotence stricte**
+- [ ] Index composite Firestore `(announcementId, userId, status)`
+- [ ] Query avec `limit(1)` dans `hasNotificationBeenSent()`
+- [ ] Cache local (Map) pour session admin
+- **Fichiers** : `src/services/notificationHistory.ts`, `firestore.indexes.json`
+- **Impact** : Évite doublons, perf
+
+**B2. Logs structurés**
+- [ ] Ajouter champs `errorCode`, `retryCount`, `deviceInfo`
+- [ ] Enum pour `status: 'pending' | 'sent' | 'failed' | 'delivered'`
+- [ ] Timestamp `sentAt`, `deliveredAt`
+- **Fichiers** : `src/types/notification.ts`, `src/services/notificationHistory.ts`
+- **Impact** : Debug, analytics
+
+**B3. Panel Admin Stats**
+- [ ] Composant `NotificationStats` par annonce
+- [ ] Graphiques sent/failed/pending (recharts ou chart.js)
+- [ ] Bouton "Relancer les échecs"
+- **Fichiers** : `src/components/NotificationStats.tsx` (nouveau)
+- **Impact** : Monitoring temps réel
+
+---
+
+#### **PHASE C - UX Scanner Améliorée**
+
+**C1. Boutons sticky lot**
+- [ ] Déplacer "Réinitialiser / Valider" au-dessus de l'aperçu
+- [ ] `sticky top-0` avec backdrop blur
+- [ ] Mobile : boutons full-width
+- **Fichiers** : `src/components/ISBNScanner.tsx`
+- **Impact** : Ergonomie mobile++
+
+**C2. Persistance flash**
+- [ ] `localStorage.getItem('flashEnabled')` au mount
+- [ ] Toggle persiste préférence
+- **Fichiers** : `src/components/ISBNScanner.tsx`
+- **Impact** : Confort utilisateur
+
+**C3. Feedbacks in-camera**
+- [ ] Badge overlay temps réel "✓ Ajouté" / "⚠ Déjà présent" / "✗ Introuvable"
+- [ ] Son + vibration différenciés
+- [ ] Désactivation carte doublon dans lot
+- **Fichiers** : `src/components/ISBNScanner.tsx`
+- **Impact** : Feedback immédiat
+
+---
+
+#### **PHASE D - Accessibilité & RGPD**
+
+**D1. Focus trap modales**
+- [ ] Utiliser `focus-trap-react` ou hook custom
+- [ ] Toutes modales : `EditBookModal`, `BulkAddConfirmModal`, etc.
+- **Fichiers** : `src/components/*.tsx`
+- **Impact** : A11Y clavier
+
+**D2. Aria-labels complets**
+- [ ] Flash toggle : `aria-label="Activer le flash"`
+- [ ] Switch simple/lot : `aria-label="Mode d'ajout"`
+- [ ] Feedback scanner : `aria-live="polite"`
+- **Fichiers** : `src/components/ISBNScanner.tsx`, `src/App.tsx`
+- **Impact** : Screen readers
+
+**D3. Registre consentement notifications**
+- [ ] Collection Firestore `user_consents/{userId}/notifications/{consentId}`
+- [ ] Champs : `grantedAt`, `revokedAt`, `device`, `fcmToken`
+- [ ] UI "Historique consentements" dans paramètres
+- **Fichiers** : `src/services/consentTracking.ts` (nouveau)
+- **Impact** : Conformité RGPD
+
+**D4. Politique rétention**
+- [ ] Page Confidentialité : ajouter durées (30j historique notifs, 90j images non utilisées)
+- [ ] Bouton "Supprimer mes données" (Cloud Function)
+- **Fichiers** : `src/pages/Confidentialite.tsx`, `functions/deleteUserData.ts`
+- **Impact** : Droit à l'oubli
+
+---
+
+#### **PHASE E - Performance & DX**
+
+**E1. Analyse bundle**
+- [ ] `vite build --analyze` via `rollup-plugin-visualizer`
+- [ ] Vérifier taille react-zxing
+- [ ] Purge Tailwind (déjà actif normalement)
+- **Fichiers** : `vite.config.ts`
+- **Impact** : Temps chargement
+
+**E2. Limites images**
+- [ ] Max 5 MB upload
+- [ ] Max dimensions 2048×2048
+- [ ] Strip EXIF avec `piexifjs`
+- **Fichiers** : `src/components/EditBookModal.tsx`, `src/App.tsx`
+- **Impact** : Sécurité, stockage
+
+**E3. Script generate-icons robuste**
+- [ ] `fs.existsSync(logoPath)` avant traitement
+- [ ] Try/catch avec exit code 1
+- [ ] Log erreurs sharp
+- **Fichiers** : `scripts/generate-icons.js`
+- **Impact** : CI/CD fiable
+
+---
+
+### 🎯 Plan d'exécution recommandé
+
+**Sprint 1 (Semaine 1) - Sécurité & Infrastructure**
+- A1, A2, A3, A4 (Service Worker, Manifeste, Env, Rules)
+- Impact : 🔴 Bloquants production
+
+**Sprint 2 (Semaine 2) - Notifications & UX**
+- B1, B2, C1, C2 (Idempotence, Logs, Boutons sticky, Flash)
+- Impact : 🟡 Fonctionnalités critiques
+
+**Sprint 3 (Semaine 3) - A11Y & RGPD**
+- D1, D2, D3, D4 (Focus, Aria, Consentement, Rétention)
+- Impact : 🟢 Conformité légale
+
+**Sprint 4 (Semaine 4) - Perf & Polish**
+- E1, E2, E3, B3, C3 (Bundle, Images, Stats, Feedbacks)
+- Impact : 🔵 Optimisation
+
+---
+
+### 📝 Notes importantes
+
+- **Tests** : Ajouter tests Emulator pour chaque règle Firestore
+- **CI/CD** : Intégrer `npm run typecheck` + `npm run lint` en pre-commit
+- **Monitoring** : Considérer Sentry ou Firebase Crashlytics pour erreurs prod
+- **Documentation** : Mettre à jour README.md avec nouvelles vars env
+
+**Prochaine étape** : Démarrer Phase A (Sécurité & Infrastructure)
+
+---
+
 ## 2025-10-03 - Nettoyage des logs de débogage
 
 ### 🧹 Commit 19 : Suppression des console.log de débogage
