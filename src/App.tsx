@@ -2474,7 +2474,7 @@ function App() {
                               setIsbnBatchList([]);
                               setIsbn("");
                             }}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                               !isbnBatchMode
                                 ? "bg-blue-600 text-white shadow-sm"
                                 : "text-gray-600 hover:bg-gray-50"
@@ -2484,7 +2484,7 @@ function App() {
                           </button>
                           <button
                             onClick={() => setIsbnBatchMode(true)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer ${
                               isbnBatchMode
                                 ? "bg-green-600 text-white shadow-sm"
                                 : "text-gray-600 hover:bg-gray-50"
@@ -2529,7 +2529,7 @@ function App() {
                               ? handleIsbnBatchAdd()
                               : handleSearch(isbn)
                           }
-                          className={`px-6 py-3 text-sm font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow-md ${
+                          className={`px-6 py-3 text-sm font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
                             isbnBatchMode
                               ? "bg-green-600 hover:bg-green-700"
                               : "bg-blue-600 hover:bg-blue-700"
@@ -2684,7 +2684,7 @@ function App() {
                               setManualSearchBatchMode(false);
                               setSelectedSearchResults([]);
                             }}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                               !manualSearchBatchMode
                                 ? "bg-blue-600 text-white shadow-sm"
                                 : "text-gray-600 hover:bg-gray-50"
@@ -2694,7 +2694,7 @@ function App() {
                           </button>
                           <button
                             onClick={() => setManualSearchBatchMode(true)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer ${
                               manualSearchBatchMode
                                 ? "bg-green-600 text-white shadow-sm"
                                 : "text-gray-600 hover:bg-gray-50"
@@ -2734,7 +2734,7 @@ function App() {
                             setShowSearchResults(true);
                           }}
                           disabled={isSearching}
-                          className="px-6 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-sm transition-all hover:shadow-md disabled:bg-green-400 disabled:cursor-not-allowed hover:bg-green-700"
+                          className="px-6 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-sm transition-all hover:shadow-md disabled:bg-green-400 disabled:cursor-not-allowed hover:bg-green-700 cursor-pointer"
                         >
                           {isSearching ? (
                             <>
