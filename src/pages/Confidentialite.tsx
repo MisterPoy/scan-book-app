@@ -188,7 +188,9 @@ export default function Confidentialite() {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Contact</h2>
             <div className="pl-8 space-y-2">
               <p>Pour toute question concernant vos données personnelles, vous pouvez nous contacter à :</p>
-              <p className="text-blue-600 font-medium">contact@scanbook.app</p>
+              <p className="text-blue-600 font-medium">
+                <a href="mailto:gregory.poupaux@hotmail.fr" className="underline">gregory.poupaux@hotmail.fr</a>
+              </p>
             </div>
           </section>
 

@@ -30,10 +30,10 @@ export default function MentionsLegales() {
             </h2>
             <div className="pl-8 space-y-2">
               <p><strong>Nom de l'application :</strong> ScanBook App</p>
-              <p><strong>Responsable de publication :</strong> Propriétaire du projet</p>
+              <p><strong>Responsable de publication :</strong> GregDev</p>
               <p className="flex items-center gap-2">
                 <Envelope size={16} weight="bold" />
-                <strong>Contact :</strong> <span className="text-blue-600">contact@scanbook.app</span>
+                <strong>Contact :</strong> <a href="mailto:gregory.poupaux@hotmail.fr" className="text-blue-600 underline">gregory.poupaux@hotmail.fr</a>
               </p>
             </div>
           </section>
