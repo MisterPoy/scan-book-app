@@ -2357,127 +2357,162 @@ function App() {
               </button>
 
               {showIsbnSearch && (
-                <div className="flex flex-col gap-4 w-full max-w-2xl animate-fadeIn">
-                  {/* Toggle mode lot */}
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => {
-                        setIsbnBatchMode(false);
-                        setIsbnBatchList([]);
-                        setIsbn("");
-                      }}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                        !isbnBatchMode
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      ISBN unique
-                    </button>
-                    <button
-                      onClick={() => setIsbnBatchMode(true)}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                        isbnBatchMode
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      <Stack size={16} weight="bold" className="inline mr-2" />
-                      ISBN par lot
-                    </button>
-                  </div>
-
-                  {/* Champ de saisie */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      value={isbn}
-                      onChange={(e) => setIsbn(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          if (isbnBatchMode) {
-                            handleIsbnBatchAdd();
-                          } else {
-                            handleSearch(isbn);
-                          }
-                        }
-                      }}
-                      placeholder={
-                        isbnBatchMode
-                          ? "Saisir un ISBN puis appuyer sur Ajouter"
-                          : "Saisir un ISBN manuellement"
-                      }
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={() =>
-                        isbnBatchMode
-                          ? handleIsbnBatchAdd()
-                          : handleSearch(isbn)
-                      }
-                      className={`px-6 py-3 text-sm font-medium text-white rounded-lg transition-colors cursor-pointer ${
-                        isbnBatchMode
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "bg-gray-600 hover:bg-gray-700"
-                      }`}
-                    >
-                      {isbnBatchMode ? "Ajouter au lot" : "Rechercher"}
-                    </button>
-                  </div>
-
-                  {/* Grille du lot ISBN */}
-                  {isbnBatchMode && isbnBatchList.length > 0 && (
-                    <div className="space-y-3">
-                      {/* Barre de contrôle */}
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 text-gray-700">
-                          <Stack size={20} weight="bold" />
-                          <span className="font-semibold">
-                            {isbnBatchList.length} ISBN
-                            {isbnBatchList.length > 1 ? "s" : ""} dans le lot
-                          </span>
+                <div className="w-full max-w-3xl animate-fadeIn">
+                  {/* Card Container avec design moderne */}
+                  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {/* Header avec toggle intégré */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-gray-200 p-4">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg shadow-sm">
+                            <MagnifyingGlass size={24} weight="bold" className="text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-base">Recherche ISBN</h3>
+                            <p className="text-xs text-gray-600">
+                              {isbnBatchMode ? "Mode lot - Ajoutez plusieurs ISBN" : "Mode unique - Recherche directe"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        {/* Toggle compact */}
+                        <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm">
                           <button
-                            onClick={handleIsbnBatchReset}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+                            onClick={() => {
+                              setIsbnBatchMode(false);
+                              setIsbnBatchList([]);
+                              setIsbn("");
+                            }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                              !isbnBatchMode
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
                           >
-                            <Trash size={16} weight="regular" />
-                            Réinitialiser
+                            Unique
                           </button>
                           <button
-                            onClick={handleIsbnBatchValidate}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+                            onClick={() => setIsbnBatchMode(true)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                              isbnBatchMode
+                                ? "bg-green-600 text-white shadow-sm"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
                           >
-                            <CheckCircle size={16} weight="bold" />
-                            Valider le lot
+                            <Stack size={14} weight="bold" />
+                            Lot
                           </button>
-                        </div>
-                      </div>
-
-                      {/* Liste des ISBN */}
-                      <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
-                        <div className="flex flex-wrap gap-2">
-                          {isbnBatchList.map((isbnItem, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm"
-                            >
-                              <span className="text-sm font-mono text-gray-700">
-                                {isbnItem}
-                              </span>
-                              <button
-                                onClick={() => handleIsbnBatchRemove(isbnItem)}
-                                className="p-1 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                                title="Retirer"
-                              >
-                                <X size={16} weight="bold" className="text-red-600" />
-                              </button>
-                            </div>
-                          ))}
                         </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Body */}
+                    <div className="p-5 space-y-4">
+                      {/* Zone de saisie */}
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            value={isbn}
+                            onChange={(e) => setIsbn(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                if (isbnBatchMode) {
+                                  handleIsbnBatchAdd();
+                                } else {
+                                  handleSearch(isbn);
+                                }
+                              }
+                            }}
+                            placeholder={isbnBatchMode ? "978XXXXXXXXXX" : "Saisir un ISBN"}
+                            className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono text-sm"
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <MagnifyingGlass size={20} weight="regular" />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            isbnBatchMode ? handleIsbnBatchAdd() : handleSearch(isbn)
+                          }
+                          className={`px-6 py-3 text-sm font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow-md ${
+                            isbnBatchMode
+                              ? "bg-green-600 hover:bg-green-700"
+                              : "bg-blue-600 hover:bg-blue-700"
+                          }`}
+                        >
+                          {isbnBatchMode ? "+ Ajouter" : "Rechercher"}
+                        </button>
+                      </div>
+
+                      {/* Preview du lot avec design amélioré */}
+                      {isbnBatchMode && (
+                        <div className={`transition-all ${isbnBatchList.length > 0 ? 'opacity-100' : 'opacity-50'}`}>
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-green-600 rounded-lg">
+                                  <Stack size={16} weight="bold" className="text-white" />
+                                </div>
+                                <span className="font-bold text-green-900">
+                                  {isbnBatchList.length} ISBN
+                                  {isbnBatchList.length !== 1 && "s"}
+                                </span>
+                              </div>
+                              {isbnBatchList.length > 0 && (
+                                <button
+                                  onClick={handleIsbnBatchReset}
+                                  className="text-xs font-medium text-green-700 hover:text-green-900 flex items-center gap-1 px-2 py-1 hover:bg-green-100 rounded transition-colors"
+                                >
+                                  <Trash size={14} weight="bold" />
+                                  Vider
+                                </button>
+                              )}
+                            </div>
+
+                            {isbnBatchList.length > 0 ? (
+                              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
+                                {isbnBatchList.map((isbnItem, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between gap-2 px-3 py-2 bg-white border border-green-200 rounded-lg shadow-sm group hover:shadow-md transition-all"
+                                  >
+                                    <span className="text-sm font-mono text-gray-700 font-medium">
+                                      {isbnItem}
+                                    </span>
+                                    <button
+                                      onClick={() => handleIsbnBatchRemove(isbnItem)}
+                                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                                      title="Retirer"
+                                    >
+                                      <X size={16} weight="bold" className="text-red-600" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-sm text-green-700">
+                                <Book size={32} weight="regular" className="mx-auto mb-2 opacity-50" />
+                                <p>Aucun ISBN ajouté</p>
+                                <p className="text-xs opacity-75 mt-1">Saisissez des ISBN ci-dessus</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer action bar - seulement si lot non vide */}
+                    {isbnBatchMode && isbnBatchList.length > 0 && (
+                      <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
+                        <button
+                          onClick={handleIsbnBatchValidate}
+                          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={20} weight="bold" />
+                          Valider le lot ({isbnBatchList.length} livre{isbnBatchList.length > 1 && "s"})
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -2498,101 +2533,168 @@ function App() {
               </button>
 
               {showTextSearch && (
-                <div className="flex flex-col gap-4 w-full max-w-2xl animate-fadeIn">
-                  {/* Toggle mode lot */}
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => {
-                        setManualSearchBatchMode(false);
-                        setSelectedSearchResults([]);
-                      }}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                        !manualSearchBatchMode
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      Recherche unique
-                    </button>
-                    <button
-                      onClick={() => setManualSearchBatchMode(true)}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                        manualSearchBatchMode
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      <Stack size={16} weight="bold" className="inline mr-2" />
-                      Sélection multiple
-                    </button>
-                  </div>
-
-                  {/* Champ de recherche */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Rechercher par titre ou auteur..."
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter" && !isSearching) {
-                          handleTextSearch(searchQuery);
-                          setShowSearchResults(true);
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        handleTextSearch(searchQuery);
-                        setShowSearchResults(true);
-                      }}
-                      disabled={isSearching}
-                      className="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {isSearching ? (
-                        <>
-                          <Timer
-                            size={16}
-                            weight="bold"
-                            className="inline mr-2 align-middle"
-                          />
-                          Recherche...
-                        </>
-                      ) : (
-                        "Rechercher"
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Barre de contrôle du lot */}
-                  {manualSearchBatchMode && selectedSearchResults.length > 0 && (
-                    <div className="flex items-center justify-between gap-3 flex-wrap bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Stack size={20} weight="bold" />
-                        <span className="font-semibold">
-                          {selectedSearchResults.length} livre
-                          {selectedSearchResults.length > 1 ? "s" : ""} sélectionné
-                          {selectedSearchResults.length > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleManualSearchBatchReset}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
-                        >
-                          <Trash size={16} weight="regular" />
-                          Réinitialiser
-                        </button>
-                        <button
-                          onClick={handleManualSearchBatchValidate}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
-                        >
-                          <CheckCircle size={16} weight="bold" />
-                          Valider la sélection
-                        </button>
+                <div className="w-full max-w-3xl animate-fadeIn">
+                  {/* Card Container avec design moderne */}
+                  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {/* Header avec toggle intégré */}
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-gray-200 p-4">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg shadow-sm">
+                            <MagnifyingGlass size={24} weight="bold" className="text-green-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-base">Recherche Titre/Auteur</h3>
+                            <p className="text-xs text-gray-600">
+                              {manualSearchBatchMode ? "Mode sélection - Choisissez plusieurs livres" : "Mode unique - Un livre à la fois"}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Toggle compact */}
+                        <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm">
+                          <button
+                            onClick={() => {
+                              setManualSearchBatchMode(false);
+                              setSelectedSearchResults([]);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                              !manualSearchBatchMode
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            Unique
+                          </button>
+                          <button
+                            onClick={() => setManualSearchBatchMode(true)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                              manualSearchBatchMode
+                                ? "bg-green-600 text-white shadow-sm"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <Stack size={14} weight="bold" />
+                            Sélection
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Body */}
+                    <div className="p-5 space-y-4">
+                      {/* Zone de recherche */}
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Ex: Harry Potter, J.K. Rowling..."
+                            className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-sm"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter" && !isSearching) {
+                                handleTextSearch(searchQuery);
+                                setShowSearchResults(true);
+                              }
+                            }}
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <MagnifyingGlass size={20} weight="regular" />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleTextSearch(searchQuery);
+                            setShowSearchResults(true);
+                          }}
+                          disabled={isSearching}
+                          className="px-6 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-sm transition-all hover:shadow-md disabled:bg-green-400 disabled:cursor-not-allowed hover:bg-green-700"
+                        >
+                          {isSearching ? (
+                            <>
+                              <Timer size={16} weight="bold" className="inline mr-2 align-middle" />
+                              Recherche...
+                            </>
+                          ) : (
+                            "Rechercher"
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Preview de la sélection en mode lot */}
+                      {manualSearchBatchMode && (
+                        <div className={`transition-all ${selectedSearchResults.length > 0 ? 'opacity-100' : 'opacity-50'}`}>
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-green-600 rounded-lg">
+                                  <Stack size={16} weight="bold" className="text-white" />
+                                </div>
+                                <span className="font-bold text-green-900">
+                                  {selectedSearchResults.length} livre{selectedSearchResults.length !== 1 && "s"} sélectionné{selectedSearchResults.length !== 1 && "s"}
+                                </span>
+                              </div>
+                              {selectedSearchResults.length > 0 && (
+                                <button
+                                  onClick={handleManualSearchBatchReset}
+                                  className="text-xs font-medium text-green-700 hover:text-green-900 flex items-center gap-1 px-2 py-1 hover:bg-green-100 rounded transition-colors"
+                                >
+                                  <Trash size={14} weight="bold" />
+                                  Vider
+                                </button>
+                              )}
+                            </div>
+
+                            {selectedSearchResults.length > 0 ? (
+                              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
+                                {selectedSearchResults.map((book, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-3 px-3 py-2 bg-white border border-green-200 rounded-lg shadow-sm group hover:shadow-md transition-all"
+                                  >
+                                    <img
+                                      src={book.imageLinks?.thumbnail || "/img/default-cover.png"}
+                                      alt={book.title}
+                                      className="w-8 h-12 object-cover rounded"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-gray-900 truncate">{book.title}</p>
+                                      <p className="text-xs text-gray-600 truncate">{book.authors?.join(", ")}</p>
+                                    </div>
+                                    <button
+                                      onClick={() => handleManualSearchToggle(book)}
+                                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                                      title="Retirer"
+                                    >
+                                      <X size={16} weight="bold" className="text-red-600" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-sm text-green-700">
+                                <Book size={32} weight="regular" className="mx-auto mb-2 opacity-50" />
+                                <p>Aucun livre sélectionné</p>
+                                <p className="text-xs opacity-75 mt-1">Lancez une recherche et cliquez sur les livres</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer action bar - seulement si sélection non vide */}
+                    {manualSearchBatchMode && selectedSearchResults.length > 0 && (
+                      <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
+                        <button
+                          onClick={handleManualSearchBatchValidate}
+                          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={20} weight="bold" />
+                          Valider la sélection ({selectedSearchResults.length} livre{selectedSearchResults.length > 1 && "s"})
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
