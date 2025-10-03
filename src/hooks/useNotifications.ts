@@ -41,8 +41,6 @@ export const useNotifications = (userId: string | null) => {
     if (!userId) return;
 
     const unsubscribe = onForegroundMessage((payload) => {
-      console.log('Message reçu en premier plan:', payload);
-
       // Afficher une notification locale si l'app est au premier plan
       if (Notification.permission === 'granted') {
         const notifPayload = payload as { notification?: { title?: string; body?: string } };

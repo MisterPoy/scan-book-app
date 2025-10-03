@@ -25,22 +25,17 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const handleGoogleLogin = async () => {
     try {
       const isChromeMobile = /Chrome/.test(navigator.userAgent) && isMobile;
-      
+
       if (isChromeMobile) {
-        console.log("Chrome mobile - Forcer popup au lieu de redirect");
         try {
           const result = await signInWithPopup(auth, provider);
-          console.log("✅ Chrome mobile popup success:", result.user.displayName);
           onLogin(result.user);
-        } catch (popupErr) {
-          console.log("❌ Popup échoué, fallback vers redirect:", popupErr);
+        } catch {
           await signInWithRedirect(auth, provider);
         }
       } else if (isMobile) {
-        console.log("Autre mobile - redirect standard");
         await signInWithRedirect(auth, provider);
       } else {
-        console.log("Desktop - popup standard");
         const result = await signInWithPopup(auth, provider);
         onLogin(result.user);
       }

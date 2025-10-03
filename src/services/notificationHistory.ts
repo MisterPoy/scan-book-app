@@ -68,8 +68,6 @@ export const recordNotificationSent = async (
     };
 
     await addDoc(collection(db, NOTIFICATION_HISTORY_COLLECTION), notificationRecord);
-
-    console.log(`✅ Notification ${status} enregistrée pour utilisateur ${userId}, annonce ${announcementId}`);
   } catch (error) {
     console.error('Erreur enregistrement historique notification:', error);
     // Ne pas faire échouer l'envoi si l'enregistrement échoue
@@ -141,17 +139,14 @@ export const cleanupOldNotificationHistory = async (): Promise<void> => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const cutoffDate = thirtyDaysAgo.toISOString();
 
-    const q = query(
+    query(
       collection(db, NOTIFICATION_HISTORY_COLLECTION),
       where('sentAt', '<', cutoffDate),
       limit(100) // Traiter par batch pour éviter les timeout
     );
 
-    const querySnapshot = await getDocs(q);
-
     // Note: Firebase ne permet pas les suppressions en batch facilement
     // Dans un vrai projet, on utiliserait Cloud Functions pour cela
-    console.log(`🧹 ${querySnapshot.size} anciens enregistrements trouvés (cleanup manuel requis)`);
   } catch (error) {
     console.error('Erreur nettoyage historique:', error);
   }

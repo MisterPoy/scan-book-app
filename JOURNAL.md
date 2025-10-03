@@ -2,6 +2,36 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-03 - Nettoyage des logs de débogage
+
+### 🧹 Commit 19 : Suppression des console.log de débogage
+
+**Objectif** : Nettoyer le code en production en supprimant tous les `console.log` de débogage, tout en conservant les `console.error` pour le monitoring en production.
+
+**Fichiers modifiés** :
+1. `src/utils/bookApi.ts` - Suppression de 11 console.log dans `bulkAddBooks()`
+2. `src/hooks/usePWA.ts` - Suppression de 4 console.log dans `installPWA()` et événements
+3. `src/hooks/useNotifications.ts` - Suppression de 1 console.log dans le listener de messages
+4. `src/App.tsx` - Suppression de 15+ console.log dans authentification Chrome mobile et admin
+5. `src/components/ISBNScanner.tsx` - Suppression de 6 console.log pour caméra/flash/scan
+6. `src/components/login.tsx` - Suppression de 5 console.log pour auth Google mobile
+7. `src/services/notificationSender.ts` - Suppression de 13 console.log pour envoi notifications
+8. `src/services/messaging.ts` - Suppression de 8 console.log pour FCM et tokens
+9. `src/services/notificationHistory.ts` - Suppression de 2 console.log pour historique
+10. `src/services/announcements.ts` - Suppression de 4 console.log pour CRUD annonces
+
+**Total** : **~70 console.log supprimés**
+
+**Logs conservés** :
+- ✅ Tous les `console.error` gardés pour debugging production
+- ✅ Tous les `console.warn` gardés pour alertes importantes
+
+**Raison** : Améliore les performances et évite la pollution de la console en production.
+
+**Prochaine étape** : Commit + Push
+
+---
+
 ## 2025-10-03 - MEGA UPDATE : Modes Lot + UX Unifiée + Export CSV Avancé
 
 ### 📦 Vue d'ensemble

@@ -12,7 +12,6 @@ let messaging: Messaging | null = null;
 export const initializeMessaging = () => {
   try {
     messaging = getMessaging(app);
-    console.log('✅ Firebase Messaging initialisé');
     return messaging;
   } catch (error) {
     console.error('❌ Erreur initialisation Firebase Messaging:', error);
@@ -33,7 +32,6 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
 
   try {
     const permission = await Notification.requestPermission();
-    console.log('Permission notifications:', permission);
     return permission;
   } catch (error) {
     console.error('Erreur demande permission:', error);
@@ -55,7 +53,6 @@ export const getMessagingToken = async (userId: string): Promise<string | null> 
     // Vérifier les permissions
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
-      console.log('Permission refusée pour les notifications');
       return null;
     }
 
@@ -65,9 +62,7 @@ export const getMessagingToken = async (userId: string): Promise<string | null> 
       registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
         scope: '/firebase-sw-scope/'
       });
-      console.log('✅ Service Worker Firebase enregistré:', registration);
     } catch {
-      console.log('⚠️ Service Worker Firebase échoué, utilisation du SW principal');
       registration = await navigator.serviceWorker.ready;
     }
 
@@ -78,12 +73,10 @@ export const getMessagingToken = async (userId: string): Promise<string | null> 
     });
 
     if (token) {
-      console.log('✅ Token FCM obtenu:', token);
       // Sauvegarder le token en base pour cet utilisateur
       await saveTokenToFirestore(userId, token);
       return token;
     } else {
-      console.log('Pas de token FCM disponible');
       return null;
     }
   } catch (error) {
@@ -101,7 +94,6 @@ const saveTokenToFirestore = async (userId: string, token: string): Promise<void
       notificationsEnabled: true,
       lastTokenUpdate: new Date().toISOString()
     });
-    console.log('✅ Token FCM sauvegardé en Firestore');
   } catch {
     // Si le document n'existe pas, le créer
     try {
@@ -111,7 +103,6 @@ const saveTokenToFirestore = async (userId: string, token: string): Promise<void
         notificationsEnabled: true,
         lastTokenUpdate: new Date().toISOString()
       }, { merge: true });
-      console.log('✅ Token FCM sauvegardé en Firestore (nouveau document)');
     } catch (createError) {
       console.error('❌ Erreur sauvegarde token:', createError);
       throw createError;
@@ -139,7 +130,6 @@ export const disableNotifications = async (userId: string): Promise<void> => {
       fcmToken: null,
       lastTokenUpdate: new Date().toISOString()
     });
-    console.log('✅ Notifications désactivées');
   } catch (error) {
     console.error('❌ Erreur désactivation notifications:', error);
     throw error;
@@ -173,8 +163,6 @@ export const sendTestPushNotification = async (userId: string): Promise<void> =>
     // Utiliser notre service de notification pour envoyer un test
     const { sendTestNotificationToUser } = await import('./notificationSender');
     await sendTestNotificationToUser(token);
-
-    console.log('✅ Notification de test envoyée');
   } catch (error) {
     console.error('❌ Erreur envoi notification de test:', error);
     throw error;

@@ -29,7 +29,6 @@ export const createAnnouncement = async (data: CreateAnnouncementData): Promise<
     };
 
     const docRef = await addDoc(collection(db, ANNOUNCEMENTS_COLLECTION), announcementData);
-    console.log('✅ Annonce créée avec ID:', docRef.id);
 
     // Déclencher les notifications push pour les utilisateurs (seulement si le service est disponible)
     try {
@@ -150,7 +149,6 @@ export const updateAnnouncement = async (id: string, data: Partial<CreateAnnounc
     };
 
     await updateDoc(docRef, updateData);
-    console.log('✅ Annonce mise à jour:', id);
   } catch (error) {
     console.error('Erreur mise à jour annonce:', error);
     throw error;
@@ -162,7 +160,6 @@ export const deleteAnnouncement = async (id: string): Promise<void> => {
   try {
     const docRef = doc(db, ANNOUNCEMENTS_COLLECTION, id);
     await deleteDoc(docRef);
-    console.log('✅ Annonce supprimée:', id);
   } catch (error) {
     console.error('Erreur suppression annonce:', error);
     throw error;
@@ -177,7 +174,6 @@ export const toggleAnnouncementStatus = async (id: string, isActive: boolean): P
       isActive,
       updatedAt: new Date().toISOString()
     });
-    console.log(`✅ Annonce ${isActive ? 'activée' : 'désactivée'}:`, id);
   } catch (error) {
     console.error('Erreur changement statut annonce:', error);
     throw error;

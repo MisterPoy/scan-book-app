@@ -110,8 +110,6 @@ export async function bulkAddBooks(
   existingBooks: Array<{ isbn: string }>, // Livres déjà dans la collection
   personalNotes?: Record<string, string>
 ): Promise<import('../types/bulkAdd').BulkAddResponse> {
-  console.log('bulkAddBooks: début', { isbnsCount: isbns.length, userId });
-
   const { collection, doc, writeBatch } = await import('firebase/firestore');
 
   const added: Array<{ isbn: string; title: string }> = [];
@@ -124,29 +122,22 @@ export async function bulkAddBooks(
 
   // Traiter chaque ISBN
   for (const isbn of isbns) {
-    console.log(`bulkAddBooks: traitement ISBN ${isbn}`);
-
     try {
       // Vérifier si déjà dans la collection
       const isAlreadyInCollection = existingBooks.some(book => book.isbn === isbn);
 
       if (isAlreadyInCollection) {
-        console.log(`bulkAddBooks: ISBN ${isbn} déjà dans la collection`);
         duplicates.push(isbn);
         continue;
       }
 
       // Récupérer les métadonnées
-      console.log(`bulkAddBooks: fetch métadonnées pour ${isbn}`);
       const metadata = await fetchBookMetadata(isbn);
 
       if (!metadata) {
-        console.log(`bulkAddBooks: métadonnées introuvables pour ${isbn}`);
         errors.push({ isbn, error: 'Métadonnées introuvables' });
         continue;
       }
-
-      console.log(`bulkAddBooks: métadonnées trouvées pour ${isbn}:`, metadata.title);
 
       // Préparer le document à ajouter (sans valeurs undefined)
       const bookData: Record<string, unknown> = {
@@ -167,8 +158,6 @@ export async function bulkAddBooks(
       if (metadata.pageCount) bookData.pageCount = metadata.pageCount;
       if (personalNotes?.[isbn]) bookData.notes = personalNotes[isbn];
 
-      console.log(`bulkAddBooks: ajout au batch pour ${isbn}`, bookData);
-
       // Ajouter au batch
       const bookRef = doc(collection(db, `users/${userId}/collection`), isbn);
       batch.set(bookRef, bookData);
@@ -178,7 +167,6 @@ export async function bulkAddBooks(
 
       // Firebase batch limit est 500 opérations, commiter si on approche
       if (batchCount >= 450) {
-        console.log('bulkAddBooks: commit batch intermédiaire');
         await batch.commit();
         // Créer un nouveau batch pour les opérations suivantes
         batch = writeBatch(db);
@@ -192,17 +180,13 @@ export async function bulkAddBooks(
 
   // Commiter les opérations restantes
   if (batchCount > 0) {
-    console.log(`bulkAddBooks: commit batch final (${batchCount} opérations)`);
     try {
       await batch.commit();
-      console.log('bulkAddBooks: commit batch réussi');
     } catch (error) {
       console.error('Erreur lors du commit batch:', error);
       throw new Error('Erreur lors de l\'ajout des livres');
     }
   }
-
-  console.log('bulkAddBooks: terminé', { added: added.length, duplicates: duplicates.length, errors: errors.length });
 
   return {
     added,

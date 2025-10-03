@@ -36,7 +36,6 @@ export const getUsersWithNotificationsEnabled = async (): Promise<UserWithToken[
       }
     });
 
-    console.log(`✅ ${users.length} utilisateurs avec notifications activées`);
     return users;
   } catch (error) {
     console.error('❌ Erreur récupération utilisateurs avec notifications:', error);
@@ -81,39 +80,25 @@ export const sendNotificationToUsers = async (
   userTokens: string[]
 ): Promise<void> => {
   if (userTokens.length === 0) {
-    console.log('Aucun utilisateur à notifier');
     return;
   }
 
-  const payload = createNotificationPayload(announcement);
-
-  console.log('📤 Envoi de notifications pour:', {
-    announcementId: announcement.id,
-    title: announcement.title,
-    priority: announcement.priority,
-    recipients: userTokens.length,
-    payload
-  });
+  createNotificationPayload(announcement);
 
   // TODO: Ici on devrait faire appel à l'API Firebase Cloud Messaging
   // via un backend sécurisé. Pour l'instant, on simule l'envoi.
 
   // Simulation de l'envoi réussi
   await new Promise(resolve => setTimeout(resolve, 1000));
-
-  console.log(`✅ ${userTokens.length} notifications envoyées avec succès`);
 };
 
 // Fonction principale pour déclencher les notifications lors de la création d'annonce
 export const triggerNotificationForAnnouncement = async (announcement: Announcement): Promise<void> => {
   try {
-    console.log('🔔 Déclenchement des notifications pour l\'annonce:', announcement.id);
-
     // 1. Récupérer les utilisateurs avec notifications activées
     const users = await getUsersWithNotificationsEnabled();
 
     if (users.length === 0) {
-      console.log('Aucun utilisateur n\'a activé les notifications');
       return;
     }
 
@@ -123,27 +108,18 @@ export const triggerNotificationForAnnouncement = async (announcement: Announcem
       const alreadySent = await hasNotificationBeenSent(announcement.id, user.id);
       if (!alreadySent) {
         eligibleUsers.push(user);
-      } else {
-        console.log(`⏭️ Notification déjà envoyée à l'utilisateur ${user.id} pour l'annonce ${announcement.id}`);
       }
     }
 
     if (eligibleUsers.length === 0) {
-      console.log('Aucun nouvel utilisateur à notifier (tous déjà notifiés)');
       return;
     }
 
-    console.log(`📤 Envoi à ${eligibleUsers.length} utilisateurs (${users.length - eligibleUsers.length} déjà notifiés)`);
-
     // 3. Envoyer les notifications et enregistrer l'historique
-    let successCount = 0;
-    let failureCount = 0;
-
     for (const user of eligibleUsers) {
       try {
         await sendNotificationToUsers(announcement, [user.fcmToken]);
         await recordNotificationSent(announcement.id, user.id, user.fcmToken, announcement.priority);
-        successCount++;
       } catch (error) {
         console.error(`❌ Erreur envoi notification à l'utilisateur ${user.id}:`, error);
         await recordNotificationSent(
@@ -154,15 +130,11 @@ export const triggerNotificationForAnnouncement = async (announcement: Announcem
           'failed',
           error instanceof Error ? error.message : 'Erreur inconnue'
         );
-        failureCount++;
       }
     }
 
-    console.log(`✅ Processus terminé pour l'annonce ${announcement.id}: ${successCount} succès, ${failureCount} échecs`);
-
-    // 4. Afficher les statistiques finales
-    const stats = await getNotificationStats(announcement.id);
-    console.log('📊 Statistiques finales:', stats);
+    // 4. Récupérer les statistiques finales
+    await getNotificationStats(announcement.id);
 
   } catch (error) {
     console.error('❌ Erreur lors de l\'envoi des notifications:', error);

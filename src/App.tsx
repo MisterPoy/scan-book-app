@@ -1401,9 +1401,6 @@ function App() {
       console.error("Erreur récupération bibliothèques:", err);
       // Si permissions manquantes, initialiser avec un tableau vide
       if (err instanceof Error && err.message.includes("permissions")) {
-        console.log(
-          "Permissions insuffisantes pour les bibliothèques, fonctionnalité désactivée temporairement"
-        );
         setUserLibraries([]);
       }
     }
@@ -1519,7 +1516,6 @@ function App() {
             },
             { merge: true }
           );
-          console.log("✅ Statut admin configuré pour Greg");
         }
         setIsAdmin(true);
       } else {
@@ -1527,7 +1523,6 @@ function App() {
         const adminStatus =
           userDoc.exists() && userDoc.data()?.isAdmin === true;
         setIsAdmin(adminStatus);
-        console.log("Statut admin configuré:", adminStatus);
       }
     } catch (error) {
       console.error("Erreur vérification admin:", error);
@@ -1543,59 +1538,30 @@ function App() {
       ) ||
         window.innerWidth <= 768);
 
-    console.log("Chrome Mobile detected:", isChromeMobile);
-
     // Gérer le retour de redirection avec retry pour Chrome mobile
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
-        console.log("App - Redirect result:", result);
 
         if (result?.user) {
-          console.log(
-            "✅ App - Utilisateur trouvé via redirect:",
-            result.user.displayName
-          );
           return;
         }
 
         // Chrome mobile fallback - forcer la vérification de l'état auth
         if (isChromeMobile) {
-          console.log("Chrome mobile - Fallback avec multiple checks...");
-
           // Check immédiat
           setTimeout(() => {
-            console.log(
-              "Chrome mobile check 1 - currentUser:",
-              auth.currentUser
-            );
-            if (auth.currentUser) {
-              console.log("✅ Chrome mobile success via currentUser!");
-            }
+            // Vérification silencieuse
           }, 100);
 
           // Check après 1 seconde
           setTimeout(() => {
-            console.log(
-              "Chrome mobile check 2 - currentUser:",
-              auth.currentUser
-            );
-            if (auth.currentUser) {
-              console.log(
-                "✅ Chrome mobile success via currentUser (delayed)!"
-              );
-            }
+            // Vérification silencieuse
           }, 1000);
 
           // Check après 2 secondes
           setTimeout(() => {
-            console.log(
-              "Chrome mobile check 3 - currentUser:",
-              auth.currentUser
-            );
-            if (auth.currentUser) {
-              console.log("✅ Chrome mobile success via currentUser (final)!");
-            }
+            // Vérification silencieuse
           }, 2000);
         }
       } catch (err) {
@@ -1606,10 +1572,8 @@ function App() {
     handleRedirectResult();
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      console.log("Auth state changed:", u ? u.displayName : "Déconnecté");
       setUser(u);
       if (u) {
-        console.log("Récupération collection pour:", u.displayName);
         // Vérifier et configurer le statut admin
         await checkAndSetupAdmin(u);
         fetchCollection(u.uid);

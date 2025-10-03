@@ -35,7 +35,6 @@ export function usePWA() {
       setIsInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);
-      console.log('✅ PWA installée avec succès !');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -49,21 +48,18 @@ export function usePWA() {
 
   const installPWA = async () => {
     if (!deferredPrompt) {
-      console.log('❌ Aucune invite d\'installation disponible');
       return false;
     }
 
     try {
       await deferredPrompt.prompt();
       const choiceResult = await deferredPrompt.userChoice;
-      
+
       if (choiceResult.outcome === 'accepted') {
-        console.log('✅ Utilisateur a accepté l\'installation');
         setIsInstallable(false);
         setDeferredPrompt(null);
         return true;
       } else {
-        console.log('❌ Utilisateur a refusé l\'installation');
         return false;
       }
     } catch (error) {

@@ -128,7 +128,6 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     onDecodeResult(result) {
       setError(null);
       const code = result.getText();
-      console.log("Code détecté:", code);
 
       // Vérifier si déjà dans la bibliothèque
       if (existingIsbns && existingIsbns.has(code)) {
@@ -147,8 +146,8 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         handleBatchScan(code);
       }
     },
-    onDecodeError(error) {
-      console.debug("Scan error:", error);
+    onDecodeError() {
+      // Erreurs de scan normales (pas de code trouvé)
     },
     paused: !cameraActive,
     constraints: {
@@ -287,16 +286,13 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         setCameraInfo(
           `${settings.width}x${settings.height} @${settings.frameRate || 30}fps`
         );
-        console.log("Paramètres caméra réels:", settings);
 
         // Détecter le support du flash/torch
         const capabilities = videoTrack.getCapabilities();
         if (capabilities && 'torch' in capabilities) {
           setTorchSupported(true);
-          console.log("Flash/torch supporté");
         } else {
           setTorchSupported(false);
-          console.log("Flash/torch non supporté");
         }
       }
     }
@@ -316,7 +312,6 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         advanced: [{ torch: !torchEnabled }]
       });
       setTorchEnabled(!torchEnabled);
-      console.log(`Flash ${!torchEnabled ? 'activé' : 'désactivé'}`);
     } catch (error) {
       console.error("Erreur lors de l'activation du flash:", error);
     }
