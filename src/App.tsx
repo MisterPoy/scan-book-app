@@ -44,6 +44,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import ScrollToTop from "./components/ScrollToTop";
 import ModalScrollToTop from "./components/ModalScrollToTop";
+import Toast from "./components/Toast";
 import { useBookFilters } from "./hooks/useBookFilters";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
@@ -1595,11 +1596,12 @@ function App() {
 
   const handleBulkAddConfirm = async (isbns: string[], personalNotes: Record<string, string>) => {
     if (!user) {
-      console.error('handleBulkAddConfirm: utilisateur non connecté');
+      setAddMessage({
+        text: 'Vous devez être connecté pour ajouter des livres',
+        type: 'error'
+      });
       return;
     }
-
-    console.log('handleBulkAddConfirm: début', { isbns, userId: user.uid });
 
     try {
       const response: BulkAddResponse = await bulkAddBooks(
@@ -1610,13 +1612,10 @@ function App() {
         personalNotes
       );
 
-      console.log('handleBulkAddConfirm: réponse bulkAddBooks', response);
-
       // Recharger la collection depuis Firestore
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
       const books = snapshot.docs.map(doc => ({ ...doc.data() } as CollectionBook));
-      console.log('handleBulkAddConfirm: livres rechargés', books.length);
       setCollectionBooks(books);
 
       // Afficher le feedback
@@ -1624,24 +1623,19 @@ function App() {
       let message = '';
 
       if (added.length > 0) {
-        message += `${added.length} livre${added.length > 1 ? 's' : ''} ajouté${added.length > 1 ? 's' : ''}`;
+        message += `${added.length} livre${added.length > 1 ? 's' : ''} ajouté${added.length > 1 ? 's' : ''} avec succès`;
       }
       if (duplicates.length > 0) {
-        message += message ? `, ${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''}` : `${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''}`;
+        message += message ? ` • ${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''} ignoré${duplicates.length > 1 ? 's' : ''}` : `${duplicates.length} doublon${duplicates.length > 1 ? 's' : ''} ignoré${duplicates.length > 1 ? 's' : ''}`;
       }
       if (errors.length > 0) {
-        message += message ? `, ${errors.length} erreur${errors.length > 1 ? 's' : ''}` : `${errors.length} erreur${errors.length > 1 ? 's' : ''}`;
+        message += message ? ` • ${errors.length} erreur${errors.length > 1 ? 's' : ''}` : `${errors.length} erreur${errors.length > 1 ? 's' : ''}`;
       }
 
-      console.log('handleBulkAddConfirm: message feedback', message);
-
       setAddMessage({
-        text: message,
+        text: message || 'Opération terminée',
         type: errors.length > 0 && added.length === 0 ? 'error' : 'success'
       });
-
-      // Masquer le message après 5 secondes
-      setTimeout(() => setAddMessage(null), 5000);
 
       // Fermer la modale
       setShowBulkConfirmModal(false);
@@ -2664,6 +2658,14 @@ function App() {
 
       {/* Scroll to Top Button */}
       <ScrollToTop />
+
+      {/* Toast Notification */}
+      <Toast
+        message={addMessage?.text || ''}
+        type={addMessage?.type || 'info'}
+        isVisible={!!addMessage}
+        onClose={() => setAddMessage(null)}
+      />
     </div>
   );
 }

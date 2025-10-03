@@ -7,14 +7,15 @@ import {
   Trash,
   Note,
   Stack,
-  Hourglass
+  Hourglass,
+  CircleNotch
 } from 'phosphor-react';
 import { fetchMultipleBooks } from '../utils/bookApi';
 import type { ScannedBook } from '../types/bulkAdd';
 
 interface BulkAddConfirmModalProps {
   isbns: string[];
-  onConfirm: (isbns: string[], personalNotes: Record<string, string>) => void;
+  onConfirm: (isbns: string[], personalNotes: Record<string, string>) => Promise<void>;
   onCancel: () => void;
   isOpen: boolean;
 }
@@ -27,6 +28,7 @@ export default function BulkAddConfirmModal({
 }: BulkAddConfirmModalProps) {
   const [books, setBooks] = useState<ScannedBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
   const [selectedIsbns, setSelectedIsbns] = useState<string[]>(isbns);
 
@@ -62,8 +64,15 @@ export default function BulkAddConfirmModal({
     }));
   };
 
-  const handleConfirm = () => {
-    onConfirm(selectedIsbns, personalNotes);
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm(selectedIsbns, personalNotes);
+    } catch (error) {
+      console.error('Erreur lors de la confirmation:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -217,17 +226,27 @@ export default function BulkAddConfirmModal({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              disabled={submitting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               Annuler
             </button>
             <button
               onClick={handleConfirm}
-              disabled={validBooks.length === 0 || loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              disabled={validBooks.length === 0 || loading || submitting}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
             >
-              <CheckCircle size={16} weight="bold" className="inline mr-2" />
-              Ajouter {validBooks.length > 0 && `${validBooks.length} livre${validBooks.length > 1 ? 's' : ''}`}
+              {submitting ? (
+                <>
+                  <CircleNotch size={16} weight="bold" className="inline animate-spin" />
+                  Ajout en cours...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} weight="bold" className="inline" />
+                  Ajouter {validBooks.length > 0 && `${validBooks.length} livre${validBooks.length > 1 ? 's' : ''}`}
+                </>
+              )}
             </button>
           </div>
         </div>

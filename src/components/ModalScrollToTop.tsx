@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowUp } from 'phosphor-react';
 
 interface ModalScrollToTopProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function ModalScrollToTop({ containerRef }: ModalScrollToTopProps) {
