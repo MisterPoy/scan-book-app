@@ -2,6 +2,54 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - Phase C : Scanner UX Amélioré (C1-C3)
+
+### ✅ Phase C complétée : Scanner UX Amélioré
+
+**Contexte** : Amélioration de l'expérience utilisateur du scanner ISBN en mode lot pour faciliter l'ajout massif de livres.
+
+#### C1 - Boutons sticky scanner lot
+**Problème** : Boutons "Réinitialiser" et "Valider le lot" hors de vue lors du scroll avec beaucoup de livres scannés
+**Solution** :
+- Barre de contrôle sticky (top-0, z-20) avec backdrop-blur-sm
+- Border vert + shadow pour mise en évidence visuelle
+- Toujours visible pendant le scroll vertical
+
+**Fichiers modifiés** :
+- `src/components/ISBNScanner.tsx` - Barre sticky avec bg-white/95
+
+#### C2 - Persistance flash localStorage
+**Problème** : Flash désactivé à chaque scan, utilisateur doit réactiver manuellement
+**Solution** :
+- Sauvegarde état flash dans localStorage (`kodeks_torch_enabled`)
+- Restauration automatique au chargement de la caméra
+- Gestion d'erreur avec fallback si échec restauration
+
+**Fichiers modifiés** :
+- `src/components/ISBNScanner.tsx` - useState initial + useEffect restauration + toggleTorch persist
+
+#### C3 - Feedbacks in-camera temps réel
+**Problème** : Feedbacks visuels petits et peu visibles
+**Solution** :
+- Feedback amélioré : plus grand (text-base), bordures colorées, backdrop-blur, drop-shadow
+- Compteur temps réel overlay (coin haut-gauche) en mode batch : nombre de livres scannés
+- Icônes fill (CheckCircle, WarningCircle) pour meilleure visibilité
+- Positionnement optimisé (bottom-20 au lieu de bottom-6)
+
+**Fichiers modifiés** :
+- `src/components/ISBNScanner.tsx` - Feedbacks enhanced + compteur overlay
+
+#### Commit
+```
+git commit: "Feature: Phase C - Scanner UX Amélioré (C1-C3)"
+```
+
+#### Prochaines étapes
+- Phase D : Accessibilité RGPD (D1-D4) - Focus trap, aria-labels, RGPD
+- Phase E : Performance DX (E1-E3) - Bundle, images, icons
+
+---
+
 ## 2025-10-04 - Phase B : Notifications Robustes (B1-B3)
 
 ### ✅ Phase B complétée : Notifications Robustes
