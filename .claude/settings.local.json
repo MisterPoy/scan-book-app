@@ -24,7 +24,8 @@
       "Bash(node:*)",
       "Bash(npx vercel:*)",
       "Bash(npm run lint)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": []
   }

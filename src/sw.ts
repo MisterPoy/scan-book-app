@@ -76,7 +76,14 @@ importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
 // Configuration Firebase (injectée au build via Vite define)
-// @ts-expect-error - Variables définies par Vite au build
+// Les variables globales sont définies dans vite.config.ts via define
+declare const __VITE_FIREBASE_API_KEY__: string;
+declare const __VITE_FIREBASE_AUTH_DOMAIN__: string;
+declare const __VITE_FIREBASE_PROJECT_ID__: string;
+declare const __VITE_FIREBASE_STORAGE_BUCKET__: string;
+declare const __VITE_FIREBASE_MESSAGING_SENDER_ID__: string;
+declare const __VITE_FIREBASE_APP_ID__: string;
+
 const firebaseConfig = {
   apiKey: __VITE_FIREBASE_API_KEY__,
   authDomain: __VITE_FIREBASE_AUTH_DOMAIN__,
@@ -94,7 +101,7 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Gérer les notifications en arrière-plan
-messaging.onBackgroundMessage((payload: any) => {
+messaging.onBackgroundMessage((payload: { notification?: { title?: string; body?: string }; data?: Record<string, unknown> }) => {
   const notificationTitle = payload.notification?.title || 'Nouvelle annonce - Kodeks';
   const notificationOptions = {
     body: payload.notification?.body || 'Vous avez une nouvelle notification',
@@ -143,9 +150,9 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 });
 
 // Gérer la fermeture des notifications
-self.addEventListener('notificationclose', (event: NotificationEvent) => {
+self.addEventListener('notificationclose', () => {
   // Log optionnel pour analytics
-  // console.log('Notification fermée:', event.notification.tag);
+  // console.log('Notification fermée');
 });
 
 // Activation immédiate du nouveau SW

@@ -186,7 +186,7 @@ export const shouldShowConsentBanner = (): boolean => {
 
     const state = JSON.parse(bannerState);
     return !state.shown && !state.dismissed && !state.acceptedAll;
-  } catch (error) {
+  } catch {
     return true; // Afficher par défaut en cas d'erreur
   }
 };

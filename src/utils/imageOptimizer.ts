@@ -69,10 +69,17 @@ export const stripEXIF = async (file: File): Promise<Blob> => {
         const exifObj = piexif.load(dataURL);
 
         // Conserver uniquement l'orientation
-        const orientation = exifObj['0th']?.[piexif.ImageIFD.Orientation];
+        const orientation = exifObj['0th'][piexif.ImageIFD.Orientation] as number | undefined;
 
         // Créer nouvel objet EXIF minimal
-        const newExif = {
+        const newExif: {
+          '0th': Record<string, unknown>;
+          'Exif': Record<string, unknown>;
+          'GPS': Record<string, unknown>;
+          'Interop': Record<string, unknown>;
+          '1st': Record<string, unknown>;
+          thumbnail: null;
+        } = {
           '0th': {},
           'Exif': {},
           'GPS': {},
