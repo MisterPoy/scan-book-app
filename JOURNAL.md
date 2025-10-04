@@ -2,6 +2,20 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🎨 UI: Suppression icône couronne admin
+
+### 🔧 Modification
+Suppression de l'icône couronne (Crown) qui s'affichait à côté du nom d'utilisateur pour les admins dans le header.
+
+### 📁 Fichiers modifiés
+- `src/App.tsx` (lignes 2317-2323) : Commenté l'affichage conditionnel de la couronne admin
+
+### 🎯 Impact
+- Interface plus épurée
+- Suppression d'un indicateur visuel admin (discrétion)
+
+---
+
 ## 2025-10-04 - 🐛 Fix: Bug scan ISBN mode unique vs mode batch
 
 ### 🔧 Problème critique
