@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { X, Info, Warning, CheckCircle, XCircle } from 'phosphor-react';
 import type { Announcement } from '../types/announcement';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface AnnouncementModalProps {
   announcement: Announcement | null;
@@ -46,16 +48,39 @@ const TYPE_STYLES = {
 };
 
 export default function AnnouncementModal({ announcement, onClose }: AnnouncementModalProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(!!announcement);
+
+  useEffect(() => {
+    const handleModalCloseRequest = () => {
+      onClose();
+    };
+
+    const modal = modalRef.current;
+    modal?.addEventListener('modal-close-request', handleModalCloseRequest);
+
+    return () => {
+      modal?.removeEventListener('modal-close-request', handleModalCloseRequest);
+    };
+  }, [onClose, modalRef]);
+
   if (!announcement) return null;
 
   const style = TYPE_STYLES[announcement.type];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className={`
-        relative bg-white rounded-lg shadow-xl max-w-md w-full
-        border-2 ${style.border} ${style.bg}
-      `}>
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="announcement-title"
+    >
+      <div
+        ref={modalRef}
+        className={`
+          relative bg-white rounded-lg shadow-xl max-w-md w-full
+          border-2 ${style.border} ${style.bg}
+        `}
+      >
         {/* Header */}
         <div className="flex items-start justify-between p-6 pb-4">
           <div className="flex items-start gap-3">
@@ -63,7 +88,7 @@ export default function AnnouncementModal({ announcement, onClose }: Announcemen
               {style.icon}
             </div>
             <div className="flex-1">
-              <h3 className={`text-lg font-bold ${style.title}`}>
+              <h3 id="announcement-title" className={`text-lg font-bold ${style.title}`}>
                 {announcement.title}
               </h3>
             </div>

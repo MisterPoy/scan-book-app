@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { uploadImageToStorage, auth } from "../firebase";
 import type { UserLibrary } from "../types/library";
 import { renderLibraryIcon } from "../utils/iconRenderer";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import {
   PencilSimple,
   ChartBar,
@@ -44,6 +45,8 @@ interface EditBookModalProps {
 }
 
 export default function EditBookModal({ book, isOpen, onClose, onSave, userLibraries = [] }: EditBookModalProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   const [formData, setFormData] = useState({
     title: "",
     authors: "",
@@ -143,13 +146,34 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     setFormData(prev => ({ ...prev, customCoverUrl: "" }));
   };
 
+  useEffect(() => {
+    const handleModalCloseRequest = () => {
+      onClose();
+    };
+
+    const modal = modalRef.current;
+    modal?.addEventListener('modal-close-request', handleModalCloseRequest);
+
+    return () => {
+      modal?.removeEventListener('modal-close-request', handleModalCloseRequest);
+    };
+  }, [onClose, modalRef]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div
+        ref={modalRef}
+        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+      >
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h2 id="modal-title" className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <PencilSimple size={24} weight="bold" />
             Modifier le livre
           </h2>

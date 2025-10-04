@@ -12,6 +12,7 @@ import {
 } from 'phosphor-react';
 import { fetchMultipleBooks } from '../utils/bookApi';
 import type { ScannedBook } from '../types/bulkAdd';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface BulkAddConfirmModalProps {
   isbns: string[];
@@ -26,6 +27,8 @@ export default function BulkAddConfirmModal({
   onCancel,
   isOpen,
 }: BulkAddConfirmModalProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   const [books, setBooks] = useState<ScannedBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -75,17 +78,38 @@ export default function BulkAddConfirmModal({
     }
   };
 
+  useEffect(() => {
+    const handleModalCloseRequest = () => {
+      onCancel();
+    };
+
+    const modal = modalRef.current;
+    modal?.addEventListener('modal-close-request', handleModalCloseRequest);
+
+    return () => {
+      modal?.removeEventListener('modal-close-request', handleModalCloseRequest);
+    };
+  }, [onCancel, modalRef]);
+
   if (!isOpen) return null;
 
   const validBooks = books.filter(book => selectedIsbns.includes(book.isbn));
   const hasErrors = validBooks.some(book => book.error);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bulk-modal-title"
+    >
+      <div
+        ref={modalRef}
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h2 id="bulk-modal-title" className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Stack size={28} weight="bold" />
             Confirmer l'ajout groupé
           </h2>
