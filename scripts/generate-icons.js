@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 const iconsDir = path.join(__dirname, '..', 'public', 'icons');
-const logoPath = path.join(__dirname, '..', 'public', 'kodeks-logo.png');
+const logoPath = path.join(__dirname, '..', 'public', 'icons', 'icon-master.png'); // Utiliser l'icône modifiée avec livres noirs
 
 /**
  * Vérifie que le logo source existe
@@ -43,12 +43,11 @@ async function generateIcon(size) {
     await sharp(logoPath)
       .resize(size, size, {
         fit: 'contain',
-        background: { r: 59, g: 130, b: 246, alpha: 1 } // Fond bleu Kodeks (#3B82F6)
+        background: { r: 59, g: 130, b: 246, alpha: 1 } // Fond bleu (déjà dans le SVG mais on garde pour sécurité)
       })
       .png({
         compressionLevel: 9, // Compression maximale
         adaptiveFiltering: true,
-        palette: true // Utiliser palette si possible (plus petit)
       })
       .toFile(outputPath);
 

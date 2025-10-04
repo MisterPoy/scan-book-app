@@ -2,6 +2,36 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🎨 Fix: Uniformisation des icônes PWA (style livres noirs)
+
+### 🔧 Problème
+Les icônes PWA avaient été générées depuis plusieurs sources différentes :
+- `icon-base.svg` (livres blancs sur fond bleu)
+- `kodeks-logo.png` (livres noirs sur transparent)
+- Modifications manuelles sur `icon-128x128.png` et `icon-512x512.png` (livres noirs sur fond bleu)
+
+Résultat : **incohérence visuelle** entre les différentes tailles d'icônes.
+
+### ✅ Solution
+1. Copie de l'icône manuellement modifiée `icon-512x512.png` → `icon-master.png` (source unique)
+2. Modification du script `scripts/generate-icons.js` pour utiliser `icon-master.png` comme source
+3. Régénération de **toutes** les icônes (72x72 à 512x512) depuis cette source unique
+4. Build complet de l'application
+
+### 📁 Fichiers modifiés
+- `scripts/generate-icons.js` : Source path changé vers `icon-master.png`
+- `public/icons/icon-*.png` (8 fichiers) : Toutes les icônes régénérées dans le style uniforme
+- `public/favicon.ico` et `public/apple-touch-icon.png` : Régénérés
+
+### 📋 Résultat final
+✅ **Toutes les icônes PWA ont maintenant le même style** : livres noirs sur fond bleu (#3B82F6)
+
+### 🔄 Prochaines étapes
+- Tester l'affichage des icônes dans le navigateur (mode privé pour éviter cache)
+- Supprimer `icon-master.png` si nécessaire (ou le garder comme référence)
+
+---
+
 ## 2025-10-04 - 🎉 Backlog Post-Audit COMPLET (Phases A-E)
 
 ### ✅ TOUTES LES PHASES TERMINÉES
