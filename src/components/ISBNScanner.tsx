@@ -120,9 +120,13 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     message: string;
   }>({ type: null, message: '' });
 
-  // États pour le flash/torch
+  // États pour le flash/torch avec persistance localStorage
   const [torchSupported, setTorchSupported] = useState(false);
-  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(() => {
+    // Récupérer la préférence sauvegardée
+    const saved = localStorage.getItem('kodeks_torch_enabled');
+    return saved === 'true';
+  });
 
   const { ref } = useZxing({
     onDecodeResult(result) {
@@ -291,6 +295,19 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
         const capabilities = videoTrack.getCapabilities();
         if (capabilities && 'torch' in capabilities) {
           setTorchSupported(true);
+
+          // Restaurer l'état du flash depuis localStorage si activé
+          const savedTorchState = localStorage.getItem('kodeks_torch_enabled');
+          if (savedTorchState === 'true') {
+            videoTrack.applyConstraints({
+              // @ts-expect-error: torch n'est pas dans les types TypeScript standard
+              advanced: [{ torch: true }]
+            }).catch(err => {
+              console.error("Erreur restauration flash:", err);
+              setTorchEnabled(false);
+              localStorage.setItem('kodeks_torch_enabled', 'false');
+            });
+          }
         } else {
           setTorchSupported(false);
         }
@@ -299,7 +316,7 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraActive, ref.current?.srcObject]);
 
-  // Fonction pour activer/désactiver le flash
+  // Fonction pour activer/désactiver le flash avec persistance
   const toggleTorch = async () => {
     if (!ref.current || !ref.current.srcObject || !torchSupported) return;
 
@@ -307,11 +324,15 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     const videoTrack = stream.getVideoTracks()[0];
 
     try {
+      const newTorchState = !torchEnabled;
       await videoTrack.applyConstraints({
         // @ts-expect-error: torch n'est pas dans les types TypeScript standard
-        advanced: [{ torch: !torchEnabled }]
+        advanced: [{ torch: newTorchState }]
       });
-      setTorchEnabled(!torchEnabled);
+      setTorchEnabled(newTorchState);
+
+      // Sauvegarder la préférence dans localStorage
+      localStorage.setItem('kodeks_torch_enabled', newTorchState.toString());
     } catch (error) {
       console.error("Erreur lors de l'activation du flash:", error);
     }
@@ -462,17 +483,26 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
               </button>
             )}
 
-            {/* Feedback visuel universel */}
+            {/* Feedback visuel universel - Amélioré */}
             {scanFeedback.type && (
-              <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg text-white font-semibold text-sm flex items-center gap-2 animate-fadeIn ${
-                scanFeedback.type === 'success' ? 'bg-green-600' :
-                scanFeedback.type === 'duplicate' ? 'bg-orange-600' :
-                'bg-red-600'
+              <div className={`absolute bottom-20 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-xl shadow-2xl text-white font-bold text-base flex items-center gap-3 animate-fadeIn backdrop-blur-sm ${
+                scanFeedback.type === 'success' ? 'bg-green-600/95 border-2 border-green-400' :
+                scanFeedback.type === 'duplicate' ? 'bg-orange-600/95 border-2 border-orange-400' :
+                'bg-red-600/95 border-2 border-red-400'
               }`} role="alert" aria-live="assertive">
-                {scanFeedback.type === 'success' && <CheckCircle size={20} weight="bold" />}
-                {scanFeedback.type === 'duplicate' && <WarningCircle size={20} weight="bold" />}
-                {scanFeedback.type === 'error' && <X size={20} weight="bold" />}
-                {scanFeedback.message}
+                {scanFeedback.type === 'success' && <CheckCircle size={24} weight="fill" />}
+                {scanFeedback.type === 'duplicate' && <WarningCircle size={24} weight="fill" />}
+                {scanFeedback.type === 'error' && <X size={24} weight="bold" />}
+                <span className="drop-shadow-lg">{scanFeedback.message}</span>
+              </div>
+            )}
+
+            {/* Compteur temps réel en mode batch */}
+            {mode === 'batch' && scannedBooks.length > 0 && (
+              <div className="absolute top-16 left-4 bg-green-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg border-2 border-green-400 flex items-center gap-2 animate-fadeIn">
+                <Stack size={20} weight="bold" />
+                <span className="font-bold text-lg">{scannedBooks.length}</span>
+                <span className="text-sm">livre{scannedBooks.length > 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
@@ -507,8 +537,8 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
       {/* Barre de contrôle du lot + Pile temporaire (mode batch uniquement) */}
       {mode === 'batch' && scannedBooks.length > 0 && (
         <div className="mt-6 w-full max-w-2xl space-y-4">
-          {/* Barre de contrôle du lot */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          {/* Barre de contrôle du lot - STICKY */}
+          <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-2 border-green-300 rounded-lg shadow-lg p-3 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 text-gray-700">
               <Stack size={20} weight="bold" />
               <span className="font-semibold">{scannedBooks.length} livre{scannedBooks.length > 1 ? 's' : ''} scanné{scannedBooks.length > 1 ? 's' : ''}</span>
@@ -523,7 +553,7 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
               </button>
               <button
                 onClick={handleValidateBatch}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-sm font-medium flex items-center gap-2 shadow-md"
               >
                 <CheckCircle size={16} weight="bold" />
                 Valider le lot
