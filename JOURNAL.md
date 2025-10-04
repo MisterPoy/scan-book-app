@@ -2,6 +2,35 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🔒 Fix: Correction CSP pour connexion Google + cleanup Crown
+
+### 🔧 Problème
+La connexion Google était bloquée par la CSP (Content Security Policy) configurée dans `vercel.json` :
+```
+Refused to load firebase-vendor-D0GUg5Ib.js because it violates CSP directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+```
+
+**Cause** : CSP incomplète introduite à la Phase E, manquait les domaines Google Auth.
+
+### ✅ Solution
+Ajout des domaines manquants dans la CSP de `vercel.json` :
+- `https://apis.google.com` dans `script-src` (scripts Firebase Auth)
+- `https://accounts.google.com` dans `frame-src` (popup connexion Google)
+
+Suppression aussi de l'import `Crown` non utilisé (erreur TypeScript).
+
+### 📁 Fichiers modifiés
+- `vercel.json` : CSP corrigée avec domaines Google Auth
+- `netlify.toml` : CSP corrigée (au cas où, mais non utilisé)
+- `src/App.tsx` : Suppression import `Crown` inutilisé
+
+### 🎯 Impact
+- ✅ Connexion Google fonctionnelle sur desktop ET mobile
+- ✅ CSP sécurisée sans bloquer Firebase Auth
+- ✅ Code propre sans imports inutiles
+
+---
+
 ## 2025-10-04 - 🎨 UI: Suppression icône couronne admin
 
 ### 🔧 Modification

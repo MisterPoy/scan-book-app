@@ -27,7 +27,6 @@ import {
   Timer,
   Hourglass,
   Megaphone,
-  Crown,
   Bell,
   Stack,
   DownloadSimple,
@@ -2314,13 +2313,7 @@ function App() {
                   </button>
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
-                  {/*   {isAdmin && (
-                      <Crown
-                        size={16}
-                        weight="bold"
-                        className="ml-2 text-blue-600"
-                      />
-                    )} */}
+               
                   </span>
                   <button
                     onClick={() => signOut(auth)}
