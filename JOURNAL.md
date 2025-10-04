@@ -2,6 +2,79 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🐛 Fix: Bug scan ISBN mode unique vs mode batch
+
+### 🔧 Problème critique
+Le mode **scan unique** crashait lors de l'ajout de certains livres (mangas, éditions rares) alors que le **mode batch** fonctionnait correctement avec les mêmes ISBNs.
+
+#### Analyse de la cause racine
+Les deux modes utilisaient des **pipelines complètement différentes** :
+
+| Aspect | Mode Single (❌ bugué) | Mode Batch (✅ fonctionne) |
+|--------|------------------------|----------------------------|
+| **Récupération** | Fetch Google Books direct | `fetchBookMetadata()` avec fallback OpenLibrary |
+| **Normalisation** | Aucune - données brutes | Normalisation complète |
+| **Champs undefined** | Stockés directement → crash Firebase | Filtrés avec conditions `if` |
+
+**Symptôme** : Mangas et livres rares ont souvent des métadonnées incomplètes dans Google Books (pas de `thumbnail`, `authors` manquant, etc.) → erreur lors de l'ajout à Firestore.
+
+### ✅ Solution
+
+#### 1. Modification de `handleDetected` (App.tsx lignes 1029-1067)
+- ❌ **AVANT** : Fetch Google Books direct sans fallback
+```typescript
+const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`);
+const volumeInfo = data.items?.[0]?.volumeInfo || null;
+```
+
+- ✅ **APRÈS** : Utilisation de `fetchBookMetadata()` avec fallback OpenLibrary
+```typescript
+const metadata = await fetchBookMetadata(code);
+```
+
+#### 2. Modification de `handlePostScanConfirm` (App.tsx lignes 1197-1227)
+- ❌ **AVANT** : Objet avec champs potentiellement undefined
+```typescript
+const bookData = {
+  authors: scannedBookData.authors || [], // Tableau vide = problème Firebase
+  publisher: scannedBookData.publisher,   // undefined stocké
+};
+```
+
+- ✅ **APRÈS** : Normalisation stricte comme `bulkAddBooks`
+```typescript
+const bookData: Record<string, unknown> = {
+  isbn: scannedBookData.isbn,
+  title: scannedBookData.title || "Titre inconnu",
+  readingStatus: 'non_lu',
+  bookType: 'physique',
+  isManualEntry: false,
+};
+
+// Ajouter uniquement les champs définis
+if (scannedBookData.authors?.length > 0) bookData.authors = scannedBookData.authors;
+if (scannedBookData.publisher) bookData.publisher = scannedBookData.publisher;
+```
+
+### 📁 Fichiers modifiés
+- `src/App.tsx` (lignes 73, 1029-1067, 1197-1227) :
+  - Import de `fetchBookMetadata`
+  - Remplacement fetch Google Books par `fetchBookMetadata()`
+  - Normalisation stricte des données avant ajout Firebase
+
+### 🎯 Impact
+- ✅ Mode scan unique utilise maintenant la même pipeline robuste que le mode batch
+- ✅ Fallback automatique OpenLibrary si Google Books échoue
+- ✅ Gestion propre des champs undefined (pas de crash Firebase)
+- ✅ Cohérence des données entre les deux modes de scan
+
+### 🧪 Test de régression recommandé
+Tester scan unique avec ISBNs problématiques (mangas, éditions sans couverture) :
+- One Piece, Naruto (souvent incomplets dans Google Books)
+- Livres anciens ou éditions rares
+
+---
+
 ## 2025-10-04 - 🛡️ Fix: Confirmation de suppression de livre
 
 ### 🔧 Problème critique

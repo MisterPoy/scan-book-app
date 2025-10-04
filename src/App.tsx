@@ -70,7 +70,7 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
-import { bulkAddBooks } from "./utils/bookApi";
+import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
 
@@ -1035,27 +1035,24 @@ function App() {
       navigator.vibrate(200);
     }
 
-    // Récupérer les données du livre
+    // Récupérer les données du livre avec fallback OpenLibrary
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`
-      );
-      const data = await res.json();
-      const volumeInfo = data.items?.[0]?.volumeInfo || null;
+      const metadata = await fetchBookMetadata(code);
 
-      if (volumeInfo) {
+      if (metadata) {
         setScannedBookData({
           isbn: code,
-          title: volumeInfo.title,
-          authors: volumeInfo.authors,
-          publisher: volumeInfo.publisher,
-          coverUrl: volumeInfo.imageLinks?.thumbnail,
+          title: metadata.title,
+          authors: metadata.authors,
+          publisher: metadata.publisher,
+          coverUrl: metadata.thumbnail,
         });
         setShowPostScanConfirm(true);
       } else {
         // Pas de données trouvées, afficher avec données minimales
         setScannedBookData({
           isbn: code,
+          title: 'Titre inconnu',
         });
         setShowPostScanConfirm(true);
       }
@@ -1063,6 +1060,7 @@ function App() {
       console.error("Erreur lors de la recherche :", err);
       setScannedBookData({
         isbn: code,
+        title: 'Titre inconnu',
       });
       setShowPostScanConfirm(true);
     }
@@ -1199,15 +1197,24 @@ function App() {
 
     setAddingToCollection(true);
     try {
-      const bookData: Partial<CollectionBook> = {
+      // Normaliser les données comme dans bulkAddBooks
+      const bookData: Record<string, unknown> = {
         isbn: scannedBookData.isbn,
-        title: scannedBookData.title || "Titre non disponible",
-        authors: scannedBookData.authors || [],
-        publisher: scannedBookData.publisher,
+        title: scannedBookData.title || "Titre inconnu",
         addedAt: new Date().toISOString(),
         isRead: false,
+        readingStatus: 'non_lu',
+        bookType: 'physique',
+        isManualEntry: false,
       };
 
+      // Ajouter uniquement les champs définis pour éviter les erreurs Firebase
+      if (scannedBookData.authors && scannedBookData.authors.length > 0) {
+        bookData.authors = scannedBookData.authors;
+      }
+      if (scannedBookData.publisher) {
+        bookData.publisher = scannedBookData.publisher;
+      }
       if (scannedBookData.coverUrl) {
         bookData.customCoverUrl = scannedBookData.coverUrl;
       }
