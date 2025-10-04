@@ -3374,8 +3374,13 @@ function App() {
                   <CollectionBookCard
                     book={selectedBook}
                     onRemove={() => {
-                      removeFromCollection(selectedBook.isbn);
-                      setSelectedBook(null);
+                      const confirmDelete = window.confirm(
+                        `Êtes-vous sûr de vouloir supprimer "${selectedBook.title}" de votre collection ?\n\nCette action est irréversible.`
+                      );
+                      if (confirmDelete) {
+                        removeFromCollection(selectedBook.isbn);
+                        setSelectedBook(null);
+                      }
                     }}
                     onToggleRead={() => {
                       toggleReadStatus(selectedBook.isbn);

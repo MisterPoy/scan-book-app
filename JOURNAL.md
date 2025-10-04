@@ -2,6 +2,29 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🛡️ Fix: Confirmation de suppression de livre
+
+### 🔧 Problème critique
+La suppression d'un livre depuis la vue détail (clic sur poubelle) était **instantanée sans aucune confirmation**, risquant des suppressions accidentelles irréversibles.
+
+### ✅ Solution
+Ajout d'une boîte de dialogue de confirmation avant toute suppression :
+```
+Êtes-vous sûr de vouloir supprimer "[Titre]" de votre collection ?
+
+Cette action est irréversible.
+```
+
+### 📁 Fichiers modifiés
+- `src/App.tsx` (lignes 3376-3384) : Ajout `window.confirm()` dans le callback `onRemove` de `CollectionBookCard`
+
+### 🎯 Impact
+- ✅ Protection contre suppressions accidentelles
+- ✅ UX améliorée avec message explicite mentionnant le titre du livre
+- ✅ Cohérence avec la confirmation de suppression de compte déjà en place
+
+---
+
 ## 2025-10-04 - 🎨 Fix: Uniformisation des icônes PWA (style livres noirs)
 
 ### 🔧 Problème
