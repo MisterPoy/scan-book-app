@@ -43,7 +43,7 @@ async function generateIcon(size) {
     await sharp(logoPath)
       .resize(size, size, {
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 0 }
+        background: { r: 59, g: 130, b: 246, alpha: 1 } // Fond bleu Kodeks (#3B82F6)
       })
       .png({
         compressionLevel: 9, // Compression maximale
