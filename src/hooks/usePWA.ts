@@ -16,14 +16,22 @@ export function usePWA() {
       const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
       const isInFullscreenMode = window.matchMedia('(display-mode: fullscreen)').matches;
       const isInMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-      
-      setIsInstalled(isInStandaloneMode || isInFullscreenMode || isInMinimalUi);
+
+      const installed = isInStandaloneMode || isInFullscreenMode || isInMinimalUi;
+      console.log('[PWA Debug] App déjà installée ?', {
+        isInStandaloneMode,
+        isInFullscreenMode,
+        isInMinimalUi,
+        installed
+      });
+      setIsInstalled(installed);
     };
 
     checkInstalled();
 
     // Écouter l'événement beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[PWA Debug] 🎉 beforeinstallprompt capturé !');
       e.preventDefault();
       const event = e as BeforeInstallPromptEvent;
       setDeferredPrompt(event);
@@ -32,6 +40,7 @@ export function usePWA() {
 
     // Écouter l'événement appinstalled
     const handleAppInstalled = () => {
+      console.log('[PWA Debug] ✅ App installée (appinstalled event)');
       setIsInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);

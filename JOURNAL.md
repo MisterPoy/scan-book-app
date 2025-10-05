@@ -2,6 +2,48 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🐛 Debug: Ajout logs console pour diagnostiquer bouton PWA invisible
+
+### 🔧 Problème
+Le bouton d'installation PWA ne s'affiche pas en production (Vercel), malgré le code correct.
+
+**Hypothèses** :
+1. L'app est déjà installée sur l'appareil → `isInstalled = true` → bouton caché
+2. L'événement `beforeinstallprompt` n'est jamais capturé
+3. Problème de configuration PWA (manifest/SW)
+
+### ✅ Solution
+Ajout de logs de debug dans la console pour diagnostiquer :
+
+**Dans `usePWA.ts`** :
+- Log des display-mode checks (standalone, fullscreen, minimal-ui)
+- Log quand `beforeinstallprompt` est capturé
+- Log quand `appinstalled` est déclenché
+
+**Dans `PWAInstallPrompt.tsx`** :
+- Log des valeurs `isInstallable` et `isInstalled` à chaque render
+- Log de la raison pour laquelle le bouton est caché
+
+### 📁 Fichiers modifiés
+- `src/hooks/usePWA.ts` : Ajout console.log lignes 21-26, 34, 43
+- `src/components/PWAInstallPrompt.tsx` : Ajout console.log lignes 12, 16, 20
+
+### 🧪 Test à effectuer
+1. Ouvrir Kodeks en production (Vercel)
+2. Ouvrir DevTools Console (F12)
+3. Chercher les logs `[PWA Debug]`
+4. Vérifier :
+   - Si app déjà installée → `installed: true` est affiché
+   - Si `beforeinstallprompt` capturé → message "🎉 beforeinstallprompt capturé !"
+   - Raison du bouton caché : "pas installable" ou "déjà installé"
+
+### 🎯 Prochaines étapes selon résultats
+- **Si `isInstalled = true`** → Normal, l'app est installée, désinstaller pour voir le bouton
+- **Si `beforeinstallprompt` jamais capturé** → Vérifier manifest.json et Service Worker
+- **Si toujours invisible après désinstallation** → Vider cache navigation Chrome
+
+---
+
 ## 2025-10-04 - 📲 Feature: Bouton d'installation PWA responsive et discret
 
 ### 🔧 Problème
