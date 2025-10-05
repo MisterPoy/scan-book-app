@@ -2,6 +2,44 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 📲 Feature: Bouton d'installation PWA responsive et discret
+
+### 🔧 Problème
+Sur Android, la désinstallation d'une PWA empêche Chrome de reproposer immédiatement l'installation via la bannière automatique. Les utilisateurs n'avaient aucun moyen de réinstaller manuellement l'app.
+
+L'ancien composant PWAInstallPrompt affichait une grosse bannière intrusive en bas de l'écran.
+
+### ✅ Solution
+Refonte complète du composant `PWAInstallPrompt.tsx` :
+- **Bouton flottant discret** en bas à droite (au lieu de bannière)
+- **Design cohérent** : couleur indigo (bg-indigo-600), icône Phosphor DownloadSimple
+- **Responsive** : texte caché sur mobile, visible sur desktop
+- **Logique propre** : utilise le hook `usePWA` existant (beforeinstallprompt + appinstalled)
+- **Disparition automatique** après installation ou refus
+
+### 📁 Fichiers modifiés
+- `src/components/PWAInstallPrompt.tsx` : Refonte complète du composant
+  - Suppression de la grosse bannière (div avec titre + description + 2 boutons)
+  - Remplacement par bouton flottant unique
+  - Utilisation de DownloadSimple (Phosphor) au lieu de DeviceMobile
+  - Suppression du bouton "Plus tard" (useState isDismissed)
+
+### 🎯 Impact
+- ✅ Installation manuelle PWA disponible à tout moment
+- ✅ Bouton discret et élégant (bottom-5 right-5)
+- ✅ Contourne la limitation Chrome Android (pas de re-prompt après désinstallation)
+- ✅ UX cohérente avec la charte visuelle du projet
+
+### 🧪 Test recommandé
+Sur Android Chrome :
+1. Désinstaller Kodeks (si installé)
+2. Vider cache/données de navigation
+3. Recharger le site → le bouton flottant doit apparaître
+4. Cliquer → prompt natif Chrome s'ouvre
+5. Installer → bouton disparaît automatiquement
+
+---
+
 ## 2025-10-04 - 🎨 UX: Logo et nom app cliquables (retour accueil)
 
 ### 🔧 Modification
