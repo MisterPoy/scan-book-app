@@ -2250,7 +2250,11 @@ function App() {
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Retour à l'accueil"
+            >
               <img
                 src="/kodeksLogoSeul.png"
                 alt="Kodeks"
@@ -2259,7 +2263,7 @@ function App() {
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                 <span>Kodeks</span>
               </h1>
-            </div>
+            </button>
             <nav className="flex-shrink-0">
               {user ? (
                 <div className="flex items-center gap-1 sm:gap-4">

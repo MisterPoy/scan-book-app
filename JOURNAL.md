@@ -2,6 +2,21 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - 🎨 UX: Logo et nom app cliquables (retour accueil)
+
+### 🔧 Modification
+Le logo et le nom "Kodeks" dans le header sont maintenant cliquables et rechargent la page d'accueil.
+
+### 📁 Fichiers modifiés
+- `src/App.tsx` (lignes 2253-2266) : Ajout bouton cliquable autour logo + titre avec `window.location.reload()`
+
+### 🎯 Impact
+- ✅ Navigation intuitive : clic logo/titre → retour accueil
+- ✅ Effet hover (opacité) pour indiquer que c'est cliquable
+- ✅ Tooltip "Retour à l'accueil"
+
+---
+
 ## 2025-10-04 - 🔒 Fix: Correction CSP pour connexion Google + cleanup Crown
 
 ### 🔧 Problème
