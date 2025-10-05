@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { imageQueue } from '../utils/imageQueue';
 
 interface Props {
   title: string;
@@ -13,32 +14,42 @@ export default function BookCard({ title, authors, isbn, customCoverUrl, imageLi
   const fallback = '/img/default-cover.png';
 
   useEffect(() => {
-    // 1. Si image personnalisée, l'utiliser en priorité
-    if (customCoverUrl) {
-      setCoverSrc(customCoverUrl);
-      return;
-    }
+    let cancelled = false;
 
-    // 2. Si image Google Books disponible, l'utiliser
-    if (imageLinks?.thumbnail) {
-      setCoverSrc(imageLinks.thumbnail);
-      return;
-    }
+    const loadCover = async () => {
+      // 1. Si image personnalisée, l'utiliser en priorité
+      if (customCoverUrl) {
+        setCoverSrc(customCoverUrl);
+        return;
+      }
 
-    // 3. Sinon, essayer OpenLibrary avec l'ISBN
-    const testImage = new Image();
-    const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      // 2. Si image Google Books disponible, l'utiliser
+      if (imageLinks?.thumbnail) {
+        setCoverSrc(imageLinks.thumbnail);
+        return;
+      }
 
-    testImage.src = openLibraryUrl;
-    testImage.onload = () => {
-      if (testImage.width > 1 && testImage.height > 1) {
-        setCoverSrc(openLibraryUrl);
-      } else {
-        setCoverSrc(fallback);
+      // 3. Sinon, essayer OpenLibrary avec l'ISBN via la queue (throttling)
+      const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+
+      const result = await imageQueue.loadImage(openLibraryUrl);
+
+      if (!cancelled) {
+        if (result.success) {
+          setCoverSrc(result.url);
+        } else {
+          setCoverSrc(fallback);
+        }
       }
     };
-    testImage.onerror = () => setCoverSrc(fallback);
-  }, [isbn, customCoverUrl, imageLinks]);
+
+    loadCover();
+
+    // Cleanup si le composant se démonte pendant le chargement
+    return () => {
+      cancelled = true;
+    };
+  }, [isbn, customCoverUrl, imageLinks, fallback]);
 
   return (
     <div className="bg-white p-4 border rounded shadow w-80 text-center">

@@ -2,6 +2,52 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-04 - ⚡ Perf: Système de queue pour chargement progressif images OpenLibrary
+
+### 🔧 Problème
+Erreurs massives dans la console lors du chargement de la bibliothèque :
+- 38 livres affichés = 38 requêtes **simultanées** vers `covers.openlibrary.org`
+- OpenLibrary rate-limite ou refuse les connexions → `net::ERR_FAILED`
+- Les URLs fonctionnent en accès direct mais échouent dans l'app
+- Console polluée d'erreurs `REGISTER_FAILED` et `Uncaught (in promise) no-response`
+
+**Cause racine** : Chaque composant `BookCard` créait un `new Image()` immédiatement, saturant le serveur OpenLibrary.
+
+### ✅ Solution
+Système de **queue avec throttling** pour charger les images progressivement :
+
+#### Nouveau fichier `src/utils/imageQueue.ts` :
+- Classe `ImageLoadQueue` singleton
+- File d'attente FIFO des requêtes d'images
+- Délai de 100ms entre chaque chargement
+- Vérification des images valides (width/height > 1)
+- Pattern async/await propre
+
+#### Modification `src/components/BookCard.tsx` :
+- Import de `imageQueue`
+- Remplacement chargement direct par `await imageQueue.loadImage()`
+- Ajout cleanup (`cancelled`) pour éviter setState sur composant démonté
+- Garde la priorité : customCoverUrl → Google Books → OpenLibrary → fallback
+
+### 📁 Fichiers modifiés
+- `src/utils/imageQueue.ts` : **Nouveau fichier** (78 lignes)
+- `src/components/BookCard.tsx` : Refonte useEffect avec async/await et queue
+
+### 🎯 Impact
+- ✅ Chargement **progressif** au lieu de simultané (38 requêtes → 1 par 100ms)
+- ✅ Plus d'erreurs réseau massives dans la console
+- ✅ Respect du rate-limit OpenLibrary
+- ✅ UX améliorée : les couvertures apparaissent une par une (effet cascade)
+- ✅ Gestion propre du démontage composant (pas de memory leak)
+
+### 🧪 Test attendu
+1. Afficher bibliothèque avec 38 livres
+2. Ouvrir DevTools Console
+3. Vérifier absence d'erreurs `covers.openlibrary.org`
+4. Observer apparition progressive des couvertures (effet cascade)
+
+---
+
 ## 2025-10-04 - 🐛 Debug: Ajout logs console pour diagnostiquer bouton PWA invisible
 
 ### 🔧 Problème
