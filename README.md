@@ -1,4 +1,4 @@
-# ScanBook App - Gestionnaire de Bibliothèque
+# Kodeks - Gestionnaire de Bibliothèque
 
 Une application web moderne de gestion de bibliothèque personnelle avec scanner ISBN, développée en React + TypeScript et déployable en tant que PWA.
 
@@ -35,7 +35,7 @@ Une application web moderne de gestion de bibliothèque personnelle avec scanner
 ```bash
 # Cloner le repository
 git clone <url-du-repo>
-cd scan-book-app
+cd kodeks
 
 # Installer les dépendances
 npm install
