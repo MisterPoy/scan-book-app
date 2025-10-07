@@ -25,7 +25,15 @@
       "Bash(npx vercel:*)",
       "Bash(npm run lint)",
       "Bash(test:*)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(taskkill:*)",
+      "Bash(Get-Process node)",
+      "Bash(Stop-Process -Force)",
+      "Bash(npx kill-port:*)",
+      "Bash(explorer:*)",
+      "Bash(npm run generate-icons:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ],
     "deny": []
   }

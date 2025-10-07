@@ -1051,7 +1051,7 @@ function App() {
         // Pas de données trouvées, afficher avec données minimales
         setScannedBookData({
           isbn: code,
-          title: 'Titre inconnu',
+          title: "Titre inconnu",
         });
         setShowPostScanConfirm(true);
       }
@@ -1059,7 +1059,7 @@ function App() {
       console.error("Erreur lors de la recherche :", err);
       setScannedBookData({
         isbn: code,
-        title: 'Titre inconnu',
+        title: "Titre inconnu",
       });
       setShowPostScanConfirm(true);
     }
@@ -1202,8 +1202,8 @@ function App() {
         title: scannedBookData.title || "Titre inconnu",
         addedAt: new Date().toISOString(),
         isRead: false,
-        readingStatus: 'non_lu',
-        bookType: 'physique',
+        readingStatus: "non_lu",
+        bookType: "physique",
         isManualEntry: false,
       };
 
@@ -2317,7 +2317,6 @@ function App() {
                   </button>
                   <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
                     Bonjour, {user.displayName}
-               
                   </span>
                   <button
                     onClick={() => signOut(auth)}
@@ -2756,7 +2755,8 @@ function App() {
                                 </div>
                                 <span className="font-bold text-green-900">
                                   {selectedSearchResults.length} livre
-                                  {selectedSearchResults.length !== 1 && "s"}{" "}
+                                  {selectedSearchResults.length !== 1 &&
+                                    "s"}{" "}
                                   sélectionné
                                   {selectedSearchResults.length !== 1 && "s"}
                                 </span>
@@ -3419,7 +3419,9 @@ function App() {
                       <input
                         type="text"
                         value={collectionSearchQuery}
-                        onChange={(e) => setCollectionSearchQuery(e.target.value)}
+                        onChange={(e) =>
+                          setCollectionSearchQuery(e.target.value)
+                        }
                         placeholder="Rechercher par titre, auteur ou ISBN..."
                         className="w-full px-4 py-3 pl-11 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                       />
@@ -3440,7 +3442,8 @@ function App() {
                       <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
                         <MagnifyingGlass size={14} weight="regular" />
                         {displayedBooks.length} résultat
-                        {displayedBooks.length > 1 ? "s" : ""} pour "{collectionSearchQuery}"
+                        {displayedBooks.length > 1 ? "s" : ""} pour "
+                        {collectionSearchQuery}"
                       </p>
                     )}
                   </div>
@@ -3522,8 +3525,12 @@ function App() {
                             className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
                           >
                             <Trash size={16} weight="bold" />
-                            <span className="hidden xs:inline">Supprimer ({selectedBooks.length})</span>
-                            <span className="inline xs:hidden">({selectedBooks.length})</span>
+                            <span className="hidden xs:inline">
+                              Supprimer ({selectedBooks.length})
+                            </span>
+                            <span className="inline xs:hidden">
+                              ({selectedBooks.length})
+                            </span>
                           </button>
                         )}
                       </div>
