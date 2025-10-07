@@ -2,6 +2,42 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-10-07 - 📝 docs: Renommage ScanBook → Kodeks dans documentation
+
+### 🔧 Contexte
+L'utilisateur a décidé de renommer officiellement le projet de "ScanBook App" vers "Kodeks" sur Vercel.
+
+### ✅ Modifications code
+- **README.md** : Titre principal `# ScanBook App →  # Kodeks`
+- **README.md** : Instructions installation `cd scan-book-app → cd kodeks`
+
+**Note** : Le reste était déjà à jour :
+- ✅ `package.json` : déjà "kodeks"
+- ✅ `vite.config.ts` : manifest PWA déjà "Kodeks"
+- ✅ `index.html` : titre déjà "Kodeks"
+
+### 📋 Actions restantes pour l'utilisateur
+
+#### 1. Sur Vercel (https://vercel.com/mrpoys-projects/scan-book-app/settings)
+- Valider le renommage du projet : `scan-book-app` → `kodeks`
+- ⚠️ **Impact** : URL changera de `scan-book-app.vercel.app` → `kodeks.vercel.app`
+
+#### 2. Sur Firebase Console (https://console.firebase.google.com)
+- **Authentication → Settings → Authorized domains**
+  - Ajouter : `kodeks.vercel.app`
+  - (Optionnel) Garder `scan-book-app.vercel.app` temporairement pour transition
+
+### 📁 Fichiers modifiés
+- `README.md` : Renommage titre et instructions
+
+### 🧪 Tests post-déploiement
+1. Tester authentification Google sur nouvelle URL
+2. Tester authentification Email
+3. Tester upload d'images (Firebase Storage)
+4. Vérifier installation PWA
+
+---
+
 ## 2025-10-04 - ⚡ Perf: Système de queue pour chargement progressif images OpenLibrary
 
 ### 🔧 Problème
