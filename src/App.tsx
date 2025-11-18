@@ -31,7 +31,10 @@ import {
   Stack,
   DownloadSimple,
   CheckCircle,
+  FilePdf,
 } from "phosphor-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
 import BookCard from "./components/BookCard";
@@ -992,23 +995,29 @@ function App() {
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
 
+  // État pour le menu d'export PDF
+  const [showExportMenuPdf, setShowExportMenuPdf] = useState(false);
+
   // État pour la recherche textuelle dans la collection
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
 
   // Fermer le menu d'export si on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showExportMenu) {
-        const target = event.target as HTMLElement;
-        if (!target.closest("[data-export-menu]")) {
-          setShowExportMenu(false);
-        }
+      const target = event.target as HTMLElement;
+
+      if (showExportMenu && !target.closest("[data-export-menu]")) {
+        setShowExportMenu(false);
+      }
+
+      if (showExportMenuPdf && !target.closest("[data-export-menu-pdf]")) {
+        setShowExportMenuPdf(false);
       }
     };
 
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, [showExportMenu]);
+  }, [showExportMenu, showExportMenuPdf]);
 
   // États pour le post-scan confirmation
   const [showPostScanConfirm, setShowPostScanConfirm] = useState(false);
@@ -2050,6 +2059,264 @@ function App() {
     });
     setTimeout(() => setAddMessage(null), 3000);
     setShowExportMenu(false); // Fermer le menu après export
+  };
+
+  const exportCollectionToPDF = async (libraryId?: string) => {
+    const booksToExport = libraryId
+      ? collectionBooks.filter((book) => book.libraries?.includes(libraryId))
+      : collectionBooks;
+
+    const libraryName = libraryId
+      ? userLibraries.find((lib) => lib.id === libraryId)?.name
+      : null;
+
+    if (booksToExport.length === 0) {
+      setAddMessage({
+        text: libraryId
+          ? "Aucun livre dans cette bibliothèque"
+          : "Aucun livre à exporter",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+      return;
+    }
+
+    try {
+      // Créer le document PDF en mode paysage (landscape) pour avoir plus d'espace
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // Fonction pour formater les dates
+      const formatDate = (dateString: string) => {
+        if (!dateString) return "";
+        try {
+          const date = new Date(dateString);
+          const day = date.getDate().toString().padStart(2, "0");
+          const month = (date.getMonth() + 1).toString().padStart(2, "0");
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`;
+        } catch {
+          return dateString;
+        }
+      };
+
+      // Calculer les statistiques
+      const stats = {
+        lu: 0,
+        non_lu: 0,
+        a_lire: 0,
+        en_cours: 0,
+        abandonne: 0,
+      };
+
+      booksToExport.forEach((book) => {
+        const status = book.readingStatus || (book.isRead ? "lu" : "non_lu");
+        if (status in stats) {
+          stats[status as keyof typeof stats]++;
+        }
+      });
+
+      const statusLabels: Record<string, string> = {
+        lu: "Lu",
+        non_lu: "Non lu",
+        a_lire: "À lire",
+        en_cours: "En cours",
+        abandonne: "Abandonné",
+      };
+
+      const typeLabels: Record<string, string> = {
+        physique: "Physique",
+        numerique: "Numérique",
+        audio: "Audio",
+      };
+
+      // Charger et ajouter le logo Kodeks
+      const logoImg = new Image();
+      logoImg.src = "/kodeks-logo.png";
+
+      await new Promise<void>((resolve) => {
+        logoImg.onload = () => {
+          try {
+            // Ajouter le logo en haut à gauche (30x30px)
+            doc.addImage(logoImg, "PNG", 14, 10, 30, 30);
+            resolve();
+          } catch (error) {
+            console.error("Erreur lors de l'ajout du logo:", error);
+            resolve(); // Continuer même si le logo échoue
+          }
+        };
+        logoImg.onerror = () => {
+          console.warn("Logo non trouvé, continuation sans logo");
+          resolve();
+        };
+      });
+
+      // En-tête personnalisé
+      doc.setFontSize(22);
+      doc.setTextColor(37, 99, 235); // Bleu #2563eb
+      doc.setFont("helvetica", "bold");
+      doc.text("Kodeks - Ma Collection", 50, 20);
+
+      doc.setFontSize(12);
+      doc.setTextColor(100, 116, 139); // Gris #64748b
+      doc.setFont("helvetica", "normal");
+
+      const exportDateStr = formatDate(new Date().toISOString());
+      doc.text(
+        libraryName
+          ? `Bibliothèque : ${libraryName}`
+          : "Collection complète",
+        50,
+        28
+      );
+      doc.text(`Date d'export : ${exportDateStr}`, 50, 34);
+
+      // Ligne séparatrice bleue
+      doc.setDrawColor(37, 99, 235); // Bleu #2563eb
+      doc.setLineWidth(0.5);
+      doc.line(14, 42, 283, 42);
+
+      // Statistiques
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105); // Gris foncé
+      let statsText = `Total : ${booksToExport.length} livre${booksToExport.length > 1 ? "s" : ""}`;
+      if (stats.lu > 0) statsText += ` | Lu : ${stats.lu}`;
+      if (stats.non_lu > 0) statsText += ` | Non lu : ${stats.non_lu}`;
+      if (stats.a_lire > 0) statsText += ` | À lire : ${stats.a_lire}`;
+      if (stats.en_cours > 0) statsText += ` | En cours : ${stats.en_cours}`;
+      if (stats.abandonne > 0) statsText += ` | Abandonné : ${stats.abandonne}`;
+
+      doc.text(statsText, 14, 50);
+
+      // Préparer les données du tableau avec TOUTES les colonnes
+      const tableData = booksToExport.map((book) => {
+        const status = book.readingStatus || (book.isRead ? "lu" : "non_lu");
+        const libraryNames = book.libraries
+          ?.map((libId) => userLibraries.find((lib) => lib.id === libId)?.name)
+          .filter(Boolean)
+          .join(", ");
+
+        return [
+          book.isbn || "-",
+          book.title || "-",
+          book.authors?.join(", ") || "-",
+          book.publisher || "-",
+          book.publishedDate || "-",
+          book.pageCount?.toString() || "-",
+          book.categories?.join(", ") || "-",
+          statusLabels[status] || "-",
+          typeLabels[book.bookType || "physique"] || "-",
+          book.personalNote || "-",
+          libraryNames || "-",
+          formatDate(book.addedAt) || "-",
+        ];
+      });
+
+      // Créer le tableau avec autoTable
+      autoTable(doc, {
+        head: [
+          [
+            "ISBN",
+            "Titre",
+            "Auteurs",
+            "Éditeur",
+            "Date pub.",
+            "Pages",
+            "Catégories",
+            "Statut",
+            "Type",
+            "Note",
+            "Bibliothèques",
+            "Ajouté le",
+          ],
+        ],
+        body: tableData,
+        startY: 56,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: "linebreak",
+          textColor: [51, 65, 85], // Texte gris foncé
+        },
+        headStyles: {
+          fillColor: [37, 99, 235], // Bleu #2563eb
+          textColor: [255, 255, 255], // Texte blanc
+          fontStyle: "bold",
+          halign: "center",
+        },
+        alternateRowStyles: {
+          fillColor: [241, 245, 249], // Gris très clair #f1f5f9
+        },
+        columnStyles: {
+          0: { cellWidth: 20 }, // ISBN
+          1: { cellWidth: 35 }, // Titre
+          2: { cellWidth: 30 }, // Auteurs
+          3: { cellWidth: 25 }, // Éditeur
+          4: { cellWidth: 18 }, // Date pub
+          5: { cellWidth: 12 }, // Pages
+          6: { cellWidth: 25 }, // Catégories
+          7: { cellWidth: 18 }, // Statut
+          8: { cellWidth: 18 }, // Type
+          9: { cellWidth: 25 }, // Note
+          10: { cellWidth: 25 }, // Bibliothèques
+          11: { cellWidth: 20 }, // Ajouté le
+        },
+        margin: { top: 56, left: 14, right: 14 },
+      });
+
+      // Ajouter pied de page sur toutes les pages
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184); // Gris clair
+
+        // Numéro de page au centre
+        doc.text(
+          `Page ${i} / ${totalPages}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: "center" }
+        );
+
+        // Date de génération à droite
+        doc.text(
+          `Généré le ${exportDateStr}`,
+          doc.internal.pageSize.getWidth() - 14,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: "right" }
+        );
+      }
+
+      // Nom du fichier
+      const timestamp = new Date().toISOString().split("T")[0];
+      const filename = libraryName
+        ? `kodeks-${libraryName.toLowerCase().replace(/\s+/g, "-")}-${timestamp}.pdf`
+        : `kodeks-collection-${timestamp}.pdf`;
+
+      // Sauvegarder le PDF
+      doc.save(filename);
+
+      setAddMessage({
+        text:
+          libraryId && libraryName
+            ? `PDF "${libraryName}" exporté avec succès`
+            : `PDF de la collection exporté avec succès`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'export PDF:", error);
+      setAddMessage({
+        text: "Erreur lors de l'export PDF",
+        type: "error",
+      });
+    }
+
+    setTimeout(() => setAddMessage(null), 3000);
+    setShowExportMenuPdf(false);
   };
 
   const handleIsbnBatchAdd = () => {
@@ -3286,6 +3553,89 @@ function App() {
                     )}
                   </div>
                 )}
+
+                {!selectedBook && collectionBooks.length > 0 && (
+                  <div className="relative" data-export-menu-pdf>
+                    <button
+                      onClick={() => setShowExportMenuPdf(!showExportMenuPdf)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+                      title="Exporter en PDF"
+                    >
+                      <FilePdf size={18} weight="bold" />
+                      <span className="hidden sm:inline">Exporter PDF</span>
+                      <CaretDown
+                        size={14}
+                        weight="bold"
+                        className={`transition-transform ${
+                          showExportMenuPdf ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {/* Dropdown menu PDF */}
+                    {showExportMenuPdf && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn">
+                        <div className="p-2">
+                          <button
+                            onClick={() => exportCollectionToPDF()}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors flex items-center gap-2"
+                          >
+                            <Books size={16} weight="bold" />
+                            <div>
+                              <div className="font-medium">
+                                Toute la collection
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {collectionBooks.length} livre
+                                {collectionBooks.length > 1 && "s"}
+                              </div>
+                            </div>
+                          </button>
+
+                          {userLibraries.length > 0 && (
+                            <>
+                              <div className="h-px bg-gray-200 my-2" />
+                              <div className="text-xs font-semibold text-gray-500 px-3 py-1">
+                                Par bibliothèque
+                              </div>
+                              {userLibraries.map((library) => {
+                                const bookCount = collectionBooks.filter(
+                                  (book) => book.libraries?.includes(library.id)
+                                ).length;
+                                return (
+                                  <button
+                                    key={library.id}
+                                    onClick={() =>
+                                      exportCollectionToPDF(library.id)
+                                    }
+                                    disabled={bookCount === 0}
+                                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <span>
+                                      {renderLibraryIcon(
+                                        library.icon || "BK",
+                                        16
+                                      )}
+                                    </span>
+                                    <div className="flex-1">
+                                      <div className="font-medium">
+                                        {library.name}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {bookCount} livre{bookCount > 1 && "s"}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
                     setShowCollectionModal(false);

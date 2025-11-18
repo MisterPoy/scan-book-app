@@ -2,6 +2,111 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-11-18 - ✨ Feat: Export PDF professionnel avec logo et design bleu-gris
+
+### 🔧 Contexte
+L'utilisateur souhaitait ajouter une fonctionnalité d'export PDF en complément de l'export CSV existant, avec :
+- Design professionnel bleu-gris
+- Logo Kodeks dans l'en-tête
+- En-tête personnalisé
+- Toutes les colonnes de données (comme le CSV)
+- Format agréable à l'œil
+
+### ✅ Modifications apportées
+
+#### 1. Dépendances ajoutées
+```bash
+npm install jspdf jspdf-autotable
+```
+- **jsPDF** (v2.5.2) : Génération de PDF côté client
+- **jsPDF-AutoTable** (v3.8.4) : Tableaux formatés dans les PDF
+
+#### 2. Imports dans `src/App.tsx`
+- Ajout icône `FilePdf` de Phosphor React
+- Import `jsPDF` et `autoTable`
+
+#### 3. Nouvelle fonction `exportCollectionToPDF()`
+**Emplacement** : Ligne 2064-2317 dans `src/App.tsx`
+
+**Fonctionnalités** :
+- **Format** : A4 paysage (landscape) pour accommoder toutes les colonnes
+- **En-tête personnalisé** :
+  - Logo Kodeks (30x30px) en haut à gauche depuis `/kodeks-logo.png`
+  - Titre "Kodeks - Ma Collection" en bleu #2563eb
+  - Informations : bibliothèque / date d'export
+  - Ligne séparatrice bleue
+  - Statistiques par statut de lecture
+
+- **Tableau professionnel** avec **toutes les colonnes CSV** :
+  - ISBN, Titre, Auteurs, Éditeur, Date publication
+  - Pages, Catégories, Statut lecture, Type livre
+  - Note personnelle, Bibliothèques, Date ajout
+  - En-têtes : fond bleu (#2563eb), texte blanc
+  - Lignes alternées : blanc / gris clair (#f1f5f9)
+  - Taille police : 8pt pour optimiser l'espace
+
+- **Pied de page** sur chaque page :
+  - Numérotation "Page X / Y" centrée
+  - Date de génération à droite
+  - Couleur gris clair (#94a3b8)
+
+- **Gestion erreurs** :
+  - Chargement logo asynchrone (continue sans logo si échec)
+  - Try/catch global avec message d'erreur utilisateur
+
+#### 4. Interface utilisateur
+**Nouvel élément** : Bouton "Exporter PDF" (ligne 3554-3634)
+- **Position** : À côté du bouton "Exporter CSV" dans l'en-tête de la modal collection
+- **Style** : Bleu (cohérent avec le PDF), icône `FilePdf`
+- **Menu déroulant** : Identique au CSV
+  - "Toute la collection" (X livres)
+  - Liste des bibliothèques avec nombre de livres
+  - Boutons désactivés si bibliothèque vide
+
+#### 5. États React ajoutés
+- `showExportMenuPdf` : Gestion affichage menu déroulant PDF
+- Modification `useEffect` : Gestion fermeture des deux menus (CSV + PDF) au clic extérieur
+
+### 📁 Fichiers modifiés
+1. **`package.json`** : Ajout dépendances jspdf et jspdf-autotable
+2. **`src/App.tsx`** :
+   - Imports (ligne 34, 36-37)
+   - État `showExportMenuPdf` (ligne 999)
+   - Hook `useEffect` pour menus (ligne 1005-1020)
+   - Fonction `exportCollectionToPDF()` (ligne 2064-2317)
+   - Bouton UI "Exporter PDF" (ligne 3554-3634)
+
+### 🎨 Palette de couleurs
+- **Bleu principal** : #2563eb (en-têtes, titre, ligne)
+- **Gris foncé** : #475569 (statistiques)
+- **Gris moyen** : #64748b (sous-titres)
+- **Gris clair** : #94a3b8 (pied de page)
+- **Gris très clair** : #f1f5f9 (alternance lignes tableau)
+- **Blanc** : #ffffff (texte en-têtes, lignes principales)
+
+### 🎯 Résultat
+- ✅ Export PDF fonctionnel avec toutes les données
+- ✅ Design professionnel et cohérent
+- ✅ Logo Kodeks intégré
+- ✅ Pagination automatique multi-pages
+- ✅ Nom fichier formaté : `kodeks-[nom]-YYYY-MM-DD.pdf`
+- ✅ TypeCheck et Lint passent
+- ✅ Build réussi
+
+### 🧪 Tests effectués
+- ✅ `npm run typecheck` : Aucune erreur
+- ✅ `npm run lint` : Aucune erreur
+- ✅ `npm run build` : Build réussi (1m 23s)
+
+### 📝 Prochaines étapes
+L'utilisateur peut tester l'export PDF en :
+1. Lançant l'app en dev (`npm run dev`)
+2. Ouvrant sa collection
+3. Cliquant sur "Exporter PDF"
+4. Vérifiant le rendu du PDF généré
+
+---
+
 ## 2025-10-07 - 📝 docs: Renommage ScanBook → Kodeks dans documentation
 
 ### 🔧 Contexte
