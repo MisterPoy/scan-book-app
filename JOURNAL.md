@@ -2,6 +2,48 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+## 2025-11-18 - 🐛 Fix: Caméra scanner invisible sur Firefox
+
+### 🔧 Problème
+Sur Firefox (et potentiellement d'autres navigateurs), le flux vidéo de la caméra était autorisé (permissions accordées) mais ne s'affichait pas dans la zone de scan. La balise `<video>` restait noire/vide malgré l'accès caméra accordé.
+
+**Symptômes** :
+- Permissions caméra accordées ✅
+- Pas d'erreur dans la console
+- Zone de scan visible avec overlay
+- Vidéo noire/invisible (pas de flux affiché)
+
+### ✅ Solution
+Ajout des attributs HTML5 manquants sur la balise `<video>` :
+- **`autoPlay`** : Requis pour Firefox (démarre la lecture automatiquement)
+- **`playsInline`** : Requis pour iOS Safari et certains navigateurs mobiles
+- **`muted`** : Requis par certains navigateurs pour autoriser l'autoplay
+
+### 📁 Fichier modifié
+- **`src/components/ISBNScanner.tsx`** (ligne 442-444) : Ajout des 3 attributs sur `<video>`
+
+### 🎯 Code modifié
+```tsx
+<video
+  ref={ref}
+  className="rounded-lg shadow-lg w-full h-auto max-h-[50vh] object-cover"
+  style={{ aspectRatio: '4/3' }}
+  autoPlay      // ← AJOUTÉ
+  playsInline   // ← AJOUTÉ
+  muted         // ← AJOUTÉ
+/>
+```
+
+### 🧪 Tests
+- ✅ TypeCheck passe
+- ✅ Lint passe
+- 🧪 À tester : Vérifier sur Firefox que la caméra s'affiche maintenant
+
+### 📝 Note
+Ces attributs sont des standards HTML5 pour les flux vidéo `getUserMedia()`. Leur absence peut causer des comportements différents selon les navigateurs (Chrome plus permissif que Firefox).
+
+---
+
 ## 2025-11-18 - ✨ Feat: Export PDF professionnel avec logo et design bleu-gris
 
 ### 🔧 Contexte
