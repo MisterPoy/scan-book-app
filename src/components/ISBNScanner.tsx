@@ -439,6 +439,9 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
             ref={ref}
             className="rounded-lg shadow-lg w-full h-auto max-h-[50vh] object-cover"
             style={{ aspectRatio: '4/3' }}
+            autoPlay
+            playsInline
+            muted
           />
           {/* Zone de ciblage overlay */}
           <div className="absolute inset-0 pointer-events-none">
