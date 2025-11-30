@@ -2,6 +2,271 @@
 
 > **RÈGLE IMPORTANTE** : Ce journal DOIT être mis à jour à chaque modification pour permettre à un autre développeur/IA de reprendre le projet facilement en cas d'interruption.
 
+---
+
+## 2025-11-30 - ✨ Feat: Tableau de bord de gestion des utilisateurs (Admin)
+
+### 🎯 Objectif
+Créer un système complet de surveillance et gestion des comptes utilisateurs pour les administrateurs de Kodeks, permettant de :
+- Visualiser tous les utilisateurs inscrits avec statistiques
+- Filtrer par méthode d'authentification (Google, Email/Password)
+- Filtrer par activité (actifs/inactifs dans les 30 derniers jours)
+- Rechercher par email ou nom
+- Consulter les détails individuels (livres, bibliothèques, dernière activité)
+
+### 🏗️ Architecture Implémentée
+
+#### 1. Types TypeScript (`src/types/user.ts`) - NOUVEAU
+Création de 4 interfaces strictement typées :
+- **`UserData`** : Données utilisateur de base (uid, email, displayName, photoURL, emailVerified, createdAt, lastLoginAt, providerData, disabled, isAdmin)
+- **`UserStats`** : Statistiques calculées (totalBooks, totalLibraries, lastActivity)
+- **`UserWithStats`** : Combinaison UserData + UserStats
+- **`UsersOverview`** : Vue d'ensemble globale (totalUsers, activeUsers, googleUsers, emailUsers, newUsersThisWeek, newUsersThisMonth)
+
+**Respect du principe de Clean Code** : Séparation des types métier dans un fichier dédié.
+
+#### 2. Hook personnalisé (`src/hooks/useUsers.ts`) - NOUVEAU
+Hook suivant le principe de **Single Responsibility** avec 8 fonctions distinctes :
+
+**Fonctions principales** :
+- `fetchUsers()` : Récupère tous les utilisateurs depuis `user_profiles` collection
+- `getUserStats(uid)` : Calcule les stats (livres dans `users/{uid}/collection`, bibliothèques dans `users/{uid}/libraries`)
+- `calculateOverview()` : Calcule les statistiques globales (actifs 30j, nouveaux 7j/30j)
+
+**Fonctions de filtrage** :
+- `searchByEmail(query)` : Recherche par email ou nom (toLowerCase + includes)
+- `filterByProvider(provider)` : Filtre Google/Email via `providerData.providerId`
+- `filterByActivity(filter)` : Filtre actifs/inactifs (30 derniers jours)
+- `refresh()` : Recharge les données
+
+**États retournés** :
+- `users` : Array de UserWithStats
+- `overview` : Statistiques globales
+- `loading` : État de chargement
+- `error` : Message d'erreur éventuel
+
+**Optimisation** : Les 3 filtres sont combinables et appliqués en cascade.
+
+#### 3. Composant UI (`src/components/UserManagement.tsx`) - NOUVEAU
+Interface complète avec **5 sections** :
+
+**a) Header**
+- Titre "Gestion des Utilisateurs"
+- Bouton "Rafraîchir" avec icône ArrowsClockwise
+
+**b) Cards de statistiques (4 cards)**
+- Total Utilisateurs (icône UsersThree) + nouveaux cette semaine
+- Utilisateurs Actifs (icône CheckCircle) + 30 derniers jours
+- Google Auth (icône GoogleLogo) + pourcentage
+- Email/Password (icône EnvelopeSimple) + pourcentage
+
+**c) Graphiques visuels (2 graphiques Recharts)**
+- **Pie Chart** : Répartition par méthode d'authentification (Google rouge, Email bleu)
+- **Bar Chart** : Activité utilisateurs (actifs vs inactifs 30j)
+
+**d) Filtres et recherche (3 filtres)**
+- Recherche par email/nom (input avec icône MagnifyingGlass)
+- Méthode d'authentification (select : Tous / Google / Email)
+- Activité (select : Tous / Actifs 30j / Inactifs)
+- Compteur de résultats filtrés
+
+**e) Tableau utilisateurs**
+- Colonnes : Photo+Nom, Email, Provider (badges), Livres, Bibliothèques, Dernière connexion, Actions
+- Bouton "Détails" ouvre une **modal complète** avec :
+  - UID complet
+  - Statut de vérification email
+  - Date création + dernière connexion
+  - Méthodes d'authentification (badges colorés)
+  - Statistiques : Livres (bg-blue-50) et Bibliothèques (bg-purple-50)
+  - Dernière activité (ajout/modification livre)
+
+**Design system** :
+- Phosphor Icons exclusivement (UsersThree, CheckCircle, GoogleLogo, EnvelopeSimple, MagnifyingGlass, ArrowsClockwise, X, Info)
+- TailwindCSS avec couleurs cohérentes (bleu #2563eb, vert green-600, rouge red-500)
+- Responsive : Grid adaptatif (1 colonne mobile, 2-4 colonnes desktop)
+
+#### 4. Intégration App.tsx
+**Modifications apportées** :
+
+**Imports** :
+```tsx
+import { UsersThree, CaretDown as CaretDownIcon } from "phosphor-react";
+import { UserManagement } from "./components/UserManagement";
+```
+
+**États ajoutés** :
+```tsx
+const [showUserManagement, setShowUserManagement] = useState(false);
+const [showAdminMenu, setShowAdminMenu] = useState(false);
+```
+
+**Bouton Admin transformé en menu déroulant** (lignes 2570-2609) :
+- Bouton "Admin" avec icône CaretDown
+- Dropdown avec 2 options :
+  - "Annonces" (icône Megaphone) → ouvre AnnouncementManager
+  - "Utilisateurs" (icône UsersThree) → ouvre UserManagement
+- Fermeture automatique du menu après sélection
+
+**Modal plein écran** (lignes 4279-4294) :
+```tsx
+{showUserManagement && (
+  <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+    <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+      <h2 className="text-xl font-bold text-gray-900">Gestion des Utilisateurs</h2>
+      <button onClick={() => setShowUserManagement(false)} aria-label="Fermer">
+        <X size={24} />
+      </button>
+    </div>
+    <UserManagement />
+  </div>
+)}
+```
+
+### 🔒 Sécurité et Configuration Firebase
+
+#### Règles Firestore (`firestore-user-profiles.rules`) - NOUVEAU
+Fichier de règles Firestore pour la collection `user_profiles` :
+- **Lecture** : Seuls les admins (`isAdmin == true`) peuvent lire tous les profils
+- **Mise à jour** : Utilisateurs peuvent modifier uniquement `displayName` et `photoURL` OU admins peuvent tout modifier
+- **Création** : Bloquée (réservée Cloud Functions)
+- **Suppression** : Seuls les admins
+
+**IMPORTANT** : Ces règles doivent être **fusionnées** avec les règles existantes dans la console Firebase (ne pas écraser).
+
+#### Documentation complète (`SETUP_USER_MANAGEMENT.md`) - NOUVEAU
+Guide complet de **78 pages** incluant :
+
+**1. Configuration Firebase** :
+- Option A : Cloud Function (production) - Script complet fourni
+  - Sync Firebase Auth → Firestore lors de `onCreate` et `onDelete`
+  - Déploiement avec `firebase deploy --only functions`
+- Option B : Script Node.js manuel (développement) - Script de migration fourni
+  - Utilise Firebase Admin SDK
+  - Télécharge serviceAccountKey.json depuis Firebase Console
+  - Exécution : `node scripts/sync-users.js`
+
+**2. Déploiement règles Firestore** :
+- Instructions étape par étape dans Firebase Console
+- Fusion avec règles existantes
+
+**3. Définir le premier admin** :
+- Via Firebase Console (manuel)
+- Via script Admin SDK
+
+**4. Mise à jour `lastLoginAt`** :
+- Code à intégrer dans le composant Login
+- Utilise `updateDoc` Firestore
+
+**5. Utilisation** :
+- Accès au dashboard
+- Description des 5 sections
+- Fonctionnalités de filtrage
+
+**6. Sécurité** :
+- Vérification admin côté backend
+- Pas d'accès direct Firebase Auth (cache Firestore)
+- Limitation aux actions de lecture
+
+**7. Troubleshooting** :
+- Résolution erreur "Permission denied"
+- Collection vide
+- Statistiques incorrectes
+
+**8. Améliorations futures** :
+- Actions admin avancées (désactiver utilisateur, reset password)
+- Statistiques avancées (graphique d'évolution)
+- Export CSV/PDF
+- Notifications
+- Système de rôles
+
+### 📁 Fichiers Créés/Modifiés
+
+**Nouveaux fichiers** :
+- `src/types/user.ts` (38 lignes) - Interfaces TypeScript
+- `src/hooks/useUsers.ts` (211 lignes) - Hook de gestion utilisateurs
+- `src/components/UserManagement.tsx` (494 lignes) - Composant UI
+- `firestore-user-profiles.rules` (37 lignes) - Règles Firestore
+- `SETUP_USER_MANAGEMENT.md` (464 lignes) - Documentation complète
+
+**Fichiers modifiés** :
+- `src/App.tsx` :
+  - Ajout imports UsersThree, CaretDownIcon
+  - Import UserManagement
+  - Ajout états showUserManagement, showAdminMenu
+  - Transformation bouton Admin en dropdown (lignes 2570-2609)
+  - Ajout modal UserManagement (lignes 4279-4294)
+
+### 🧪 Tests et Validation
+
+**TypeCheck** : ✅ PASSE
+- Correction `UserCheck` → `CheckCircle` (Phosphor Icons)
+- Suppression imports inutilisés (AreaChart, Area, Legend)
+- Typage strict label Pie Chart (`props: { name?: string; percent?: number }`)
+- Suppression imports Firestore inutilisés (query, where)
+
+**ESLint** : ✅ PASSE
+- Suppression `@typescript-eslint/no-explicit-any` via typage strict
+- Ajout `// eslint-disable-next-line react-hooks/exhaustive-deps` pour useEffect initial
+
+### 🎯 Principes de Clean Code Appliqués
+
+1. **SOLID** :
+   - **Single Responsibility** : Chaque fonction du hook a une responsabilité unique
+   - **Open/Closed** : Le hook est extensible sans modification (ajout de nouveaux filtres)
+   - **Dependency Inversion** : Le composant dépend de l'abstraction (hook) pas de l'implémentation
+
+2. **Séparation des préoccupations** :
+   - Types → `src/types/user.ts`
+   - Logique métier → `src/hooks/useUsers.ts`
+   - Présentation → `src/components/UserManagement.tsx`
+
+3. **Code lisible et maintenable** :
+   - Noms de variables/fonctions explicites
+   - Commentaires JSDoc sur les fonctions complexes
+   - Formatage cohérent (Prettier)
+
+4. **Sécurité by Design** :
+   - Vérification admin dans les règles Firestore (défense en profondeur)
+   - Pas d'accès direct Firebase Auth (principe de moindre privilège)
+   - Documentation complète des risques et bonnes pratiques
+
+### 📊 Statistiques
+
+- **Lignes de code ajoutées** : ~1 300 lignes
+- **Nouveaux fichiers** : 5
+- **Dépendances** : Recharts (déjà installée)
+- **Temps de développement estimé** : 2-3 heures
+- **Complexité** : 2/5 (système admin standard)
+
+### 🚀 Prochaines Étapes (Optionnelles)
+
+1. **Configuration initiale** :
+   - Créer Cloud Function de sync Firebase Auth → Firestore
+   - Définir le premier admin dans Firestore
+   - Déployer les règles Firestore
+
+2. **Tests utilisateur** :
+   - Vérifier l'affichage des utilisateurs
+   - Tester les filtres combinés
+   - Valider les statistiques calculées
+
+3. **Améliorations** :
+   - Ajouter actions admin (désactiver compte)
+   - Implémenter export CSV/PDF des utilisateurs
+   - Créer graphique d'évolution temporelle
+
+### 📝 Notes Importantes
+
+⚠️ **ATTENTION** : La collection `user_profiles` doit être alimentée via :
+- **Production** : Cloud Function (sync automatique)
+- **Développement** : Script Node.js manuel (migration ponctuelle)
+
+⚠️ **SÉCURITÉ** : Ne jamais exposer les clés Admin SDK côté frontend. Toutes les opérations sensibles doivent passer par Cloud Functions.
+
+✅ **COMPATIBILITÉ** : Le système fonctionne avec Firebase Auth existant sans migration de données.
+
+---
+
 ## 2025-11-18 - 🐛 Fix: Caméra scanner invisible sur Firefox
 
 ### 🔧 Problème

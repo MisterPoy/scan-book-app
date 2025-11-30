@@ -32,6 +32,8 @@ import {
   DownloadSimple,
   CheckCircle,
   FilePdf,
+  UsersThree,
+  CaretDown as CaretDownIcon,
 } from "phosphor-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -46,6 +48,7 @@ import LibraryManager from "./components/LibraryManager";
 import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import NotificationSettings from "./components/NotificationSettings";
+import { UserManagement } from "./components/UserManagement";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import ScrollToTop from "./components/ScrollToTop";
@@ -967,6 +970,8 @@ function App() {
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] =
     useState(false);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
@@ -2563,15 +2568,44 @@ function App() {
                     )}
                   </button>
                   {isAdmin && (
-                    <button
-                      onClick={() => setShowAnnouncementManager(true)}
-                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                    >
-                      <span className="hidden lg:inline">Admin</span>
-                      <span className="lg:hidden">
-                        <Megaphone size={18} weight="bold" />
-                      </span>
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowAdminMenu(!showAdminMenu)}
+                        className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      >
+                        <span className="hidden lg:inline">Admin</span>
+                        <span className="lg:hidden">
+                          <Megaphone size={18} weight="bold" />
+                        </span>
+                        <CaretDownIcon size={14} weight="bold" />
+                      </button>
+                      {showAdminMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                          <div className="py-1">
+                            <button
+                              onClick={() => {
+                                setShowAnnouncementManager(true);
+                                setShowAdminMenu(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <Megaphone size={16} />
+                              Annonces
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserManagement(true);
+                                setShowAdminMenu(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <UsersThree size={16} />
+                              Utilisateurs
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <button
                     onClick={() => setShowNotificationSettings(true)}
@@ -4241,6 +4275,23 @@ function App() {
         onClose={() => setShowAnnouncementManager(false)}
         currentUser={user ? { uid: user.uid, role: "admin" } : undefined}
       />
+
+      {/* User Management Modal */}
+      {showUserManagement && (
+        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+            <h2 className="text-xl font-bold text-gray-900">Gestion des Utilisateurs</h2>
+            <button
+              onClick={() => setShowUserManagement(false)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          <UserManagement />
+        </div>
+      )}
 
       {/* Post-Scan Confirmation Modal */}
       {showPostScanConfirm && scannedBookData && (
