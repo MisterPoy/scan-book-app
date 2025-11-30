@@ -30,6 +30,10 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+# Firebase Admin SDK (secrets)
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
 # Journalisation locale (ne pas commiter)
 JOURNAL_*.md
 *_JOURNAL.md
