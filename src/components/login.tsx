@@ -24,20 +24,24 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
 
   const handleGoogleLogin = async () => {
     try {
-      const isChromeMobile = /Chrome/.test(navigator.userAgent) && isMobile;
-
-      if (isChromeMobile) {
-        try {
-          const result = await signInWithPopup(auth, provider);
-          onLogin(result.user);
-        } catch {
-          await signInWithRedirect(auth, provider);
-        }
-      } else if (isMobile) {
-        await signInWithRedirect(auth, provider);
-      } else {
+      try {
         const result = await signInWithPopup(auth, provider);
         onLogin(result.user);
+        return;
+      } catch (err) {
+        const error = err as { code?: string };
+        const shouldFallbackToRedirect =
+          isMobile ||
+          error.code === "auth/popup-blocked" ||
+          error.code === "auth/popup-closed-by-user" ||
+          error.code === "auth/operation-not-supported-in-this-environment";
+
+        if (shouldFallbackToRedirect) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+
+        console.error("Erreur de connexion Google :", err);
       }
     } catch (err) {
       console.error("Erreur de connexion Google :", err);

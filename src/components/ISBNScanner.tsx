@@ -120,6 +120,31 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     message: string;
   }>({ type: null, message: '' });
 
+  const getCameraErrorMessage = (err: unknown) => {
+    const errorName =
+      typeof err === "object" && err !== null && "name" in err
+        ? String((err as { name?: string }).name)
+        : "";
+
+    switch (errorName) {
+      case "NotAllowedError":
+      case "PermissionDeniedError":
+        return "Accès caméra refusé. Dans Brave, autorisez la caméra et désactivez Shields pour ce site.";
+      case "NotFoundError":
+      case "DevicesNotFoundError":
+        return "Aucune caméra détectée sur cet appareil.";
+      case "NotReadableError":
+      case "AbortError":
+        return "Impossible d'accéder à la caméra. Fermez les autres apps qui l'utilisent.";
+      case "OverconstrainedError":
+        return "La caméra ne supporte pas les contraintes demandées.";
+      case "SecurityError":
+        return "Accès caméra bloqué (contexte non sécurisé). Utilisez HTTPS.";
+      default:
+        return "Erreur d'accès à la caméra. Vérifiez les permissions du navigateur.";
+    }
+  };
+
   // États pour le flash/torch avec persistance localStorage
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchEnabled, setTorchEnabled] = useState(() => {
@@ -152,6 +177,9 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
     },
     onDecodeError() {
       // Erreurs de scan normales (pas de code trouvé)
+    },
+    onError(err) {
+      setError(getCameraErrorMessage(err));
     },
     paused: !cameraActive,
     constraints: {
