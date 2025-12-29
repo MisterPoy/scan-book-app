@@ -2140,7 +2140,7 @@ function App() {
 
       // Charger et ajouter le logo Kodeks
       const logoImg = new Image();
-      logoImg.src = "/kodeksLogo.png";
+      logoImg.src = "/KodeksLogo.png";
 
       await new Promise<void>((resolve) => {
         logoImg.onload = () => {
@@ -2528,7 +2528,7 @@ function App() {
               title="Retour à l'accueil"
             >
               <img
-                src="/kodeksLogo.png"
+                src="/KodeksLogo.png"
                 alt="Kodeks"
                 className="h-8 w-8 sm:h-10 sm:w-10"
               />
@@ -3487,7 +3487,7 @@ function App() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/kodeksLogo.png"
+                    src="/KodeksLogo.png"
                     alt="Kodeks"
                     className="h-8 w-8 sm:h-10 sm:w-10"
                   />
