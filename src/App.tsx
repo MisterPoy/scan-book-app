@@ -2140,7 +2140,7 @@ function App() {
 
       // Charger et ajouter le logo Kodeks
       const logoImg = new Image();
-      logoImg.src = "/kodeks-logo.png";
+      logoImg.src = "/kodeksLogo.png";
 
       await new Promise<void>((resolve) => {
         logoImg.onload = () => {

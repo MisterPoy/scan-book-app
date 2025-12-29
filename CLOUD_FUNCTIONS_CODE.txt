@@ -1,0 +1,48 @@
+// CODE À COPIER DANS functions/index.js
+
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+
+admin.initializeApp();
+
+/**
+ * Sync Firebase Auth → Firestore lors de la CRÉATION d'un utilisateur
+ * Se déclenche automatiquement à chaque inscription
+ */
+exports.syncUserProfileOnCreate = functions.auth.user().onCreate(async (user) => {
+  const userProfile = {
+    uid: user.uid,
+    email: user.email || null,
+    displayName: user.displayName || null,
+    photoURL: user.photoURL || null,
+    emailVerified: user.emailVerified,
+    createdAt: user.metadata.creationTime,
+    lastLoginAt: user.metadata.lastSignInTime || user.metadata.creationTime,
+    providerData: user.providerData.map((p) => ({
+      providerId: p.providerId,
+      email: p.email || null,
+    })),
+    disabled: user.disabled || false,
+    isAdmin: false, // Par défaut, pas admin
+  };
+
+  await admin.firestore()
+    .collection("user_profiles")
+    .doc(user.uid)
+    .set(userProfile);
+
+  console.log(`✅ User profile created for: ${user.email || user.uid}`);
+});
+
+/**
+ * Sync Firebase Auth → Firestore lors de la SUPPRESSION d'un utilisateur
+ * Nettoie les données Firestore quand un compte est supprimé
+ */
+exports.syncUserProfileOnDelete = functions.auth.user().onDelete(async (user) => {
+  await admin.firestore()
+    .collection("user_profiles")
+    .doc(user.uid)
+    .delete();
+
+  console.log(`🗑️ User profile deleted for: ${user.email || user.uid}`);
+});
