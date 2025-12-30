@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Book, CheckCircle, X } from 'phosphor-react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PostScanConfirmProps {
   isbn: string;
@@ -19,10 +21,32 @@ export default function PostScanConfirm({
   onConfirm,
   onCancel
 }: PostScanConfirmProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(true);
+
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const handleCloseRequest = () => onCancel();
+    modal.addEventListener('modal-close-request', handleCloseRequest);
+
+    return () => {
+      modal.removeEventListener('modal-close-request', handleCloseRequest);
+    };
+  }, [modalRef, onCancel]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Livre détecté</h2>
+      <div
+        ref={modalRef}
+        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="post-scan-title"
+      >
+        <h2 id="post-scan-title" className="text-xl font-bold text-gray-900 mb-4">
+          Livre détecté
+        </h2>
 
         <div className="flex gap-4 mb-6">
           {/* Couverture */}

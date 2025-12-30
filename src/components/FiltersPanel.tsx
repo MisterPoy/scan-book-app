@@ -51,6 +51,7 @@ export default function FiltersPanel({
   userLibraries = []
 }: FiltersPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const panelId = "filters-panel";
 
   const toggleFilter = (category: 'readingStatus' | 'bookType' | 'genre' | 'authors' | 'libraries', value: string) => {
     const newFilters = { ...filters };
@@ -101,9 +102,12 @@ export default function FiltersPanel({
   return (
     <div className="bg-white border border-gray-200 rounded-lg mb-6">
       {/* Header avec toggle */}
-      <div 
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+      <button
+        type="button"
+        className="flex w-full items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
       >
         <div className="flex items-center gap-3">
           <h3 className="font-medium text-gray-900">Filtres</h3>
@@ -118,18 +122,23 @@ export default function FiltersPanel({
           <span className="text-sm text-gray-600">
             {filteredCount} / {bookCount} livre{bookCount > 1 ? 's' : ''}
           </span>
-          <button className="text-gray-400 hover:text-gray-600 transition-colors">
-            {isExpanded ? '▲' : '▼'}
-          </button>
+          <span className="text-gray-400 hover:text-gray-600 transition-colors" aria-hidden="true">
+            {isExpanded ? '^' : 'v'}
+          </span>
         </div>
-      </div>
+      </button>
 
       {/* Contenu des filtres */}
-      <div className={`transition-all duration-300 flex ${
-        isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-      }`}>
+      <div
+        id={panelId}
+        className={`transition-all duration-300 flex ${
+          isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+        aria-hidden={!isExpanded}
+      >
         <div className="px-4 pb-4 border-t overflow-y-auto max-h-[580px]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+          <fieldset disabled={!isExpanded}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             
             {/* Statut de lecture */}
             <div>
@@ -246,6 +255,7 @@ export default function FiltersPanel({
                       yearRange: [value, filters.yearRange[1]]
                     });
                   }}
+                  aria-label="Année de publication, début"
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                 />
                 <input
@@ -259,6 +269,7 @@ export default function FiltersPanel({
                       yearRange: [filters.yearRange[0], value]
                     });
                   }}
+                  aria-label="Année de publication, fin"
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -279,6 +290,7 @@ export default function FiltersPanel({
                       pageRange: [value, filters.pageRange[1]]
                     });
                   }}
+                  aria-label="Nombre de pages, minimum"
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                 />
                 <input
@@ -292,6 +304,7 @@ export default function FiltersPanel({
                       pageRange: [filters.pageRange[0], value]
                     });
                   }}
+                  aria-label="Nombre de pages, maximum"
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -356,6 +369,7 @@ export default function FiltersPanel({
               Appliquer les filtres
             </button>
           </div>
+          </fieldset>
         </div>
       </div>
     </div>

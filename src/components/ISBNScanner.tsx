@@ -92,6 +92,7 @@ function ScannedBookMiniCard({
         onClick={onRemove}
         className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full transition-colors cursor-pointer"
         title="Retirer de la pile"
+        aria-label="Retirer de la pile"
       >
         <X size={12} weight="bold" />
       </button>

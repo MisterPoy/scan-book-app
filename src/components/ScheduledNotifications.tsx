@@ -363,6 +363,8 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
                           : 'text-green-600 hover:bg-green-50'
                       }`}
                       title={notification.isActive ? 'Suspendre' : 'Activer'}
+                      aria-label={notification.isActive ? "Suspendre la notification" : "Activer la notification"}
+                      aria-pressed={notification.isActive}
                     >
                       {notification.isActive ? <Pause size={16} /> : <Play size={16} />}
                     </button>
@@ -372,6 +374,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
                     onClick={() => deleteNotification(notification.id!)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                     title="Supprimer"
+                    aria-label="Supprimer la notification"
                   >
                     <Trash size={16} />
                   </button>

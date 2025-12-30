@@ -91,7 +91,7 @@ export default function Footer() {
             © {currentYear} Kodeks - Tous droits réservés
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Version 1.0.0 - PWA
+            Version 1.0.1 - PWA
           </p>
         </div>
       </div>

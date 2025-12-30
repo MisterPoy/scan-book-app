@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUsers } from "../hooks/useUsers";
 import type { UserWithStats } from "../types/user";
 import {
@@ -23,6 +23,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 /**
  * Composant de gestion des utilisateurs (Admin uniquement)
@@ -49,6 +50,20 @@ export function UserManagement() {
   const [providerFilter, setProviderFilter] = useState<"all" | "google" | "email">("all");
   const [activityFilter, setActivityFilter] = useState<"all" | "active" | "inactive">("all");
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
+  const detailModalRef = useFocusTrap<HTMLDivElement>(!!selectedUser);
+
+  useEffect(() => {
+    if (!selectedUser) return;
+    const modal = detailModalRef.current;
+    if (!modal) return;
+
+    const handleCloseRequest = () => setSelectedUser(null);
+    modal.addEventListener("modal-close-request", handleCloseRequest);
+
+    return () => {
+      modal.removeEventListener("modal-close-request", handleCloseRequest);
+    };
+  }, [selectedUser, detailModalRef]);
 
   // Appliquer tous les filtres
   const getFilteredUsers = (): UserWithStats[] => {
@@ -247,7 +262,7 @@ export function UserManagement() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Recherche */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-2">
                 Rechercher
               </label>
               <div className="relative">
@@ -256,6 +271,7 @@ export function UserManagement() {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="user-search"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -267,10 +283,11 @@ export function UserManagement() {
 
             {/* Filtre Provider */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="user-provider-filter" className="block text-sm font-medium text-gray-700 mb-2">
                 Méthode d'authentification
               </label>
               <select
+                id="user-provider-filter"
                 value={providerFilter}
                 onChange={(e) =>
                   setProviderFilter(e.target.value as "all" | "google" | "email")
@@ -285,10 +302,11 @@ export function UserManagement() {
 
             {/* Filtre Activité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="user-activity-filter" className="block text-sm font-medium text-gray-700 mb-2">
                 Activité
               </label>
               <select
+                id="user-activity-filter"
                 value={activityFilter}
                 onChange={(e) =>
                   setActivityFilter(e.target.value as "all" | "active" | "inactive")
@@ -315,25 +333,25 @@ export function UserManagement() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Utilisateur
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Provider
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Livres
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Bibliothèques
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Dernière connexion
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -436,8 +454,12 @@ export function UserManagement() {
             onClick={() => setSelectedUser(null)}
           >
             <div
+              ref={detailModalRef}
               className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="user-details-title"
             >
               <div className="p-6">
                 {/* Header */}
@@ -459,7 +481,7 @@ export function UserManagement() {
                       </div>
                     )}
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
+                      <h2 id="user-details-title" className="text-2xl font-bold text-gray-900">
                         {selectedUser.displayName || "Sans nom"}
                       </h2>
                       <p className="text-gray-600">{selectedUser.email}</p>

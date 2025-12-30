@@ -28,6 +28,7 @@ import {
 } from '../services/announcements';
 import NotificationStats from './NotificationStats';
 import ScheduledNotifications from './ScheduledNotifications';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface AnnouncementManagerProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ const PRIORITY_COLORS = {
 };
 
 export default function AnnouncementManager({ isOpen, onClose, currentUser }: AnnouncementManagerProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'announcements' | 'stats' | 'scheduled'>('announcements');
@@ -78,6 +80,19 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
       loadAnnouncements();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const handleCloseRequest = () => onClose();
+    modal.addEventListener("modal-close-request", handleCloseRequest);
+
+    return () => {
+      modal.removeEventListener("modal-close-request", handleCloseRequest);
+    };
+  }, [isOpen, modalRef, onClose]);
 
   const loadAnnouncements = async () => {
     try {
@@ -178,9 +193,18 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+      <div
+        ref={modalRef}
+        className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="announcement-manager-title"
+      >
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h2
+            id="announcement-manager-title"
+            className="text-2xl font-bold text-gray-900 flex items-center gap-2"
+          >
             <Megaphone size={24} weight="bold" />
             Gestion des annonces
           </h2>
@@ -195,7 +219,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
 
         {/* Onglets de navigation */}
         <div className="border-b border-gray-200 px-6">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-8" role="tablist" aria-label="Gestion des annonces">
             <button
               onClick={() => setActiveTab('announcements')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -203,6 +227,10 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
+              role="tab"
+              id="announcements-tab"
+              aria-controls="announcements-panel"
+              aria-selected={activeTab === 'announcements'}
             >
               <div className="flex items-center gap-2">
                 <Megaphone size={16} />
@@ -217,6 +245,10 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
+              role="tab"
+              id="stats-tab"
+              aria-controls="stats-panel"
+              aria-selected={activeTab === 'stats'}
             >
               <div className="flex items-center gap-2">
                 <ChartBar size={16} />
@@ -231,6 +263,10 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
+              role="tab"
+              id="scheduled-tab"
+              aria-controls="scheduled-panel"
+              aria-selected={activeTab === 'scheduled'}
             >
               <div className="flex items-center gap-2">
                 <Clock size={16} />
@@ -242,7 +278,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
 
         <div className="p-6">
           {activeTab === 'announcements' && (
-            <>
+            <div role="tabpanel" id="announcements-panel" aria-labelledby="announcements-tab">
               {/* Header avec bouton créer */}
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -273,10 +309,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="announcement-title" className="block text-sm font-medium text-gray-700 mb-2">
                       Titre *
                     </label>
                     <input
+                      id="announcement-title"
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
@@ -287,10 +324,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="announcement-type" className="block text-sm font-medium text-gray-700 mb-2">
                       Type
                     </label>
                     <select
+                      id="announcement-type"
                       value={formData.type}
                       onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'info' | 'warning' | 'success' | 'error' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -304,10 +342,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="announcement-message" className="block text-sm font-medium text-gray-700 mb-2">
                     Message *
                   </label>
                   <textarea
+                    id="announcement-message"
                     value={formData.message}
                     onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -319,10 +358,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="announcement-display-mode" className="block text-sm font-medium text-gray-700 mb-2">
                       Mode d'affichage
                     </label>
                     <select
+                      id="announcement-display-mode"
                       value={formData.displayMode}
                       onChange={(e) => setFormData(prev => ({ ...prev, displayMode: e.target.value as 'banner' | 'modal' | 'both' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -334,10 +374,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="announcement-priority" className="block text-sm font-medium text-gray-700 mb-2">
                       Priorité
                     </label>
                     <select
+                      id="announcement-priority"
                       value={formData.priority}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -349,10 +390,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="announcement-target" className="block text-sm font-medium text-gray-700 mb-2">
                       Public cible
                     </label>
                     <select
+                      id="announcement-target"
                       value={formData.targetAudience}
                       onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value as 'all' | 'admins' | 'specific' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -364,10 +406,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="announcement-expires" className="block text-sm font-medium text-gray-700 mb-2">
                     Date d'expiration (optionnelle)
                   </label>
                   <input
+                    id="announcement-expires"
                     type="datetime-local"
                     value={formData.expiresAt ? new Date(formData.expiresAt).toISOString().slice(0, 16) : ''}
                     onChange={(e) => setFormData(prev => ({
@@ -434,6 +477,8 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                         onClick={() => handleToggleStatus(announcement)}
                         className={`p-1 cursor-pointer ${announcement.isActive ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
                         title={announcement.isActive ? 'Désactiver' : 'Activer'}
+                        aria-label={announcement.isActive ? "Désactiver l'annonce" : "Activer l'annonce"}
+                        aria-pressed={announcement.isActive}
                       >
                         {announcement.isActive ? <Eye size={16} /> : <EyeClosed size={16} />}
                       </button>
@@ -441,6 +486,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                         onClick={() => handleEdit(announcement)}
                         className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
                         title="Modifier"
+                        aria-label="Modifier l'annonce"
                       >
                         <Pencil size={16} />
                       </button>
@@ -448,6 +494,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                         onClick={() => handleDelete(announcement)}
                         className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
                         title="Supprimer"
+                        aria-label="Supprimer l'annonce"
                       >
                         <Trash size={16} />
                       </button>
@@ -479,20 +526,24 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
               ))}
             </div>
           )}
-            </>
+            </div>
           )}
 
           {/* Onglet Statistiques des notifications */}
           {activeTab === 'stats' && (
-            <NotificationStats />
+            <div role="tabpanel" id="stats-panel" aria-labelledby="stats-tab">
+              <NotificationStats />
+            </div>
           )}
 
           {/* Onglet Notifications programmées */}
           {activeTab === 'scheduled' && (
-            <ScheduledNotifications
-              userId={currentUser?.uid || ''}
-              userRole={currentUser?.role || 'user'}
-            />
+            <div role="tabpanel" id="scheduled-panel" aria-labelledby="scheduled-tab">
+              <ScheduledNotifications
+                userId={currentUser?.uid || ''}
+                userRole={currentUser?.role || 'user'}
+              />
+            </div>
           )}
         </div>
       </div>

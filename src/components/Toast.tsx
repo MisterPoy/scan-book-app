@@ -50,8 +50,15 @@ export default function Toast({ message, type, isVisible, onClose, duration = 50
 
   const style = styles[type];
 
+  const ariaLive = type === "error" ? "assertive" : "polite";
+
   return (
-    <div className="fixed top-4 right-4 z-[60] animate-slideIn">
+    <div
+      className="fixed top-4 right-4 z-[60] animate-slideIn"
+      role="status"
+      aria-live={ariaLive}
+      aria-atomic="true"
+    >
       <div className={`${style.bg} ${style.border} border-2 rounded-lg shadow-lg p-4 min-w-[320px] max-w-md flex items-start gap-3`}>
         <div className="flex-shrink-0 mt-0.5">
           {style.icon}

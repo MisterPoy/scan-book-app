@@ -85,7 +85,7 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
   if (showResetForm) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">
+        <h2 id="auth-modal-title" className="text-2xl font-bold mb-4 text-center">
           <Key size={16} weight="regular" className="inline mr-2" />
           Réinitialiser le mot de passe
         </h2>
@@ -95,7 +95,11 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
         
         {/* Formulaire Reset */}
         <form onSubmit={handlePasswordReset} className="mb-4">
+          <label htmlFor="reset-email" className="sr-only">
+            Adresse email
+          </label>
           <input
+            id="reset-email"
             type="email"
             placeholder="Votre adresse email"
             value={resetEmail}
@@ -139,23 +143,33 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-      <h2 className="text-2xl font-bold mb-4 text-center">
+      <h2 id="auth-modal-title" className="text-2xl font-bold mb-4 text-center">
         {isRegister ? "Créer un compte" : "Se connecter"}
       </h2>
       
       {/* Formulaire Email/Password */}
       <form onSubmit={handleEmailAuth} className="mb-4">
         {isRegister && (
-          <input
-            type="text"
-            placeholder="Nom d'utilisateur"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
+          <>
+            <label htmlFor="register-display-name" className="sr-only">
+              Nom d'utilisateur
+            </label>
+            <input
+              id="register-display-name"
+              type="text"
+              placeholder="Nom d'utilisateur"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </>
         )}
+        <label htmlFor="auth-email" className="sr-only">
+          Email
+        </label>
         <input
+          id="auth-email"
           type="email"
           placeholder="Email"
           value={email}
@@ -163,7 +177,11 @@ export default function Login({ onLogin }: { onLogin: (user: User) => void }) {
           className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
+        <label htmlFor="auth-password" className="sr-only">
+          Mot de passe
+        </label>
         <input
+          id="auth-password"
           type="password"
           placeholder="Mot de passe"
           value={password}

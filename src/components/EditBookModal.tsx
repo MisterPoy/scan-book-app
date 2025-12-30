@@ -191,10 +191,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
             {/* Colonne gauche - Informations */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-2">
                   Titre * (obligatoire)
                 </label>
                 <input
+                  id="edit-title"
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
@@ -205,10 +206,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-authors" className="block text-sm font-medium text-gray-700 mb-2">
                   Auteur(s) (séparés par des virgules)
                 </label>
                 <input
+                  id="edit-authors"
                   type="text"
                   value={formData.authors}
                   onChange={(e) => setFormData(prev => ({ ...prev, authors: e.target.value }))}
@@ -218,10 +220,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-publisher" className="block text-sm font-medium text-gray-700 mb-2">
                   Éditeur
                 </label>
                 <input
+                  id="edit-publisher"
                   type="text"
                   value={formData.publisher}
                   onChange={(e) => setFormData(prev => ({ ...prev, publisher: e.target.value }))}
@@ -232,10 +235,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="edit-published-date" className="block text-sm font-medium text-gray-700 mb-2">
                     Année de publication
                   </label>
                   <input
+                    id="edit-published-date"
                     type="text"
                     value={formData.publishedDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, publishedDate: e.target.value }))}
@@ -245,10 +249,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="edit-page-count" className="block text-sm font-medium text-gray-700 mb-2">
                     Nombre de pages
                   </label>
                   <input
+                    id="edit-page-count"
                     type="number"
                     value={formData.pageCount}
                     onChange={(e) => setFormData(prev => ({ ...prev, pageCount: e.target.value }))}
@@ -259,10 +264,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-2">
                   Description / Résumé
                 </label>
                 <textarea
+                  id="edit-description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
@@ -274,11 +280,12 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               {/* Nouveaux champs pour les filtres */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="edit-reading-status" className="block text-sm font-medium text-gray-700 mb-2">
                     <ChartBar size={16} weight="regular" className="inline mr-2" />
                     Statut de lecture
                   </label>
                   <select
+                    id="edit-reading-status"
                     value={formData.readingStatus}
                     onChange={(e) => setFormData(prev => ({ ...prev, readingStatus: e.target.value as 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -292,11 +299,12 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="edit-book-type" className="block text-sm font-medium text-gray-700 mb-2">
                     <DeviceMobile size={16} weight="regular" className="inline mr-2" />
                     Type de livre
                   </label>
                   <select
+                    id="edit-book-type"
                     value={formData.bookType}
                     onChange={(e) => setFormData(prev => ({ ...prev, bookType: e.target.value as 'physique' | 'numerique' | 'audio' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -309,11 +317,12 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-genre" className="block text-sm font-medium text-gray-700 mb-2">
                   <Tag size={16} weight="regular" className="inline mr-2" />
                   Genre / Catégorie
                 </label>
                 <input
+                  id="edit-genre"
                   type="text"
                   value={formData.genre}
                   onChange={(e) => setFormData(prev => ({ ...prev, genre: e.target.value }))}
@@ -323,11 +332,12 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="edit-tags" className="block text-sm font-medium text-gray-700 mb-2">
                   <Tag size={16} weight="regular" className="inline mr-2" />
                   Tags (séparés par des virgules)
                 </label>
                 <input
+                  id="edit-tags"
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
@@ -404,6 +414,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                         onClick={handleRemoveCover}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
                         title="Supprimer la couverture"
+                        aria-label="Supprimer la couverture"
                       >
                         ×
                       </button>

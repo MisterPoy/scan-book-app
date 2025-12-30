@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellSlash, Play, Warning, CheckCircle, TestTube } from 'phosphor-react';
 import { useNotifications } from '../hooks/useNotifications';
 import NotificationTest from './NotificationTest';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface NotificationSettingsProps {
   userId: string | null;
@@ -11,6 +12,20 @@ interface NotificationSettingsProps {
 
 export default function NotificationSettings({ userId, userName, isAdmin = false }: NotificationSettingsProps) {
   const [showTestPanel, setShowTestPanel] = useState(false);
+  const testPanelRef = useFocusTrap<HTMLDivElement>(showTestPanel);
+
+  useEffect(() => {
+    if (!showTestPanel) return;
+    const panel = testPanelRef.current;
+    if (!panel) return;
+
+    const handleCloseRequest = () => setShowTestPanel(false);
+    panel.addEventListener('modal-close-request', handleCloseRequest);
+
+    return () => {
+      panel.removeEventListener('modal-close-request', handleCloseRequest);
+    };
+  }, [showTestPanel, testPanelRef]);
 
   const {
     supported,
@@ -150,12 +165,21 @@ export default function NotificationSettings({ userId, userName, isAdmin = false
       {/* Panneau de tests avancés */}
       {showTestPanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div
+            ref={testPanelRef}
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="notification-tests-title"
+          >
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h2 className="text-xl font-bold text-gray-900">Tests avancés de notifications</h2>
+              <h2 id="notification-tests-title" className="text-xl font-bold text-gray-900">
+                Tests avancés de notifications
+              </h2>
               <button
                 onClick={() => setShowTestPanel(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Fermer"
               >
                 ×
               </button>

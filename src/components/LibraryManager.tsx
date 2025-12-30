@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { UserLibrary } from "../types/library";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import {
   Book,
   BookOpen,
@@ -103,6 +104,7 @@ export default function LibraryManager({
   isOpen,
   onClose,
 }: LibraryManagerProps) {
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingLibrary, setEditingLibrary] = useState<UserLibrary | null>(
     null
@@ -222,13 +224,35 @@ export default function LibraryManager({
     setShowCreateForm(false);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const handleCloseRequest = () => onClose();
+    modal.addEventListener("modal-close-request", handleCloseRequest);
+
+    return () => {
+      modal.removeEventListener("modal-close-request", handleCloseRequest);
+    };
+  }, [isOpen, modalRef, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+      <div
+        ref={modalRef}
+        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="library-manager-title"
+      >
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h2
+            id="library-manager-title"
+            className="text-2xl font-bold text-gray-900 flex items-center gap-2"
+          >
             <Folder size={24} weight="bold" />
             Gestion des bibliothèques
           </h2>
@@ -338,6 +362,8 @@ export default function LibraryManager({
                               ? "border-blue-500 bg-blue-50"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
+                          aria-label={`Icône ${icon}`}
+                          aria-pressed={newLibrary.icon === icon}
                         >
                           <div className="w-6 h-6 flex items-center justify-center">
                             {renderIcon(icon, 20)}
@@ -366,6 +392,8 @@ export default function LibraryManager({
                               : "border-gray-300 hover:border-gray-400"
                           }`}
                           style={{ backgroundColor: color }}
+                          aria-label={`Couleur ${color}`}
+                          aria-pressed={newLibrary.color === color}
                         />
                       ))}
                     </div>
@@ -484,7 +512,8 @@ export default function LibraryManager({
                         <button
                           onClick={() => handleEditLibrary(library)}
                           className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
-                          title="Modifier cette bibliothèque"
+                        title="Modifier cette bibliothèque"
+                        aria-label="Modifier cette bibliothèque"
                         >
                           <PencilSimple size={16} weight="regular" />
                         </button>
@@ -493,6 +522,7 @@ export default function LibraryManager({
                         onClick={() => handleDeleteLibrary(library)}
                         className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
                         title="Supprimer cette bibliothèque"
+                        aria-label="Supprimer cette bibliothèque"
                       >
                         <Trash size={16} weight="regular" />
                       </button>

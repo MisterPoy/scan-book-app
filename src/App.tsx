@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useRef, useMemo } from "react";
+import { useEffect, useState, lazy, Suspense, useRef, useMemo, type RefObject } from "react";
 import {
   Check,
   Circle,
@@ -56,6 +56,7 @@ import ModalScrollToTop from "./components/ModalScrollToTop";
 import Toast from "./components/Toast";
 import Footer from "./components/Footer";
 import { useBookFilters } from "./hooks/useBookFilters";
+import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
 import { auth, db } from "./firebase";
 import {
@@ -101,6 +102,25 @@ interface CollectionBook {
   libraries?: string[]; // IDs des bibliothèques
   categories?: string[]; // Catégories Google Books
   personalNote?: string; // Note personnelle de l'utilisateur
+}
+
+function useModalCloseRequest<T extends HTMLElement>(
+  ref: RefObject<T | null>,
+  isActive: boolean,
+  onClose: () => void
+) {
+  useEffect(() => {
+    if (!isActive) return;
+    const modal = ref.current;
+    if (!modal) return;
+
+    const handleCloseRequest = () => onClose();
+    modal.addEventListener("modal-close-request", handleCloseRequest);
+
+    return () => {
+      modal.removeEventListener("modal-close-request", handleCloseRequest);
+    };
+  }, [ref, isActive, onClose]);
 }
 
 // Composant vue compacte pour la grille
@@ -182,13 +202,29 @@ function CompactBookCard({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onContextMenu={handleContextMenu}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selectionMode ? !!isSelected : undefined}
+      aria-label={
+        selectionMode
+          ? `Sélectionner ${book.title}`
+          : `Ouvrir ${book.title}`
+      }
       className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02] ${
         isSelected
           ? "border-blue-500 border-2 ring-2 ring-blue-200"
@@ -209,9 +245,10 @@ function CompactBookCard({
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={() => {}} // Géré par onClick de la carte
+                onChange={() => onClick()} // Géré par onClick de la carte
                 className="w-5 h-5 cursor-pointer accent-blue-600"
                 onClick={(e) => e.stopPropagation()}
+                aria-label={`Sélectionner ${book.title}`}
               />
             </div>
           )}
@@ -618,6 +655,7 @@ function CollectionBookCard({
                 onClick={handleRestoreOriginal}
                 className="px-2 py-1 text-xs font-medium bg-gray-500 text-white hover:bg-gray-600 rounded transition-all cursor-pointer"
                 title="Restaurer l'image originale"
+                aria-label="Restaurer l'image originale"
               >
                 <ArrowClockwise size={16} weight="regular" />
               </button>
@@ -661,6 +699,7 @@ function CollectionBookCard({
                 onClick={onEdit}
                 className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors cursor-pointer"
                 title="Modifier ce livre"
+                aria-label="Modifier ce livre"
               >
                 <PencilSimple size={16} weight="regular" />
               </button>
@@ -669,6 +708,7 @@ function CollectionBookCard({
               onClick={onRemove}
               className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
               title="Supprimer de la collection"
+              aria-label="Supprimer de la collection"
             >
               <Trash size={16} weight="regular" />
             </button>
@@ -726,6 +766,7 @@ function CollectionBookCard({
                       className="px-2 py-1 rounded text-xs text-white transition-colors hover:opacity-80 cursor-pointer"
                       style={{ backgroundColor: library.color || "#3B82F6" }}
                       title={`Retirer de ${library.name}`}
+                      aria-label={`Retirer de ${library.name}`}
                     >
                       {renderLibraryIcon(library.icon || "BK", 16)}{" "}
                       {library.name} <X size={12} />
@@ -914,6 +955,16 @@ interface GoogleBook {
   source?: string;
 }
 
+const EMPTY_MANUAL_BOOK = {
+  title: "",
+  authors: "",
+  publisher: "",
+  publishedDate: "",
+  description: "",
+  pageCount: "",
+  customCoverUrl: "",
+};
+
 function App() {
   const [isbn, setIsbn] = useState("");
   const [book, setBook] = useState<GoogleBook | null>(null);
@@ -946,15 +997,7 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const resultsPerPage = 10;
   const [showManualAdd, setShowManualAdd] = useState(false);
-  const [manualBook, setManualBook] = useState({
-    title: "",
-    authors: "",
-    publisher: "",
-    publishedDate: "",
-    description: "",
-    pageCount: "",
-    customCoverUrl: "",
-  });
+  const [manualBook, setManualBook] = useState({ ...EMPTY_MANUAL_BOOK });
   const [showEditModal, setShowEditModal] = useState(false);
   const [bookToEdit, setBookToEdit] = useState<CollectionBook | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -977,6 +1020,37 @@ function App() {
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
+  const authModalRef = useFocusTrap<HTMLDivElement>(showAuthModal);
+  const manualAddModalRef = useFocusTrap<HTMLDivElement>(showManualAdd);
+  const collectionModalRef = useFocusTrap<HTMLDivElement>(showCollectionModal);
+  const bulkDeleteModalRef = useFocusTrap<HTMLDivElement>(showBulkDeleteModal);
+  const settingsModalRef = useFocusTrap<HTMLDivElement>(showNotificationSettings);
+  const userManagementModalRef = useFocusTrap<HTMLDivElement>(showUserManagement);
+
+  const closeAuthModal = () => setShowAuthModal(false);
+
+  const closeManualAdd = () => {
+    setShowManualAdd(false);
+    setManualBook({ ...EMPTY_MANUAL_BOOK });
+  };
+
+  const closeCollectionModal = () => {
+    setShowCollectionModal(false);
+    setSelectedBook(null);
+  };
+
+  const closeBulkDeleteModal = () => setShowBulkDeleteModal(false);
+
+  const closeSettingsModal = () => setShowNotificationSettings(false);
+
+  const closeUserManagementModal = () => setShowUserManagement(false);
+
+  useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
+  useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
+  useModalCloseRequest(collectionModalRef, showCollectionModal, closeCollectionModal);
+  useModalCloseRequest(bulkDeleteModalRef, showBulkDeleteModal, closeBulkDeleteModal);
+  useModalCloseRequest(settingsModalRef, showNotificationSettings, closeSettingsModal);
+  useModalCloseRequest(userManagementModalRef, showUserManagement, closeUserManagementModal);
 
   // États pour le mode multi-scan
   const [scanMode, setScanMode] = useState<"single" | "batch">("single");
@@ -2409,6 +2483,23 @@ function App() {
     }
   };
 
+  const handleManualSearchSelect = (
+    book: GoogleBook,
+    isInCollection: boolean
+  ) => {
+    if (manualSearchBatchMode) {
+      if (!isInCollection) {
+        handleManualSearchToggle(book);
+      }
+      return;
+    }
+
+    setBook(book);
+    setShowSearchResults(false);
+    setSearchResults([]);
+    setSearchQuery("");
+  };
+
   const handleManualSearchBatchValidate = () => {
     if (selectedSearchResults.length === 0) {
       setAddMessage({
@@ -2572,6 +2663,9 @@ function App() {
                       <button
                         onClick={() => setShowAdminMenu(!showAdminMenu)}
                         className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                        aria-expanded={showAdminMenu}
+                        aria-controls="admin-menu"
+                        aria-haspopup="menu"
                       >
                         <span className="hidden lg:inline">Admin</span>
                         <span className="lg:hidden">
@@ -2580,7 +2674,10 @@ function App() {
                         <CaretDownIcon size={14} weight="bold" />
                       </button>
                       {showAdminMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                        <div
+                          id="admin-menu"
+                          className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+                        >
                           <div className="py-1">
                             <button
                               onClick={() => {
@@ -2653,6 +2750,9 @@ function App() {
                 ? "bg-green-100 text-green-800 border border-green-200"
                 : "bg-blue-100 text-blue-800 border border-blue-200"
             }`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
             {authMessage.text}
           </div>
@@ -2712,6 +2812,8 @@ function App() {
               <button
                 onClick={() => setShowIsbnSearch(!showIsbnSearch)}
                 className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full cursor-pointer"
+                aria-expanded={showIsbnSearch}
+                aria-controls="isbn-search-panel"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par ISBN
@@ -2725,7 +2827,10 @@ function App() {
               </button>
 
               {showIsbnSearch && (
-                <div className="w-full max-w-3xl animate-fadeIn">
+                <div
+                  id="isbn-search-panel"
+                  className="w-full max-w-3xl animate-fadeIn"
+                >
                   {/* Card Container avec design moderne */}
                   <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
                     {/* Header avec toggle intégré */}
@@ -2874,6 +2979,7 @@ function App() {
                                       }
                                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
                                       title="Retirer"
+                                      aria-label="Retirer"
                                     >
                                       <X
                                         size={16}
@@ -2923,6 +3029,8 @@ function App() {
               <button
                 onClick={() => setShowTextSearch(!showTextSearch)}
                 className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full mt-2 cursor-pointer"
+                aria-expanded={showTextSearch}
+                aria-controls="text-search-panel"
               >
                 <MagnifyingGlass size={20} weight="bold" />
                 Recherche par titre/auteur
@@ -2936,7 +3044,10 @@ function App() {
               </button>
 
               {showTextSearch && (
-                <div className="w-full max-w-3xl animate-fadeIn">
+                <div
+                  id="text-search-panel"
+                  className="w-full max-w-3xl animate-fadeIn"
+                >
                   {/* Card Container avec design moderne */}
                   <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
                     {/* Header avec toggle intégré */}
@@ -3102,6 +3213,7 @@ function App() {
                                       }
                                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
                                       title="Retirer"
+                                      aria-label="Retirer"
                                     >
                                       <X
                                         size={16}
@@ -3154,7 +3266,7 @@ function App() {
             <Suspense
               fallback={
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 shadow-xl">
+                  <div className="bg-white rounded-lg p-6 shadow-xl" role="status" aria-live="polite">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                     <p className="mt-4 text-center text-gray-600">
                       Chargement du scanner...
@@ -3264,18 +3376,25 @@ function App() {
                               : "border-gray-200 hover:shadow-md"
                             : "border-gray-200 hover:shadow-md"
                         }`}
-                        onClick={() => {
-                          if (manualSearchBatchMode) {
-                            if (!isInCollection) {
-                              handleManualSearchToggle(searchBook);
-                            }
-                          } else {
-                            setBook(searchBook);
-                            setShowSearchResults(false);
-                            setSearchResults([]);
-                            setSearchQuery("");
+                        onClick={() =>
+                          handleManualSearchSelect(searchBook, isInCollection)
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleManualSearchSelect(searchBook, isInCollection);
                           }
                         }}
+                        role="button"
+                        tabIndex={
+                          manualSearchBatchMode && isInCollection ? -1 : 0
+                        }
+                        aria-disabled={manualSearchBatchMode && isInCollection}
+                        aria-label={
+                          manualSearchBatchMode
+                            ? `Sélectionner ${searchBook.title}`
+                            : `Ouvrir ${searchBook.title}`
+                        }
                       >
                         {/* Checkbox overlay pour mode lot */}
                         {manualSearchBatchMode && (
@@ -3288,9 +3407,10 @@ function App() {
                               <input
                                 type="checkbox"
                                 checked={isSelected}
-                                onChange={() => {}} // Géré par onClick du div
+                                onChange={() => handleManualSearchToggle(searchBook)} // Géré par onClick du div
                                 className="w-5 h-5 cursor-pointer accent-green-600"
                                 onClick={(e) => e.stopPropagation()}
+                                aria-label={`Sélectionner ${searchBook.title}`}
                               />
                             )}
                           </div>
@@ -3481,7 +3601,13 @@ function App() {
       {/* Collection Modal */}
       {showCollectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+          <div
+            ref={collectionModalRef}
+            className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="collection-modal-title"
+          >
             {/* Header avec navigation */}
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-4">
@@ -3491,7 +3617,7 @@ function App() {
                     alt="Kodeks"
                     className="h-8 w-8 sm:h-10 sm:w-10"
                   />
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 id="collection-modal-title" className="text-2xl font-bold text-gray-900">
                     {/* <Books size={20} weight="bold" className="inline mr-2" /> */}
                     Ma Collection
                   </h2>
@@ -3512,6 +3638,9 @@ function App() {
                       onClick={() => setShowExportMenu(!showExportMenu)}
                       className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer"
                       title="Exporter en CSV"
+                      aria-expanded={showExportMenu}
+                      aria-controls="export-menu"
+                      aria-haspopup="menu"
                     >
                       <DownloadSimple size={18} weight="bold" />
                       <span className="hidden sm:inline">Exporter CSV</span>
@@ -3526,7 +3655,10 @@ function App() {
 
                     {/* Dropdown menu */}
                     {showExportMenu && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn">
+                      <div
+                        id="export-menu"
+                        className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn"
+                      >
                         <div className="p-2">
                           <button
                             onClick={() => exportCollectionToCSV()}
@@ -3594,6 +3726,9 @@ function App() {
                       onClick={() => setShowExportMenuPdf(!showExportMenuPdf)}
                       className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
                       title="Exporter en PDF"
+                      aria-expanded={showExportMenuPdf}
+                      aria-controls="export-menu-pdf"
+                      aria-haspopup="menu"
                     >
                       <FilePdf size={18} weight="bold" />
                       <span className="hidden sm:inline">Exporter PDF</span>
@@ -3608,7 +3743,10 @@ function App() {
 
                     {/* Dropdown menu PDF */}
                     {showExportMenuPdf && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn">
+                      <div
+                        id="export-menu-pdf"
+                        className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-fadeIn"
+                      >
                         <div className="p-2">
                           <button
                             onClick={() => exportCollectionToPDF()}
@@ -3671,10 +3809,7 @@ function App() {
                 )}
 
                 <button
-                  onClick={() => {
-                    setShowCollectionModal(false);
-                    setSelectedBook(null);
-                  }}
+                  onClick={closeCollectionModal}
                   className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                   aria-label="Fermer"
                 >
@@ -4003,16 +4138,22 @@ function App() {
       {/* Auth Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+          <div
+            ref={authModalRef}
+            className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-modal-title"
+          >
             <button
-              onClick={() => setShowAuthModal(false)}
+              onClick={closeAuthModal}
               className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
               aria-label="Fermer"
             >
               <X size={24} weight="bold" />
             </button>
             <div className="p-6">
-              <Login onLogin={() => setShowAuthModal(false)} />
+              <Login onLogin={closeAuthModal} />
             </div>
           </div>
         </div>
@@ -4021,25 +4162,20 @@ function App() {
       {/* Manual Add Modal */}
       {showManualAdd && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full">
+          <div
+            ref={manualAddModalRef}
+            className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-add-title"
+          >
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 id="manual-add-title" className="text-2xl font-bold text-gray-900">
                 <PencilSimple size={16} weight="regular" /> Ajouter un livre
                 manuellement
               </h2>
               <button
-                onClick={() => {
-                  setShowManualAdd(false);
-                  setManualBook({
-                    title: "",
-                    authors: "",
-                    publisher: "",
-                    publishedDate: "",
-                    description: "",
-                    pageCount: "",
-                    customCoverUrl: "",
-                  });
-                }}
+                onClick={closeManualAdd}
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 aria-label="Fermer"
               >
@@ -4052,10 +4188,11 @@ function App() {
                 {/* Colonne gauche - Informations */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="manual-title" className="block text-sm font-medium text-gray-700 mb-2">
                       Titre * (obligatoire)
                     </label>
                     <input
+                      id="manual-title"
                       type="text"
                       value={manualBook.title}
                       onChange={(e) =>
@@ -4070,10 +4207,11 @@ function App() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="manual-authors" className="block text-sm font-medium text-gray-700 mb-2">
                       Auteur(s) (séparés par des virgules)
                     </label>
                     <input
+                      id="manual-authors"
                       type="text"
                       value={manualBook.authors}
                       onChange={(e) =>
@@ -4088,10 +4226,11 @@ function App() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="manual-publisher" className="block text-sm font-medium text-gray-700 mb-2">
                       Éditeur
                     </label>
                     <input
+                      id="manual-publisher"
                       type="text"
                       value={manualBook.publisher}
                       onChange={(e) =>
@@ -4107,10 +4246,11 @@ function App() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="manual-published-date" className="block text-sm font-medium text-gray-700 mb-2">
                         Année
                       </label>
                       <input
+                        id="manual-published-date"
                         type="text"
                         value={manualBook.publishedDate}
                         onChange={(e) =>
@@ -4125,10 +4265,11 @@ function App() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="manual-page-count" className="block text-sm font-medium text-gray-700 mb-2">
                         Pages
                       </label>
                       <input
+                        id="manual-page-count"
                         type="number"
                         value={manualBook.pageCount}
                         onChange={(e) =>
@@ -4144,10 +4285,11 @@ function App() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="manual-description" className="block text-sm font-medium text-gray-700 mb-2">
                       Description
                     </label>
                     <textarea
+                      id="manual-description"
                       value={manualBook.description}
                       onChange={(e) =>
                         setManualBook((prev) => ({
@@ -4184,6 +4326,7 @@ function App() {
                               }))
                             }
                             className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                            aria-label="Supprimer la couverture"
                           >
                             <X size={16} />
                           </button>
@@ -4216,18 +4359,7 @@ function App() {
 
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
                 <button
-                  onClick={() => {
-                    setShowManualAdd(false);
-                    setManualBook({
-                      title: "",
-                      authors: "",
-                      publisher: "",
-                      publishedDate: "",
-                      description: "",
-                      pageCount: "",
-                      customCoverUrl: "",
-                    });
-                  }}
+                  onClick={closeManualAdd}
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
                 >
                   Annuler
@@ -4278,11 +4410,19 @@ function App() {
 
       {/* User Management Modal */}
       {showUserManagement && (
-        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+        <div
+          ref={userManagementModalRef}
+          className="fixed inset-0 bg-white z-50 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="user-management-title"
+        >
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <h2 className="text-xl font-bold text-gray-900">Gestion des Utilisateurs</h2>
+            <h2 id="user-management-title" className="text-xl font-bold text-gray-900">
+              Gestion des Utilisateurs
+            </h2>
             <button
-              onClick={() => setShowUserManagement(false)}
+              onClick={closeUserManagementModal}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               aria-label="Fermer"
             >
@@ -4317,13 +4457,19 @@ function App() {
       {/* Bulk Delete Confirmation Modal */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div
+            ref={bulkDeleteModalRef}
+            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-delete-title"
+          >
             <div className="flex items-start gap-4 mb-6">
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                 <Warning size={24} weight="bold" className="text-red-600" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <h2 id="bulk-delete-title" className="text-xl font-bold text-gray-900 mb-2">
                   Confirmer la suppression
                 </h2>
                 <p className="text-gray-700">
@@ -4338,7 +4484,7 @@ function App() {
             </div>
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowBulkDeleteModal(false)}
+                onClick={closeBulkDeleteModal}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Annuler
@@ -4405,11 +4551,19 @@ function App() {
       {/* Settings Modal (Notifications + Gestion du compte) */}
       {showNotificationSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div
+            ref={settingsModalRef}
+            className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-modal-title"
+          >
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Paramètres</h2>
+              <h2 id="settings-modal-title" className="text-xl font-bold text-gray-900">
+                Paramètres
+              </h2>
               <button
-                onClick={() => setShowNotificationSettings(false)}
+                onClick={closeSettingsModal}
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 aria-label="Fermer"
               >

@@ -29,6 +29,7 @@ export default function PWAInstallPrompt() {
       onClick={handleInstall}
       className="fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-indigo-600 text-white font-medium px-4 py-3 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer"
       title="Installer l'application sur votre appareil"
+      aria-label="Installer l'application"
     >
       <DownloadSimple size={20} weight="bold" />
       <span className="hidden sm:inline">Installer l'app</span>

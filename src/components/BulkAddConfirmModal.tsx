@@ -198,6 +198,7 @@ export default function BulkAddConfirmModal({
                             onClick={() => handleRemoveBook(book.isbn)}
                             className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             title="Retirer ce livre"
+                            aria-label="Retirer ce livre"
                           >
                             <Trash size={20} weight="regular" />
                           </button>
@@ -215,11 +216,12 @@ export default function BulkAddConfirmModal({
 
                         {/* Champ note personnelle */}
                         <div className="mt-3">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label htmlFor={`note-${book.isbn}`} className="block text-xs font-medium text-gray-700 mb-1">
                             <Note size={14} weight="regular" className="inline mr-1" />
                             Note personnelle (facultatif)
                           </label>
                           <textarea
+                            id={`note-${book.isbn}`}
                             value={personalNotes[book.isbn] || ''}
                             onChange={(e) => handleNoteChange(book.isbn, e.target.value)}
                             placeholder="Ajoutez une note sur ce livre..."

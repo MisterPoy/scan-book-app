@@ -45,11 +45,21 @@ export default function AnnouncementBanner({ announcement, onDismiss }: Announce
     setTimeout(() => onDismiss(announcement.id), 300); // Délai pour l'animation
   };
 
+  const ariaRole =
+    announcement.type === "error" || announcement.type === "warning"
+      ? "alert"
+      : "status";
+
   return (
-    <div className={`
+    <div
+      className={`
       ${style.bg} border-b-2 px-4 py-3 transition-all duration-300
       ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}
-    `}>
+    `}
+      role={ariaRole}
+      aria-live={ariaRole === "alert" ? "assertive" : "polite"}
+      aria-atomic="true"
+    >
       <div className="max-w-7xl mx-auto flex items-start gap-3">
         {/* Icône */}
         <div className={`${style.iconColor} mt-0.5`}>
@@ -71,6 +81,7 @@ export default function AnnouncementBanner({ announcement, onDismiss }: Announce
           onClick={handleDismiss}
           className={`${style.iconColor} hover:opacity-70 transition-opacity p-1 cursor-pointer`}
           title="Fermer cette annonce"
+          aria-label="Fermer l'annonce"
         >
           <X size={16} weight="bold" />
         </button>
