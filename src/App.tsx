@@ -2793,7 +2793,7 @@ function App() {
                     setScanMode("batch");
                     setScanning(true);
                   }}
-                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-4 text-base font-semibold text-gray-900 bg-green-300 rounded-lg hover:bg-green-400 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Stack size={20} weight="bold" />
                   Scan par lot
