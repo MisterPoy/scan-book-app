@@ -1,4 +1,5 @@
 import { useEffect, useState, lazy, Suspense, useRef, useMemo, type RefObject } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import {
   Check,
   Circle,
@@ -2607,6 +2608,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Annonces système */}
+      <Analytics />
       <AnnouncementDisplay userEmail={user?.email} isAdmin={isAdmin} />
 
       {/* Header */}
