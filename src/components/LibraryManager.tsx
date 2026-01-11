@@ -357,7 +357,7 @@ export default function LibraryManager({
                           onClick={() =>
                             setNewLibrary((prev) => ({ ...prev, icon }))
                           }
-                          className={`p-2 text-lg rounded-md border-2 transition-colors ${
+                          className={`flex items-center justify-center p-2 text-lg rounded-md border-2 transition-colors ${
                             newLibrary.icon === icon
                               ? "border-blue-500 bg-blue-50"
                               : "border-gray-200 hover:border-gray-300"
