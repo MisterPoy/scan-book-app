@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 const iconsDir = path.join(__dirname, '..', 'public', 'icons');
-const logoPath = path.join(__dirname, '..', 'public', 'icons', 'icon-master.png'); // Utiliser l'icône modifiée avec livres noirs
+const logoPath = path.join(__dirname, '..', 'public', 'KodeksLogo.png');
 
 /**
  * Vérifie que le logo source existe
@@ -16,7 +16,7 @@ const logoPath = path.join(__dirname, '..', 'public', 'icons', 'icon-master.png'
 function checkSourceLogo() {
   if (!fs.existsSync(logoPath)) {
     console.error(`❌ Erreur: Logo source introuvable à ${logoPath}`);
-    console.error('Veuillez placer votre logo à public/kodeks-logo.png');
+    console.error('Veuillez placer votre logo à public/KodeksLogo.png');
     process.exit(1);
   }
 
