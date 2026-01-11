@@ -9,7 +9,7 @@ import {
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
@@ -40,6 +40,19 @@ provider.setCustomParameters({
 });
 
 export const db = getFirestore(app);
+
+if (typeof window !== 'undefined') {
+  enableMultiTabIndexedDbPersistence(db).catch((err) => {
+    const error = err as { code?: string };
+    if (error.code === 'failed-precondition') {
+      console.warn('Firestore persistence disabled: multiple tabs open');
+    } else if (error.code === 'unimplemented') {
+      console.warn('Firestore persistence not supported by this browser');
+    } else {
+      console.error('Firestore persistence error:', err);
+    }
+  });
+}
 export const storage = getStorage(app);
 
 // Fonctions d'authentification

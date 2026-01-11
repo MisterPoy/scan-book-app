@@ -994,8 +994,10 @@ function App() {
   const [searchResults, setSearchResults] = useState<GoogleBook[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [collectionPage, setCollectionPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
   const resultsPerPage = 10;
+  const collectionResultsPerPage = 20;
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualBook, setManualBook] = useState({ ...EMPTY_MANUAL_BOOK });
   const [showEditModal, setShowEditModal] = useState(false);
@@ -2604,6 +2606,30 @@ function App() {
       })
     : libraryFilteredBooks;
 
+  const collectionTotalPages = Math.max(
+    1,
+    Math.ceil(displayedBooks.length / collectionResultsPerPage)
+  );
+  const collectionStartIndex = (collectionPage - 1) * collectionResultsPerPage;
+  const collectionPageBooks = displayedBooks.slice(
+    collectionStartIndex,
+    collectionStartIndex + collectionResultsPerPage
+  );
+  const collectionPageIsbns = collectionPageBooks.map((book) => book.isbn);
+  const isPageFullySelected =
+    collectionPageIsbns.length > 0 &&
+    collectionPageIsbns.every((isbn) => selectedBooks.includes(isbn));
+
+  useEffect(() => {
+    setCollectionPage(1);
+  }, [collectionSearchQuery, selectedLibraryView, filters]);
+
+  useEffect(() => {
+    if (collectionPage > collectionTotalPages) {
+      setCollectionPage(collectionTotalPages);
+    }
+  }, [collectionPage, collectionTotalPages]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Annonces système */}
@@ -4013,19 +4039,23 @@ function App() {
                         </span>
                         <button
                           onClick={() => {
-                            if (
-                              selectedBooks.length === displayedBooks.length
-                            ) {
-                              setSelectedBooks([]);
+                            if (isPageFullySelected) {
+                              setSelectedBooks((prev) =>
+                                prev.filter(
+                                  (isbn) => !collectionPageIsbns.includes(isbn)
+                                )
+                              );
                             } else {
-                              setSelectedBooks(
-                                displayedBooks.map((book) => book.isbn)
+                              setSelectedBooks((prev) =>
+                                Array.from(
+                                  new Set([...prev, ...collectionPageIsbns])
+                                )
                               );
                             }
                           }}
                           className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors whitespace-nowrap"
                         >
-                          {selectedBooks.length === displayedBooks.length
+                          {isPageFullySelected
                             ? "Tout désélectionner"
                             : "Tout sélectionner"}
                         </button>
@@ -4092,38 +4122,93 @@ function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
-                      {displayedBooks.map((item) => (
-                        <CompactBookCard
-                          key={item.isbn}
-                          book={item}
-                          onClick={() => {
-                            if (!selectionMode) {
-                              setSelectedBook(item);
-                            } else {
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+                        {collectionPageBooks.map((item) => (
+                          <CompactBookCard
+                            key={item.isbn}
+                            book={item}
+                            onClick={() => {
+                              if (!selectionMode) {
+                                setSelectedBook(item);
+                              } else {
+                                setSelectedBooks((prev) =>
+                                  prev.includes(item.isbn)
+                                    ? prev.filter((isbn) => isbn !== item.isbn)
+                                    : [...prev, item.isbn]
+                                );
+                              }
+                            }}
+                            onLongPress={() => {
+                              if (!selectionMode) {
+                                setSelectionMode(true);
+                              }
                               setSelectedBooks((prev) =>
                                 prev.includes(item.isbn)
-                                  ? prev.filter((isbn) => isbn !== item.isbn)
+                                  ? prev
                                   : [...prev, item.isbn]
                               );
-                            }
-                          }}
-                          onLongPress={() => {
-                            if (!selectionMode) {
-                              setSelectionMode(true);
-                            }
-                            setSelectedBooks((prev) =>
-                              prev.includes(item.isbn)
-                                ? prev
-                                : [...prev, item.isbn]
-                            );
-                          }}
-                          isSelected={selectedBooks.includes(item.isbn)}
-                          selectionMode={selectionMode}
-                          userLibraries={userLibraries}
-                        />
-                      ))}
-                    </div>
+                            }}
+                            isSelected={selectedBooks.includes(item.isbn)}
+                            selectionMode={selectionMode}
+                            userLibraries={userLibraries}
+                          />
+                        ))}
+                      </div>
+
+                      {collectionTotalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t">
+                          <button
+                            onClick={() => setCollectionPage(collectionPage - 1)}
+                            disabled={collectionPage === 1}
+                            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            Précédent
+                          </button>
+
+                          <div className="flex gap-1">
+                            {[...Array(Math.min(collectionTotalPages, 5))].map(
+                              (_, i) => {
+                                let pageNum;
+                                if (collectionTotalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (collectionPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (
+                                  collectionPage >= collectionTotalPages - 2
+                                ) {
+                                  pageNum = collectionTotalPages - 4 + i;
+                                } else {
+                                  pageNum = collectionPage - 2 + i;
+                                }
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => setCollectionPage(pageNum)}
+                                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                      collectionPage === pageNum
+                                        ? "bg-blue-600 text-white"
+                                        : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              }
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => setCollectionPage(collectionPage + 1)}
+                            disabled={collectionPage === collectionTotalPages}
+                            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            Suivant
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
