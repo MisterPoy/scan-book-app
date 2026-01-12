@@ -104,6 +104,9 @@ interface CollectionBook {
   personalNote?: string; // Note personnelle de l'utilisateur
 }
 
+const getIsOnline = () =>
+  typeof navigator !== "undefined" ? navigator.onLine : true;
+
 function useModalCloseRequest<T extends HTMLElement>(
   ref: RefObject<T | null>,
   isActive: boolean,
@@ -1019,6 +1022,7 @@ function App() {
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] =
     useState(false);
+  const [isOffline, setIsOffline] = useState(!getIsOnline());
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
@@ -1047,8 +1051,7 @@ function App() {
 
   const closeUserManagementModal = () => setShowUserManagement(false);
 
-  const isOnline = () =>
-    typeof navigator !== "undefined" ? navigator.onLine : true;
+  const isOnline = () => !isOffline;
 
   const showOfflineMessage = (action: string) => {
     setAddMessage({
@@ -1063,6 +1066,18 @@ function App() {
     showOfflineMessage(action);
     return false;
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
   useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
@@ -2717,114 +2732,121 @@ function App() {
               </h1>
             </button>
             <nav className="flex-shrink-0">
-              {user ? (
-                <div className="flex items-center gap-1 sm:gap-4">
-                  <button
-                    onClick={() => setShowCollectionModal(true)}
-                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  >
-                    <span className="hidden lg:inline">Ma Collection</span>
-                    <span className="lg:hidden">
-                      <Books size={18} weight="bold" />
-                    </span>
-                    {collectionBooks.length > 0 && (
-                      <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-                        {collectionBooks.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowLibraryManager(true)}
-                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  >
-                    <span className="hidden lg:inline">Bibliothèques</span>
-                    <span className="lg:hidden">
-                      <FolderOpen size={18} weight="bold" />
-                    </span>
-                    {userLibraries.length > 0 && (
-                      <span className="bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-                        {userLibraries.length}
-                      </span>
-                    )}
-                  </button>
-                  {isAdmin && (
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowAdminMenu(!showAdminMenu)}
-                        className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                        aria-expanded={showAdminMenu}
-                        aria-controls="admin-menu"
-                        aria-haspopup="menu"
-                      >
-                        <span className="hidden lg:inline">Admin</span>
-                        <span className="lg:hidden">
-                          <Megaphone size={18} weight="bold" />
-                        </span>
-                        <CaretDownIcon size={14} weight="bold" />
-                      </button>
-                      {showAdminMenu && (
-                        <div
-                          id="admin-menu"
-                          className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50"
-                        >
-                          <div className="py-1">
-                            <button
-                              onClick={() => {
-                                setShowAnnouncementManager(true);
-                                setShowAdminMenu(false);
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <Megaphone size={16} />
-                              Annonces
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowUserManagement(true);
-                                setShowAdminMenu(false);
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <UsersThree size={16} />
-                              Utilisateurs
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setShowNotificationSettings(true)}
-                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  >
-                    <span className="hidden lg:inline">Notifications</span>
-                    <span className="lg:hidden">
-                      <Bell size={18} weight="bold" />
-                    </span>
-                  </button>
-                  <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
-                    Bonjour, {user.displayName}
+              <div className="flex items-center gap-2">
+                {isOffline && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
+                    Hors ligne
                   </span>
-                  <button
-                    onClick={() => signOut(auth)}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-                    title="Se déconnecter"
-                  >
-                    <span className="hidden sm:inline">Se déconnecter</span>
-                    <span className="sm:hidden">
-                      <Door size={20} weight="bold" />
+                )}
+                {user ? (
+                  <div className="flex items-center gap-1 sm:gap-4">
+                    <button
+                      onClick={() => setShowCollectionModal(true)}
+                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <span className="hidden lg:inline">Ma Collection</span>
+                      <span className="lg:hidden">
+                        <Books size={18} weight="bold" />
+                      </span>
+                      {collectionBooks.length > 0 && (
+                        <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                          {collectionBooks.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowLibraryManager(true)}
+                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <span className="hidden lg:inline">Bibliothèques</span>
+                      <span className="lg:hidden">
+                        <FolderOpen size={18} weight="bold" />
+                      </span>
+                      {userLibraries.length > 0 && (
+                        <span className="bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                          {userLibraries.length}
+                        </span>
+                      )}
+                    </button>
+                    {isAdmin && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowAdminMenu(!showAdminMenu)}
+                          className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                          aria-expanded={showAdminMenu}
+                          aria-controls="admin-menu"
+                          aria-haspopup="menu"
+                        >
+                          <span className="hidden lg:inline">Admin</span>
+                          <span className="lg:hidden">
+                            <Megaphone size={18} weight="bold" />
+                          </span>
+                          <CaretDownIcon size={14} weight="bold" />
+                        </button>
+                        {showAdminMenu && (
+                          <div
+                            id="admin-menu"
+                            className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+                          >
+                            <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  setShowAnnouncementManager(true);
+                                  setShowAdminMenu(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <Megaphone size={16} />
+                                Annonces
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowUserManagement(true);
+                                  setShowAdminMenu(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <UsersThree size={16} />
+                                Utilisateurs
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setShowNotificationSettings(true)}
+                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <span className="hidden lg:inline">Notifications</span>
+                      <span className="lg:hidden">
+                        <Bell size={18} weight="bold" />
+                      </span>
+                    </button>
+                    <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
+                      Bonjour, {user.displayName}
                     </span>
+                    <button
+                      onClick={() => signOut(auth)}
+                      className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                      title="Se déconnecter"
+                    >
+                      <span className="hidden sm:inline">Se déconnecter</span>
+                      <span className="sm:hidden">
+                        <Door size={20} weight="bold" />
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    <span className="hidden sm:inline">Se connecter</span>
+                    <span className="sm:hidden">Connexion</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
-                >
-                  <span className="hidden sm:inline">Se connecter</span>
-                  <span className="sm:hidden">Connexion</span>
-                </button>
-              )}
+                )}
+              </div>
             </nav>
           </div>
         </div>
