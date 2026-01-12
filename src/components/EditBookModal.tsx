@@ -124,6 +124,11 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
       return;
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      alert("Hors ligne: connexion requise pour envoyer une image.");
+      return;
+    }
+
     setUploading(true);
     try {
       const currentUser = auth.currentUser;

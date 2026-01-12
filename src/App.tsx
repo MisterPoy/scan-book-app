@@ -225,7 +225,7 @@ function CompactBookCard({
           ? `Sélectionner ${book.title}`
           : `Ouvrir ${book.title}`
       }
-      className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02] ${
+      className={`bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-0.5 ${
         isSelected
           ? "border-blue-500 border-2 ring-2 ring-blue-200"
           : "border-gray-200"
@@ -261,15 +261,15 @@ function CompactBookCard({
             {book.isRead ? "Lu" : "Non lu"}
           </div>
         </div>
-        <div className="p-2">
-          <h3 className="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">
+        <div className="p-3">
+          <h3 className="font-semibold text-gray-900 text-sm mb-1.5 line-clamp-2 leading-snug">
             {book.title}
           </h3>
-          <p className="text-xs text-gray-600 line-clamp-1 mb-2">
+          <p className="text-xs text-gray-600 line-clamp-1 mb-3">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
           {/* Badges informatifs (lecture seule) */}
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {/* Badge statut de lecture */}
             {(() => {
               const status =
@@ -1047,6 +1047,23 @@ function App() {
 
   const closeUserManagementModal = () => setShowUserManagement(false);
 
+  const isOnline = () =>
+    typeof navigator !== "undefined" ? navigator.onLine : true;
+
+  const showOfflineMessage = (action: string) => {
+    setAddMessage({
+      text: `Hors ligne: ${action} necessite une connexion.`,
+      type: "error",
+    });
+    setTimeout(() => setAddMessage(null), 4000);
+  };
+
+  const requireOnline = (action: string) => {
+    if (isOnline()) return true;
+    showOfflineMessage(action);
+    return false;
+  };
+
   useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
   useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
   useModalCloseRequest(collectionModalRef, showCollectionModal, closeCollectionModal);
@@ -1119,6 +1136,20 @@ function App() {
     setIsbn(code);
     setScanning(false);
 
+    if (!isOnline()) {
+      setAddMessage({
+        text: "Hors ligne: details indisponibles. Vous pouvez ajouter le livre manuellement.",
+        type: "error",
+      });
+      setTimeout(() => setAddMessage(null), 5000);
+      setScannedBookData({
+        isbn: code,
+        title: "Titre inconnu",
+      });
+      setShowPostScanConfirm(true);
+      return;
+    }
+
     // Vibration mobile si disponible
     if (navigator.vibrate) {
       navigator.vibrate(200);
@@ -1156,6 +1187,11 @@ function App() {
   };
 
   const handleSearch = async (code: string) => {
+    if (!requireOnline("la recherche ISBN")) {
+      setBook(null);
+      return;
+    }
+
     try {
       const res = await fetch(
         `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`
@@ -1171,6 +1207,11 @@ function App() {
 
   const handleTextSearch = async (query: string) => {
     if (!query.trim()) return;
+
+    if (!requireOnline("la recherche en ligne")) {
+      setSearchResults([]);
+      return;
+    }
 
     setIsSearching(true);
     setCurrentPage(1); // Reset à la première page
@@ -1482,6 +1523,13 @@ function App() {
       setCollectionBooks(list);
     } catch (err) {
       console.error("Erreur récupération collection:", err);
+      if (!isOnline()) {
+        setAddMessage({
+          text: "Hors ligne: impossible de charger la collection.",
+          type: "error",
+        });
+        setTimeout(() => setAddMessage(null), 4000);
+      }
     }
   };
 
@@ -1498,6 +1546,13 @@ function App() {
       // Si permissions manquantes, initialiser avec un tableau vide
       if (err instanceof Error && err.message.includes("permissions")) {
         setUserLibraries([]);
+      }
+      if (!isOnline()) {
+        setAddMessage({
+          text: "Hors ligne: impossible de charger les bibliotheques.",
+          type: "error",
+        });
+        setTimeout(() => setAddMessage(null), 4000);
       }
     }
   };
@@ -1901,6 +1956,10 @@ function App() {
         text: "Vous devez être connecté pour ajouter des livres",
         type: "error",
       });
+      return;
+    }
+
+    if (!requireOnline("l'ajout par lot")) {
       return;
     }
 
@@ -2544,6 +2603,10 @@ function App() {
     );
 
     if (!confirmDeleteFinal) return;
+
+    if (!requireOnline("la suppression du compte")) {
+      return;
+    }
 
     try {
       // 1. Supprimer tous les livres de la collection
@@ -4123,7 +4186,7 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4 md:gap-5">
                         {collectionPageBooks.map((item) => (
                           <CompactBookCard
                             key={item.isbn}
