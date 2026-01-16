@@ -76,6 +76,7 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
+import { syncUserProfile } from "./services/userProfiles";
 import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
@@ -1737,13 +1738,18 @@ function App() {
 
     handleRedirectResult();
 
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        // Vérifier et configurer le statut admin
-        await checkAndSetupAdmin(u);
-        fetchCollection(u.uid);
-        fetchUserLibraries(u.uid);
+      const unsubscribe = onAuthStateChanged(auth, async (u) => {
+        setUser(u);
+        if (u) {
+          try {
+            await syncUserProfile(u);
+          } catch (error) {
+            console.error("Erreur synchronisation profil utilisateur:", error);
+          }
+          // Vérifier et configurer le statut admin
+          await checkAndSetupAdmin(u);
+          fetchCollection(u.uid);
+          fetchUserLibraries(u.uid);
         setAuthMessage({
           text: `Connecté en tant que ${u.displayName}`,
           type: "success",

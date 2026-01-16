@@ -19,6 +19,39 @@ service cloud.firestore {
       );
     }
 
+    function isProfileOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function allowedUserProfileFields() {
+      return [
+        "uid",
+        "email",
+        "displayName",
+        "photoURL",
+        "emailVerified",
+        "createdAt",
+        "lastLoginAt",
+        "providerData"
+      ];
+    }
+
+    // User profiles rules (admin analytics)
+    match /user_profiles/{userId} {
+      allow read: if isAdmin();
+
+      allow create: if isProfileOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.keys().hasOnly(allowedUserProfileFields());
+
+      allow update: if isProfileOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(allowedUserProfileFields());
+
+      allow delete: if isAdmin();
+    }
+
     // Announcements rules
     match /announcements/{announcementId} {
       // All authenticated users can read announcements

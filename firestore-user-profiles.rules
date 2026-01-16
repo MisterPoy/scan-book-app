@@ -5,28 +5,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAdmin() {
+      return request.auth != null && (
+        // IMPORTANT: Mettre à jour cet UID avec la valeur de VITE_ADMIN_UID
+        // Actuellement: wpZJ2pZ0zOdaw68optxamlkjRg13 (Greg)
+        request.auth.uid == "wpZJ2pZ0zOdaw68optxamlkjRg13" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+    }
+
+    function isProfileOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function allowedUserProfileFields() {
+      return [
+        "uid",
+        "email",
+        "displayName",
+        "photoURL",
+        "emailVerified",
+        "createdAt",
+        "lastLoginAt",
+        "providerData"
+      ];
+    }
+
     // Collection user_profiles - Métadonnées utilisateurs
-    // IMPORTANT: Cette collection doit être créée et maintenue par une Cloud Function
-    // qui sync Firebase Auth → Firestore lors de la création/connexion d'un utilisateur
     match /user_profiles/{userId} {
       // Lecture: Uniquement les admins peuvent lire tous les profils
-      allow read: if request.auth != null &&
-                     get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.isAdmin == true;
+      allow read: if isAdmin();
 
-      // Écriture: Seul le propriétaire peut mettre à jour son propre profil (champs limités)
-      // OU les admins peuvent tout modifier
-      allow update: if (request.auth != null && request.auth.uid == userId &&
-                       // L'utilisateur ne peut modifier que certains champs
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL'])) ||
-                      (request.auth != null &&
-                       get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.isAdmin == true);
+      // Création: autorisée pour l'utilisateur sur son profil (champs limités)
+      allow create: if isProfileOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.keys().hasOnly(allowedUserProfileFields());
 
-      // Création: Seulement via Cloud Function (pas d'accès direct)
-      allow create: if false;
+      // Écriture: Seul le propriétaire peut mettre à jour son profil (champs limités)
+      allow update: if isProfileOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(allowedUserProfileFields());
 
       // Suppression: Seulement les admins
-      allow delete: if request.auth != null &&
-                       get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.isAdmin == true;
+      allow delete: if isAdmin();
     }
 
     // Collection users/{uid}/collection - Livres de l'utilisateur (existant)
