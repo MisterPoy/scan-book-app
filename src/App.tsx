@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useRef, useMemo, type RefObject } from "react";
+import { useEffect, useState, lazy, Suspense, useRef, useMemo, useCallback, type RefObject } from "react";
 import {
   Check,
   Circle,
@@ -1024,6 +1024,7 @@ function App() {
   const [showNotificationSettings, setShowNotificationSettings] =
     useState(false);
   const [isOffline, setIsOffline] = useState(!getIsOnline());
+  const isOfflineRef = useRef(isOffline);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null
   ); // null = tous les livres
@@ -1079,6 +1080,10 @@ function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    isOfflineRef.current = isOffline;
+  }, [isOffline]);
 
   useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
   useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
@@ -1526,7 +1531,7 @@ function App() {
     }
   };
 
-  const fetchCollection = async (uid: string) => {
+  const fetchCollection = useCallback(async (uid: string) => {
     try {
       const snapshot = await getDocs(collection(db, `users/${uid}/collection`));
       const list = snapshot.docs.map(
@@ -1539,7 +1544,7 @@ function App() {
       setCollectionBooks(list);
     } catch (err) {
       console.error("Erreur récupération collection:", err);
-      if (!isOnline()) {
+      if (isOfflineRef.current) {
         setAddMessage({
           text: "Hors ligne: impossible de charger la collection.",
           type: "error",
@@ -1547,9 +1552,9 @@ function App() {
         setTimeout(() => setAddMessage(null), 4000);
       }
     }
-  };
+  }, []);
 
-  const fetchUserLibraries = async (uid: string) => {
+  const fetchUserLibraries = useCallback(async (uid: string) => {
     try {
       const snapshot = await getDocs(collection(db, `users/${uid}/libraries`));
       const libraries = snapshot.docs.map((doc) => ({
@@ -1563,7 +1568,7 @@ function App() {
       if (err instanceof Error && err.message.includes("permissions")) {
         setUserLibraries([]);
       }
-      if (!isOnline()) {
+      if (isOfflineRef.current) {
         setAddMessage({
           text: "Hors ligne: impossible de charger les bibliotheques.",
           type: "error",
@@ -1571,7 +1576,7 @@ function App() {
         setTimeout(() => setAddMessage(null), 4000);
       }
     }
-  };
+  }, []);
 
   const createUserLibrary = async (
     library: Omit<UserLibrary, "id" | "createdAt">
@@ -1657,7 +1662,7 @@ function App() {
     }
   };
 
-  const checkAndSetupAdmin = async (user: User | null) => {
+  const checkAndSetupAdmin = useCallback(async (user: User | null) => {
     if (!user) {
       setIsAdmin(false);
       return;
@@ -1695,7 +1700,7 @@ function App() {
       console.error("Erreur vérification admin:", error);
       setIsAdmin(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const isChromeMobile =
@@ -1763,7 +1768,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [checkAndSetupAdmin, fetchCollection, fetchUserLibraries]);
 
   const removeFromCollection = async (isbn: string) => {
     if (!user) return;
