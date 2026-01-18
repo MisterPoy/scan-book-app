@@ -2433,6 +2433,16 @@ function App() {
         margin: { top: 56, left: 14, right: 14 },
       });
 
+      const exportAttribution = "Généré par Kodeks - Développé par GregDev";
+      const lastAutoTable = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const attributionY = Math.min((lastAutoTable?.finalY ?? 56) + 6, pageHeight - 16);
+
+      doc.setPage(doc.getNumberOfPages());
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184); // Gris clair
+      doc.text(exportAttribution, 14, attributionY);
+
       // Ajouter pied de page sur toutes les pages
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
