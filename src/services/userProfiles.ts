@@ -31,3 +31,38 @@ export const syncUserProfile = async (user: User) => {
 
   await setDoc(userRef, payload, { merge: true });
 };
+
+type UserProfileStatsUpdate = {
+  uid: string;
+  totalBooks?: number;
+  totalLibraries?: number;
+  lastActivity?: string | null;
+};
+
+export const updateUserProfileStats = async ({
+  uid,
+  totalBooks,
+  totalLibraries,
+  lastActivity,
+}: UserProfileStatsUpdate) => {
+  const updates: Record<string, unknown> = {};
+
+  if (typeof totalBooks === "number") {
+    updates.totalBooks = totalBooks;
+  }
+
+  if (typeof totalLibraries === "number") {
+    updates.totalLibraries = totalLibraries;
+  }
+
+  if (typeof lastActivity === "string" || lastActivity === null) {
+    updates.lastActivity = lastActivity;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return;
+  }
+
+  const userRef = doc(db, "user_profiles", uid);
+  await setDoc(userRef, updates, { merge: true });
+};

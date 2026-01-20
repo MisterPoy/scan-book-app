@@ -10,6 +10,9 @@ export interface UserData {
   emailVerified: boolean;
   createdAt: string; // ISO timestamp
   lastLoginAt: string; // ISO timestamp
+  totalBooks?: number;
+  totalLibraries?: number;
+  lastActivity?: string | null;
   providerData: {
     providerId: string; // 'google.com', 'password', etc.
     email: string | null;

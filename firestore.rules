@@ -32,6 +32,9 @@ service cloud.firestore {
         "emailVerified",
         "createdAt",
         "lastLoginAt",
+        "totalBooks",
+        "totalLibraries",
+        "lastActivity",
         "providerData"
       ];
     }

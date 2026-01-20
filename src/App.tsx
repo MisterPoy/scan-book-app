@@ -76,7 +76,7 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
-import { syncUserProfile } from "./services/userProfiles";
+import { syncUserProfile, updateUserProfileStats } from "./services/userProfiles";
 import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
@@ -86,6 +86,7 @@ interface CollectionBook {
   title: string;
   authors: string[];
   addedAt: string;
+  updatedAt?: string;
   isRead: boolean;
   customCoverUrl?: string;
   // Nouveaux champs pour l'édition complète
@@ -1542,6 +1543,21 @@ function App() {
           } as CollectionBook & { id: string })
       );
       setCollectionBooks(list);
+      const lastActivity =
+        list
+          .map((book) => book.updatedAt || book.addedAt)
+          .filter((date): date is string => Boolean(date))
+          .sort((a, b) => b.localeCompare(a))[0] ?? null;
+
+      try {
+        await updateUserProfileStats({
+          uid,
+          totalBooks: list.length,
+          lastActivity,
+        });
+      } catch (error) {
+        console.error("Erreur mise à jour stats utilisateur:", error);
+      }
     } catch (err) {
       console.error("Erreur récupération collection:", err);
       if (isOfflineRef.current) {
@@ -1562,6 +1578,14 @@ function App() {
         ...doc.data(),
       })) as UserLibrary[];
       setUserLibraries(libraries);
+      try {
+        await updateUserProfileStats({
+          uid,
+          totalLibraries: libraries.length,
+        });
+      } catch (error) {
+        console.error("Erreur mise à jour stats bibliothèques:", error);
+      }
     } catch (err) {
       console.error("Erreur récupération bibliothèques:", err);
       // Si permissions manquantes, initialiser avec un tableau vide

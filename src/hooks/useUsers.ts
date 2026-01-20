@@ -7,7 +7,8 @@ import type { UserData, UserStats, UserWithStats, UsersOverview } from "../types
  * Hook personnalisé pour récupérer et gérer les données utilisateurs (Admin uniquement)
  *
  * IMPORTANT: Ce hook ne récupère PAS directement depuis Firebase Auth (nécessite Admin SDK backend)
- * À la place, on utilise une collection Firestore 'user_profiles' pour stocker les métadonnées
+ * On utilise la collection Firestore 'user_profiles' pour stocker les métadonnées
+ * et les statistiques utilisateurs (totalBooks, totalLibraries, lastActivity).
  *
  * Pour une implémentation complète avec Firebase Auth Admin SDK, il faudrait :
  * - Une Cloud Function qui sync Auth → Firestore
@@ -45,8 +46,11 @@ export function useUsers() {
       for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data() as UserData;
 
-        // Récupérer les stats de chaque utilisateur
-        const stats = await getUserStats(userData.uid);
+        const stats: UserStats = {
+          totalBooks: userData.totalBooks ?? 0,
+          totalLibraries: userData.totalLibraries ?? 0,
+          lastActivity: userData.lastActivity ?? undefined,
+        };
 
         usersData.push({
           ...userData,
@@ -61,49 +65,6 @@ export function useUsers() {
       setError("Impossible de charger les utilisateurs");
     } finally {
       setLoading(false);
-    }
-  };
-
-  /**
-   * Récupère les statistiques d'un utilisateur spécifique
-   */
-  const getUserStats = async (uid: string): Promise<UserStats> => {
-    try {
-      // Compter les livres
-      const booksSnapshot = await getDocs(
-        collection(db, `users/${uid}/collection`)
-      );
-      const totalBooks = booksSnapshot.size;
-
-      // Compter les bibliothèques
-      const librariesSnapshot = await getDocs(
-        collection(db, `users/${uid}/libraries`)
-      );
-      const totalLibraries = librariesSnapshot.size;
-
-      // Récupérer le livre le plus récent pour déterminer la dernière activité
-      let lastActivity: string | undefined;
-      if (!booksSnapshot.empty) {
-        const books = booksSnapshot.docs.map((doc) => doc.data());
-        const sortedBooks = books.sort((a, b) => {
-          const dateA = a.addedAt || a.updatedAt || "";
-          const dateB = b.addedAt || b.updatedAt || "";
-          return dateB.localeCompare(dateA);
-        });
-        lastActivity = sortedBooks[0]?.addedAt || sortedBooks[0]?.updatedAt;
-      }
-
-      return {
-        totalBooks,
-        totalLibraries,
-        lastActivity,
-      };
-    } catch (err) {
-      console.error(`Erreur stats pour utilisateur ${uid}:`, err);
-      return {
-        totalBooks: 0,
-        totalLibraries: 0,
-      };
     }
   };
 
