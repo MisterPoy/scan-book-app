@@ -26,6 +26,9 @@ Cette collection stocke les métadonnées des utilisateurs car **Firebase Auth n
   emailVerified: boolean;         // Email vérifié ou non
   createdAt: string;              // Date de création (ISO)
   lastLoginAt: string;            // Dernière connexion (ISO)
+  totalBooks: number;             // Livres dans la collection
+  totalLibraries: number;         // Bibliotheques creees
+  lastActivity: string | null;    // Derniere activite (ISO)
   providerData: [{                // Méthodes d'authentification
     providerId: string;           // "google.com", "password", etc.
     email: string | null;
@@ -51,7 +54,7 @@ Fichier : `src/hooks/useUsers.ts`
 
 Fonctionnalités :
 - `fetchUsers()` : Récupère tous les utilisateurs depuis Firestore
-- `getUserStats(uid)` : Calcule les stats (livres, bibliothèques) d'un utilisateur
+ - Les stats sont lues depuis `user_profiles` (totalBooks, totalLibraries, lastActivity)
 - `calculateOverview()` : Calcule les statistiques globales
 - `searchByEmail()` : Filtre par email/nom
 - `filterByProvider()` : Filtre par méthode d'auth
@@ -75,50 +78,18 @@ Interface composée de :
 
 ### Étape 1 : Créer la Collection `user_profiles`
 
-#### Option A : Cloud Function (RECOMMANDÉ pour production)
+#### Option A : Cloud Function (RECOMMANDE pour production)
 
-Créer une Cloud Function qui se déclenche lors de la création/connexion d'un utilisateur :
+Utiliser `functions/index.js` (present dans ce repo) pour:
+- synchroniser les profils Auth -> Firestore
+- tenir a jour les stats (livres/bibliotheques/derniere activite)
 
 ```javascript
-// functions/index.js
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-admin.initializeApp();
-
-// Sync Firebase Auth → Firestore lors de la création d'un utilisateur
-exports.syncUserProfile = functions.auth.user().onCreate(async (user) => {
-  const userProfile = {
-    uid: user.uid,
-    email: user.email || null,
-    displayName: user.displayName || null,
-    photoURL: user.photoURL || null,
-    emailVerified: user.emailVerified,
-    createdAt: user.metadata.creationTime,
-    lastLoginAt: user.metadata.lastSignInTime || user.metadata.creationTime,
-    providerData: user.providerData.map(p => ({
-      providerId: p.providerId,
-      email: p.email || null,
-    })),
-    disabled: user.disabled || false,
-    isAdmin: false, // Par défaut, pas admin
-  };
-
-  await admin.firestore()
-    .collection("user_profiles")
-    .doc(user.uid)
-    .set(userProfile);
-});
-
-// Sync lors de la mise à jour d'un utilisateur
-exports.syncUserProfileUpdate = functions.auth.user().onDelete(async (user) => {
-  await admin.firestore()
-    .collection("user_profiles")
-    .doc(user.uid)
-    .delete();
-});
+```
+// Voir functions/index.js pour le code complet
 ```
 
-**Déploiement** :
+**Deploiement** :
 ```bash
 cd functions
 npm install
@@ -202,8 +173,9 @@ Fichier : `firestore-user-profiles.rules`
 
 **Points importants** :
 - Seuls les admins peuvent lire `user_profiles`
-- Les utilisateurs peuvent modifier leur `displayName` et `photoURL` uniquement
-- La création/suppression est réservée aux admins ou Cloud Functions
+- Les utilisateurs peuvent mettre a jour: `displayName`, `photoURL`, `lastLoginAt`,
+  `totalBooks`, `totalLibraries`, `lastActivity` (champs limites)
+- La creation/suppression est reservee aux admins ou Cloud Functions
 
 ### Étape 3 : Définir le Premier Administrateur
 
@@ -225,7 +197,7 @@ await admin.firestore()
   .update({ isAdmin: true });
 ```
 
-### Étape 4 : Mettre à jour `lastLoginAt` lors de la connexion
+### Etape 4 : Mettre a jour `lastLoginAt` lors de la connexion
 
 Dans votre code de connexion existant (`src/components/login.tsx` ou équivalent), ajouter :
 
@@ -377,7 +349,7 @@ npm install recharts
 **Cause** : Données non synchronisées ou `lastLoginAt` pas à jour
 
 **Solution** :
-1. S'assurer que la Cloud Function de sync est déployée
+1. S'assurer que la Cloud Function de sync est deployee
 2. Vérifier que `lastLoginAt` se met à jour lors de la connexion
 
 ---

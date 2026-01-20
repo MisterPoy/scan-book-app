@@ -1,5 +1,3 @@
-// CODE TO COPY INTO functions/index.js
-
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 
@@ -53,6 +51,7 @@ const updateCount = async (uid, field, delta, extraUpdates) => {
 
 exports.syncUserProfileOnCreate = functions.auth.user().onCreate(async (user) => {
   const userProfile = buildUserProfilePayload(user);
+
   await db.collection(PROFILE_COLLECTION).doc(user.uid).set(userProfile);
 });
 
