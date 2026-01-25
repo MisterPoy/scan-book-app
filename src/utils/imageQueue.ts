@@ -7,8 +7,28 @@
 const CACHE_VERSION = 2;
 const CACHE_VERSION_KEY = 'kodeks_image_cache_version';
 
+// Cache des ISBN sans couverture (évite requêtes inutiles répétées)
+const FAILED_ISBNS_KEY = 'kodeks_failed_cover_isbns';
+const failedIsbnsCache = new Set<string>(
+  JSON.parse(localStorage.getItem(FAILED_ISBNS_KEY) || '[]')
+);
+
+function markIsbnAsFailed(isbn: string): void {
+  failedIsbnsCache.add(isbn);
+  try {
+    localStorage.setItem(FAILED_ISBNS_KEY, JSON.stringify([...failedIsbnsCache]));
+  } catch {
+    // Quota localStorage dépassé - ignorer silencieusement
+  }
+}
+
+export function hasFailedBefore(isbn: string): boolean {
+  return failedIsbnsCache.has(isbn);
+}
+
 type ImageRequest = {
   url: string;
+  isbn?: string; // Pour tracker les échecs
   resolve: (result: { success: boolean; url: string }) => void;
 };
 
@@ -51,14 +71,14 @@ initializeCacheVersion();
 class ImageLoadQueue {
   private queue: ImageRequest[] = [];
   private isProcessing = false;
-  private delay = 100; // Délai entre chaque chargement (ms)
+  private delay = 300; // Délai entre chaque chargement (ms) - augmenté pour réduire spam console
 
   /**
    * Ajoute une image à charger dans la queue
    */
-  async loadImage(url: string): Promise<{ success: boolean; url: string }> {
+  async loadImage(url: string, isbn?: string): Promise<{ success: boolean; url: string }> {
     return new Promise((resolve) => {
-      this.queue.push({ url, resolve });
+      this.queue.push({ url, isbn, resolve });
       this.processQueue();
     });
   }
@@ -79,8 +99,18 @@ class ImageLoadQueue {
 
       try {
         const result = await this.tryLoadImage(request.url);
+
+        // Si échec et ISBN fourni, le cacher pour éviter re-tentatives
+        if (!result.success && request.isbn) {
+          markIsbnAsFailed(request.isbn);
+        }
+
         request.resolve(result);
       } catch {
+        // En cas d'exception, marquer aussi comme échoué si ISBN fourni
+        if (request.isbn) {
+          markIsbnAsFailed(request.isbn);
+        }
         request.resolve({ success: false, url: request.url });
       }
 

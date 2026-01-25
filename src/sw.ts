@@ -23,19 +23,10 @@ const navigationRoute = new NavigationRoute(handler, {
 });
 registerRoute(navigationRoute);
 
-// Cache stratégique pour OpenLibrary covers
-registerRoute(
-  ({ url }) => url.origin === 'https://covers.openlibrary.org',
-  new CacheFirst({
-    cacheName: 'openlibrary-covers',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 jours
-      }),
-    ],
-  })
-);
+// SUPPRIMÉ : Cache stratégique pour OpenLibrary covers
+// Générait trop d'erreurs "Uncaught (in promise) no-response" pour les ISBN sans couverture (404)
+// Les images OpenLibrary seront chargées normalement via le navigateur sans passer par le SW
+// OpenLibrary a ses propres headers de cache HTTP, pas besoin de caching côté SW
 
 // Cache pour Firebase Storage (images de livres)
 registerRoute(

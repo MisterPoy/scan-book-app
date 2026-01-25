@@ -4,6 +4,231 @@
 
 ---
 
+## 2026-01-26 - 🐛 Fix CRITIQUE: Erreurs Console Images OpenLibrary
+
+### 🎯 Objectif
+Éliminer les dizaines d'erreurs console spammant lors du chargement des couvertures de livres :
+- `Uncaught (in promise) no-response` (Service Worker)
+- `ERR_FAILED` pour requêtes OpenLibrary
+- Requêtes répétées pour ISBN sans couverture
+
+### 🔴 Problème Identifié (CRITIQUE)
+**Service Worker (sw.ts lignes 26-38)** interceptait toutes les requêtes vers `covers.openlibrary.org` avec stratégie `CacheFirst`. Quand OpenLibrary renvoie 404 (pas de couverture pour cet ISBN), Workbox rejette la promesse → **`Uncaught (in promise) no-response`** spam console.
+
+**Autres problèmes** :
+- Pas de validation ISBN avant requête → requêtes inutiles pour ISBN invalides
+- Pas de cache des échecs → re-tentatives infinies pour mêmes ISBN
+- `console.error` dans BookCard et useImageRecovery → spam supplémentaire
+- Throttling trop faible (100ms) → trop de requêtes simultanées
+
+### 🏗️ Modifications Implémentées
+
+#### **Fix 1 - Retrait Route Service Worker** (CRITIQUE - Résout 100% des `Uncaught (in promise)`)
+**Fichier** : [src/sw.ts](src/sw.ts)
+**Action** : Suppression lignes 26-38 (route OpenLibrary avec `CacheFirst`)
+
+**Justification** :
+- ✅ OpenLibrary a ses propres headers de cache HTTP (pas besoin de SW)
+- ✅ Cacher des 404 ne sert à rien
+- ✅ Simplifie le Service Worker
+- ✅ Les images existantes se chargent toujours normalement via navigateur
+
+**Code supprimé** :
+```typescript
+// SUPPRIMÉ (générait trop d'erreurs)
+registerRoute(
+  ({ url }) => url.origin === 'https://covers.openlibrary.org',
+  new CacheFirst({
+    cacheName: 'openlibrary-covers',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+```
+
+---
+
+#### **Fix 2 - Cache des ISBN Échoués** (Évite Re-tentatives Inutiles)
+**Fichier** : [src/utils/imageQueue.ts](src/utils/imageQueue.ts)
+
+**Modifications** :
+- Ajout cache localStorage des ISBN sans couverture
+- Export fonction `hasFailedBefore(isbn)` pour vérification
+- Marquage automatique des ISBN échoués dans `processQueue()`
+- Modification signature `loadImage(url, isbn?)` pour tracker les échecs
+
+**Code ajouté** :
+```typescript
+// Cache des ISBN sans couverture (évite requêtes inutiles répétées)
+const FAILED_ISBNS_KEY = 'kodeks_failed_cover_isbns';
+const failedIsbnsCache = new Set<string>(
+  JSON.parse(localStorage.getItem(FAILED_ISBNS_KEY) || '[]')
+);
+
+function markIsbnAsFailed(isbn: string): void {
+  failedIsbnsCache.add(isbn);
+  try {
+    localStorage.setItem(FAILED_ISBNS_KEY, JSON.stringify([...failedIsbnsCache]));
+  } catch {
+    // Quota localStorage dépassé - ignorer silencieusement
+  }
+}
+
+export function hasFailedBefore(isbn: string): boolean {
+  return failedIsbnsCache.has(isbn);
+}
+
+// Dans processQueue() :
+if (!result.success && request.isbn) {
+  markIsbnAsFailed(request.isbn);
+}
+```
+
+---
+
+#### **Fix 3 - Throttling Augmenté** (Réduit Nombre de Requêtes/Seconde)
+**Fichier** : [src/utils/imageQueue.ts](src/utils/imageQueue.ts)
+
+**Modification** :
+```typescript
+// AVANT
+private delay = 100; // Délai entre chaque chargement (ms)
+
+// APRÈS
+private delay = 300; // Délai entre chaque chargement (ms) - réduit spam console
+```
+
+**Impact** : Moins de requêtes simultanées → moins d'erreurs affichées
+
+---
+
+#### **Fix 4 - Validation ISBN + Try/Catch + Cache Check** (BookCard.tsx)
+**Fichier** : [src/components/BookCard.tsx](src/components/BookCard.tsx)
+
+**Modifications dans `loadCover()`** :
+1. **Import** : `import { imageQueue, hasFailedBefore } from '../utils/imageQueue'`
+2. **Validation ISBN** : Vérifier longueur (10 ou 13 chiffres) avant requête
+3. **Vérification cache** : `if (hasFailedBefore(isbn))` → skip requête
+4. **Try/Catch** : Wrapper `await imageQueue.loadImage()` pour gérer erreurs silencieusement
+5. **Passage ISBN** : `imageQueue.loadImage(url, isbn)` pour tracking
+
+**Code ajouté** :
+```typescript
+// 3. Vérifier validité ISBN (10 ou 13 chiffres)
+if (!isbn || (isbn.length !== 10 && isbn.length !== 13)) {
+  setCoverSrc(fallback);
+  setIsLoading(false);
+  return;
+}
+
+// 4. Vérifier si cet ISBN a déjà échoué (évite requêtes inutiles)
+if (hasFailedBefore(isbn)) {
+  setCoverSrc(fallback);
+  setIsLoading(false);
+  return;
+}
+
+// 5. Essayer OpenLibrary avec gestion erreurs
+try {
+  const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+  const result = await imageQueue.loadImage(openLibraryUrl, isbn);
+  // ... gestion résultat
+} catch {
+  // Erreur silencieuse - pas de spam console
+  if (!cancelled) {
+    setCoverSrc(fallback);
+    setIsLoading(false);
+  }
+}
+```
+
+**Suppression `console.error`** dans `handleImageError()` :
+```typescript
+// AVANT
+} catch (error) {
+  console.error('Erreur récupération couverture:', error);
+  setCoverSrc(fallback);
+}
+
+// APRÈS
+} catch {
+  // Erreur silencieuse - pas de spam console
+  setCoverSrc(fallback);
+}
+```
+
+---
+
+#### **Fix 5 - Console.debug au lieu de Console.error** (useImageRecovery.ts)
+**Fichier** : [src/hooks/useImageRecovery.ts](src/hooks/useImageRecovery.ts)
+
+**Modifications** (lignes 84 et 143) :
+```typescript
+// AVANT (ligne 84)
+console.error('Erreur lors de la récupération de couverture:', error);
+
+// APRÈS
+console.debug('[useImageRecovery] Fallback après échec récupération, ISBN:', isbn);
+
+// AVANT (ligne 143)
+console.error('Erreur fetch Google Books:', error);
+
+// APRÈS
+console.debug('[fetchGoogleBookscover] Échec fetch pour ISBN:', isbn);
+```
+
+**Avantages** :
+- ✅ Console propre par défaut
+- ✅ Logs disponibles en mode verbose DevTools si besoin
+- ✅ Pas de spam utilisateur
+
+---
+
+### 📊 Impact Attendu
+
+#### Avant Corrections
+- ❌ 50+ erreurs `ERR_FAILED` dans la console
+- ❌ Dizaines de `Uncaught (in promise) no-response` (Service Worker)
+- ❌ Requêtes répétées pour mêmes ISBN échoués
+- ❌ Console complètement illisible
+
+#### Après Corrections
+- ✅ **Suppression 100% des `Uncaught (in promise)`** (retrait route SW)
+- ✅ **Réduction ~90% des erreurs console** (cache + validation + throttling)
+- ✅ **Aucune re-tentative inutile** (cache des échecs localStorage)
+- ✅ **Console propre et professionnelle**
+- ✅ **Logs disponibles en mode debug** si nécessaire
+- ✅ **Service Worker simplifié** et plus fiable
+
+### ✅ Tests
+- ✅ TypeScript : OK
+- ✅ ESLint : OK
+- ⏳ Test console propre : À vérifier après déploiement
+
+### 📋 Résumé des Fichiers Modifiés
+
+| Fichier | Modifications | Lignes |
+|---------|---------------|--------|
+| `src/sw.ts` | Retrait route OpenLibrary | -13 |
+| `src/utils/imageQueue.ts` | Cache échecs + throttling 300ms | +30 |
+| `src/components/BookCard.tsx` | Validation ISBN + try/catch + cache check | +20 |
+| `src/hooks/useImageRecovery.ts` | console.error → console.debug | 0 (remplacement) |
+
+**Net** : +37 lignes (simplification Service Worker + protections robustes)
+
+### ✅ Principes Appliqués
+- **Clean Code** : Pas de console.error inutiles, gestion silencieuse des erreurs attendues
+- **DRY** : Cache centralisé dans imageQueue, réutilisé par tous les composants
+- **Performance** : Throttling 300ms + cache évite requêtes inutiles
+- **Robustesse** : Validation ISBN + try/catch + early returns
+- **UX** : Console propre = meilleure expérience développeur
+
+---
+
 ## 2026-01-25 (bis) - 🔧 Fix: Retrait bouton Scanner doublon dans UnifiedSearchBar
 
 ### 🎯 Objectif

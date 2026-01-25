@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { imageQueue } from '../utils/imageQueue';
+import { imageQueue, hasFailedBefore } from '../utils/imageQueue';
 
 interface Props {
   title: string;
@@ -36,7 +36,7 @@ export default function BookCard({ title, authors, isbn, customCoverUrl, imageLi
       // Tentative 2 : OpenLibrary avec ISBN
       if (retryCount === 1 && isbn) {
         const openLibUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-        const result = await imageQueue.loadImage(openLibUrl);
+        const result = await imageQueue.loadImage(openLibUrl, isbn);
 
         if (result.success) {
           setCoverSrc(result.url);
@@ -46,8 +46,8 @@ export default function BookCard({ title, authors, isbn, customCoverUrl, imageLi
 
       // Toutes les tentatives échouées -> fallback
       setCoverSrc(fallback);
-    } catch (error) {
-      console.error('Erreur récupération couverture:', error);
+    } catch {
+      // Erreur silencieuse - pas de spam console
       setCoverSrc(fallback);
     }
   }, [retryCount, isbn, imageLinks, coverSrc, fallback]);
@@ -73,18 +73,39 @@ export default function BookCard({ title, authors, isbn, customCoverUrl, imageLi
         return;
       }
 
-      // 3. Sinon, essayer OpenLibrary avec l'ISBN via la queue (throttling)
-      const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-
-      const result = await imageQueue.loadImage(openLibraryUrl);
-
-      if (!cancelled) {
-        if (result.success) {
-          setCoverSrc(result.url);
-        } else {
-          setCoverSrc(fallback);
-        }
+      // 3. Vérifier validité ISBN (10 ou 13 chiffres)
+      if (!isbn || (isbn.length !== 10 && isbn.length !== 13)) {
+        setCoverSrc(fallback);
         setIsLoading(false);
+        return;
+      }
+
+      // 4. Vérifier si cet ISBN a déjà échoué (évite requêtes inutiles)
+      if (hasFailedBefore(isbn)) {
+        setCoverSrc(fallback);
+        setIsLoading(false);
+        return;
+      }
+
+      // 5. Sinon, essayer OpenLibrary avec l'ISBN via la queue (throttling + gestion erreurs)
+      try {
+        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+        const result = await imageQueue.loadImage(openLibraryUrl, isbn);
+
+        if (!cancelled) {
+          if (result.success) {
+            setCoverSrc(result.url);
+          } else {
+            setCoverSrc(fallback);
+          }
+          setIsLoading(false);
+        }
+      } catch {
+        // Erreur silencieuse - pas de spam console
+        if (!cancelled) {
+          setCoverSrc(fallback);
+          setIsLoading(false);
+        }
       }
     };
 

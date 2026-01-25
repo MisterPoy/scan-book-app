@@ -80,8 +80,9 @@ export function useImageRecovery({
 
       // Toutes les tentatives ont échoué -> fallback
       setCurrentSrc(fallbackUrl);
-    } catch (error) {
-      console.error('Erreur lors de la récupération de couverture:', error);
+    } catch {
+      // Erreur silencieuse - logs disponibles en mode verbose DevTools
+      console.debug('[useImageRecovery] Fallback après échec récupération, ISBN:', isbn);
       setCurrentSrc(fallbackUrl);
     } finally {
       setIsLoading(false);
@@ -139,8 +140,8 @@ async function fetchGoogleBookscover(isbn: string): Promise<string | null> {
     }
 
     return null;
-  } catch (error) {
-    console.error('Erreur fetch Google Books:', error);
+  } catch {
+    console.debug('[fetchGoogleBookscover] Échec fetch pour ISBN:', isbn);
     return null;
   }
 }
