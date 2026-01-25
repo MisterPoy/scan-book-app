@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-01-25 (bis) - 🔧 Fix: Retrait bouton Scanner doublon dans UnifiedSearchBar
+
+### 🎯 Objectif
+Supprimer le bouton "Scanner" du composant UnifiedSearchBar car il fait doublon avec les boutons "Scan unique" et "Scan par lot" affichés juste en dessous dans la Scanner Section.
+
+### 🏗️ Modifications
+**Fichiers modifiés** :
+- [src/components/UnifiedSearchBar.tsx](src/components/UnifiedSearchBar.tsx)
+  - Ajout prop optionnelle `showScanButton?: boolean` (défaut: `true`)
+  - Ajout prop optionnelle `onScanClick?: () => void`
+  - Conditionnement de l'affichage du bouton Scanner (ligne 85)
+- [src/App.tsx](src/App.tsx)
+  - Passage de `showScanButton={false}` au UnifiedSearchBar dans Scanner Section (ligne 2890)
+
+**Code ajouté** :
+```typescript
+// UnifiedSearchBar.tsx
+interface UnifiedSearchBarProps {
+  showScanButton?: boolean; // Nouvelle prop
+  onScanClick?: () => void; // Rendue optionnelle
+  // ...autres props
+}
+
+export default function UnifiedSearchBar({
+  showScanButton = true, // Défaut: afficher le bouton
+  // ...
+}) {
+  // ...
+  {showScanButton && (
+    <button onClick={onScanClick}>Scanner</button>
+  )}
+}
+
+// App.tsx - ligne 2890
+<UnifiedSearchBar
+  showScanButton={false} // Masquer le bouton Scanner
+  // ...autres props
+/>
+```
+
+### ✅ Principes Appliqués
+- **SOLID - Open/Closed** : Composant étendu via prop sans modification du code existant
+- **Réutilisabilité** : UnifiedSearchBar peut afficher ou masquer le bouton Scanner selon le contexte
+- **Pas de breaking change** : Défaut `true` conserve le comportement existant
+
+### ✅ Tests
+- ✅ TypeScript : OK
+- ✅ ESLint : OK
+- ✅ Interface : Bouton Scanner masqué dans Scanner Section, boutons "Scan unique/par lot" visibles
+
+### 📊 Statistiques
+- **Net** : +2 lignes (1 prop + 1 condition)
+- **Impact visuel** : Simplification interface (pas de doublon de boutons scan)
+
+---
+
 ## 2026-01-25 - 🐛 Fix: Corrections post-implémentation (3 problèmes critiques)
 
 ### 🎯 Objectif

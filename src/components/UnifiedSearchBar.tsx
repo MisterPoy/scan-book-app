@@ -4,9 +4,10 @@ import { detectSearchType } from '../utils/searchHelpers';
 
 interface UnifiedSearchBarProps {
   onSearch: (query: string, type: 'isbn' | 'text') => void;
-  onScanClick: () => void;
+  onScanClick?: () => void;
   placeholder?: string;
   disabled?: boolean;
+  showScanButton?: boolean;
 }
 
 export default function UnifiedSearchBar({
@@ -14,6 +15,7 @@ export default function UnifiedSearchBar({
   onScanClick,
   placeholder = "ISBN ou titre/auteur...",
   disabled = false,
+  showScanButton = true,
 }: UnifiedSearchBarProps) {
   const [searchValue, setSearchValue] = useState('');
   const [searchType, setSearchType] = useState<'isbn' | 'text'>('text');
@@ -82,17 +84,19 @@ export default function UnifiedSearchBar({
         </div>
 
         {/* Bouton Scanner */}
-        <button
-          type="button"
-          onClick={onScanClick}
-          disabled={disabled}
-          className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
-          aria-label="Scanner un code-barres"
-          title="Scanner un code-barres ISBN"
-        >
-          <Barcode size={20} weight="bold" />
-          <span className="hidden sm:inline">Scanner</span>
-        </button>
+        {showScanButton && (
+          <button
+            type="button"
+            onClick={onScanClick}
+            disabled={disabled}
+            className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+            aria-label="Scanner un code-barres"
+            title="Scanner un code-barres ISBN"
+          >
+            <Barcode size={20} weight="bold" />
+            <span className="hidden sm:inline">Scanner</span>
+          </button>
+        )}
 
         {/* Bouton Rechercher */}
         <button

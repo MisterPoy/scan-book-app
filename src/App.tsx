@@ -2887,6 +2887,7 @@ function App() {
                     setScanning(true);
                   }}
                   disabled={isOffline}
+                  showScanButton={false}
                 />
               </div>
 
