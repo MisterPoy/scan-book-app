@@ -55,6 +55,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import ModalScrollToTop from "./components/ModalScrollToTop";
 import Toast from "./components/Toast";
 import Footer from "./components/Footer";
+import UnifiedSearchBar from "./components/UnifiedSearchBar";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
@@ -711,11 +712,11 @@ function CollectionBookCard({
             )}
             <button
               onClick={onRemove}
-              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-              title="Supprimer de la collection"
-              aria-label="Supprimer de la collection"
+              className="p-1.5 text-red-600 hover:bg-red-100 border border-red-300 hover:border-red-400 rounded-md transition-colors cursor-pointer"
+              title="Supprimer définitivement de la collection"
+              aria-label="Supprimer définitivement de la collection"
             >
-              <Trash size={16} weight="regular" />
+              <Trash size={16} weight="fill" />
             </button>
           </div>
         </div>
@@ -988,7 +989,7 @@ function App() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [addMessage, setAddMessage] = useState<{
     text: string;
-    type: "success" | "error";
+    type: "success" | "error" | "warning" | "info";
   } | null>(null);
   const [authMessage, setAuthMessage] = useState<{
     text: string;
@@ -1018,6 +1019,7 @@ function App() {
     libraries: [],
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
+  const [selectedLibrariesForAdd, setSelectedLibrariesForAdd] = useState<string[]>([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
@@ -1058,10 +1060,10 @@ function App() {
 
   const showOfflineMessage = (action: string) => {
     setAddMessage({
-      text: `Hors ligne: ${action} necessite une connexion.`,
-      type: "error",
+      text: `Vous êtes hors ligne - ${action} nécessite une connexion.`,
+      type: "warning",
     });
-    setTimeout(() => setAddMessage(null), 4000);
+    setTimeout(() => setAddMessage(null), 3000);
   };
 
   const requireOnline = (action: string) => {
@@ -1072,8 +1074,22 @@ function App() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      setIsOffline(false);
+      setAddMessage({
+        text: "Connexion rétablie - Vous êtes de nouveau en ligne.",
+        type: "success",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+    };
+    const handleOffline = () => {
+      setIsOffline(true);
+      setAddMessage({
+        text: "Vous êtes hors ligne - Mode lecture seule.",
+        type: "warning",
+      });
+      setTimeout(() => setAddMessage(null), 3000);
+    };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
@@ -1371,6 +1387,11 @@ function App() {
         bookData.customCoverUrl = scannedBookData.coverUrl;
       }
 
+      // Ajouter les bibliothèques sélectionnées
+      if (selectedLibrariesForAdd.length > 0) {
+        bookData.libraries = selectedLibrariesForAdd;
+      }
+
       const bookRef = doc(
         db,
         `users/${user.uid}/collection`,
@@ -1393,6 +1414,7 @@ function App() {
 
       setShowPostScanConfirm(false);
       setScannedBookData(null);
+      setSelectedLibrariesForAdd([]);
     } catch (error) {
       console.error("Erreur lors de l'ajout:", error);
       setAddMessage({
@@ -1407,6 +1429,7 @@ function App() {
   const handlePostScanCancel = () => {
     setShowPostScanConfirm(false);
     setScannedBookData(null);
+    setSelectedLibrariesForAdd([]);
     setScanning(true); // Reprendre le scan
   };
 
@@ -1468,7 +1491,7 @@ function App() {
     }
   };
 
-  const addToCollection = async () => {
+  const addToCollection = async (selectedLibraries?: string[]) => {
     if (!user || !book) return;
 
     setAddingToCollection(true);
@@ -1505,6 +1528,11 @@ function App() {
       docData.bookType = "physique"; // Par défaut "physique"
       if (book.genre) docData.genre = book.genre;
       if (book.tags && book.tags.length > 0) docData.tags = book.tags;
+
+      // Ajouter les bibliothèques sélectionnées
+      if (selectedLibraries && selectedLibraries.length > 0) {
+        docData.libraries = selectedLibraries;
+      }
 
       await setDoc(ref, docData);
 
@@ -1999,7 +2027,8 @@ function App() {
 
   const handleBulkAddConfirm = async (
     isbns: string[],
-    personalNotes: Record<string, string>
+    personalNotes: Record<string, string>,
+    selectedLibraries?: string[]
   ) => {
     if (!user) {
       setAddMessage({
@@ -2019,7 +2048,8 @@ function App() {
         user.uid,
         db,
         collectionBooks,
-        personalNotes
+        personalNotes,
+        selectedLibraries
       );
 
       // Recharger la collection depuis Firestore
@@ -2926,6 +2956,24 @@ function App() {
             Scannez, recherchez et organisez vos livres préférés en quelques
             clics
           </p>
+        </div>
+
+        {/* Unified Search Bar */}
+        <div className="mb-6 sm:mb-8">
+          <UnifiedSearchBar
+            onSearch={(query, type) => {
+              if (type === 'isbn') {
+                handleSearch(query);
+              } else {
+                handleTextSearch(query);
+              }
+            }}
+            onScanClick={() => {
+              setScanMode("single");
+              setScanning(true);
+            }}
+            disabled={isOffline}
+          />
         </div>
 
         {/* Scanner Section */}
@@ -4658,6 +4706,9 @@ function App() {
           coverUrl={scannedBookData.coverUrl}
           onConfirm={handlePostScanConfirm}
           onCancel={handlePostScanCancel}
+          userLibraries={userLibraries}
+          selectedLibraries={selectedLibrariesForAdd}
+          onLibrarySelectionChange={setSelectedLibrariesForAdd}
         />
       )}
 
@@ -4667,6 +4718,7 @@ function App() {
         isOpen={showBulkConfirmModal}
         onConfirm={handleBulkAddConfirm}
         onCancel={handleBulkAddCancel}
+        userLibraries={userLibraries}
       />
 
       {/* Bulk Delete Confirmation Modal */}
@@ -4684,23 +4736,23 @@ function App() {
                 <Warning size={24} weight="bold" className="text-red-600" />
               </div>
               <div className="flex-1">
-                <h2 id="bulk-delete-title" className="text-xl font-bold text-gray-900 mb-2">
-                  Confirmer la suppression
+                <h2 id="bulk-delete-title" className="text-xl font-bold text-red-600 mb-2">
+                  ⚠️ Supprimer définitivement ?
                 </h2>
                 <p className="text-gray-700">
-                  Êtes-vous sûr de vouloir supprimer{" "}
-                  <strong>{selectedBooks.length}</strong> livre
-                  {selectedBooks.length > 1 ? "s" : ""} de votre collection ?
+                  Vous êtes sur le point de supprimer{" "}
+                  <strong className="text-red-600">{selectedBooks.length}</strong> livre
+                  {selectedBooks.length > 1 ? "s" : ""} de votre collection.
                 </p>
-                <p className="text-sm text-red-600 mt-2">
-                  Cette action est irréversible.
+                <p className="text-sm font-semibold text-red-600 mt-2">
+                  Cette action est irréversible et ne peut pas être annulée.
                 </p>
               </div>
             </div>
             <div className="flex justify-end gap-3">
               <button
                 onClick={closeBulkDeleteModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
               >
                 Annuler
               </button>

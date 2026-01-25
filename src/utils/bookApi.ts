@@ -108,7 +108,8 @@ export async function bulkAddBooks(
   userId: string,
   db: Firestore,
   existingBooks: Array<{ isbn: string }>, // Livres déjà dans la collection
-  personalNotes?: Record<string, string>
+  personalNotes?: Record<string, string>,
+  selectedLibraries?: string[]
 ): Promise<import('../types/bulkAdd').BulkAddResponse> {
   const { collection, doc, writeBatch } = await import('firebase/firestore');
 
@@ -157,6 +158,7 @@ export async function bulkAddBooks(
       if (metadata.description) bookData.description = metadata.description;
       if (metadata.pageCount) bookData.pageCount = metadata.pageCount;
       if (personalNotes?.[isbn]) bookData.notes = personalNotes[isbn];
+      if (selectedLibraries && selectedLibraries.length > 0) bookData.libraries = selectedLibraries;
 
       // Ajouter au batch
       const bookRef = doc(collection(db, `users/${userId}/collection`), isbn);

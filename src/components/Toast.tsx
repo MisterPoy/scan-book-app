@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CheckCircle, XCircle, Warning, X } from 'phosphor-react';
+import ToastProgressBar from './ToastProgressBar';
 
 export interface ToastProps {
   message: string;
@@ -59,7 +60,7 @@ export default function Toast({ message, type, isVisible, onClose, duration = 50
       aria-live={ariaLive}
       aria-atomic="true"
     >
-      <div className={`${style.bg} ${style.border} border-2 rounded-lg shadow-lg p-4 min-w-[320px] max-w-md flex items-start gap-3`}>
+      <div className={`${style.bg} ${style.border} border-2 rounded-lg shadow-lg p-4 min-w-[320px] max-w-md flex items-start gap-3 relative overflow-hidden`}>
         <div className="flex-shrink-0 mt-0.5">
           {style.icon}
         </div>
@@ -73,6 +74,7 @@ export default function Toast({ message, type, isVisible, onClose, duration = 50
         >
           <X size={18} weight="bold" />
         </button>
+        {duration > 0 && <ToastProgressBar duration={duration} isVisible={isVisible} type={type} />}
       </div>
     </div>
   );

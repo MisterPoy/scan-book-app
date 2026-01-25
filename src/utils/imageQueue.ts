@@ -3,10 +3,50 @@
  * Évite de surcharger le serveur OpenLibrary avec trop de requêtes simultanées
  */
 
+// Version du cache - incrémenter pour forcer l'invalidation
+const CACHE_VERSION = 2;
+const CACHE_VERSION_KEY = 'kodeks_image_cache_version';
+
 type ImageRequest = {
   url: string;
   resolve: (result: { success: boolean; url: string }) => void;
 };
+
+/**
+ * Initialise et vérifie la version du cache
+ * Nettoie le cache si la version a changé
+ */
+function initializeCacheVersion(): void {
+  try {
+    const currentVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+    if (!currentVersion || parseInt(currentVersion) < CACHE_VERSION) {
+      // Nouvelle version détectée - nettoyer l'ancien cache
+      console.log(`Mise à jour du cache d'images : v${currentVersion || 1} → v${CACHE_VERSION}`);
+
+      // Supprimer toutes les clés de cache d'images
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('image_cache_')) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Mettre à jour la version
+      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION.toString());
+
+      console.log(`✓ Cache nettoyé (${keysToRemove.length} entrées supprimées)`);
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation du cache:', error);
+  }
+}
+
+// Initialiser le cache au chargement du module
+initializeCacheVersion();
 
 class ImageLoadQueue {
   private queue: ImageRequest[] = [];
@@ -75,6 +115,31 @@ class ImageLoadQueue {
 
       img.src = url;
     });
+  }
+
+  /**
+   * Nettoie manuellement tout le cache d'images
+   * Utile pour forcer le rechargement des couvertures
+   */
+  clearCache(): number {
+    try {
+      const keysToRemove: string[] = [];
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('image_cache_')) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      console.log(`✓ Cache d'images nettoyé (${keysToRemove.length} entrées)`);
+      return keysToRemove.length;
+    } catch (error) {
+      console.error('Erreur lors du nettoyage du cache:', error);
+      return 0;
+    }
   }
 }
 

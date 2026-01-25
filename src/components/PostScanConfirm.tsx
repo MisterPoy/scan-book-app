@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Book, CheckCircle, X } from 'phosphor-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import LibrarySelector from './LibrarySelector';
+import type { UserLibrary } from '../types/library';
 
 interface PostScanConfirmProps {
   isbn: string;
@@ -10,6 +12,9 @@ interface PostScanConfirmProps {
   coverUrl?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  userLibraries?: UserLibrary[];
+  selectedLibraries?: string[];
+  onLibrarySelectionChange?: (libraryIds: string[]) => void;
 }
 
 export default function PostScanConfirm({
@@ -19,7 +24,10 @@ export default function PostScanConfirm({
   publisher,
   coverUrl,
   onConfirm,
-  onCancel
+  onCancel,
+  userLibraries = [],
+  selectedLibraries = [],
+  onLibrarySelectionChange
 }: PostScanConfirmProps) {
   const modalRef = useFocusTrap<HTMLDivElement>(true);
 
@@ -86,6 +94,19 @@ export default function PostScanConfirm({
             </p>
           </div>
         </div>
+
+        {/* Sélecteur de bibliothèques */}
+        {userLibraries.length > 0 && onLibrarySelectionChange && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <LibrarySelector
+              libraries={userLibraries}
+              selectedLibraries={selectedLibraries}
+              onSelectionChange={onLibrarySelectionChange}
+              title="Ajouter à une bibliothèque (optionnel)"
+              emptyMessage="Créez d'abord des bibliothèques pour organiser vos livres"
+            />
+          </div>
+        )}
 
         {/* Boutons d'action */}
         <div className="flex gap-3">

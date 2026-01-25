@@ -280,7 +280,8 @@ export default function LibraryManager({
               onClick={() => setShowCreateForm(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer"
             >
-              ➕ Nouvelle bibliothèque
+              <span className="hidden sm:inline">Ajouter une nouvelle bibliothèque</span>
+              <span className="sm:hidden">Nouvelle bibliothèque</span>
             </button>
           </div>
 

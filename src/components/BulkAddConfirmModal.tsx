@@ -13,12 +13,15 @@ import {
 import { fetchMultipleBooks } from '../utils/bookApi';
 import type { ScannedBook } from '../types/bulkAdd';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import LibrarySelector from './LibrarySelector';
+import type { UserLibrary } from '../types/library';
 
 interface BulkAddConfirmModalProps {
   isbns: string[];
-  onConfirm: (isbns: string[], personalNotes: Record<string, string>) => Promise<void>;
+  onConfirm: (isbns: string[], personalNotes: Record<string, string>, libraries?: string[]) => Promise<void>;
   onCancel: () => void;
   isOpen: boolean;
+  userLibraries?: UserLibrary[];
 }
 
 export default function BulkAddConfirmModal({
@@ -26,6 +29,7 @@ export default function BulkAddConfirmModal({
   onConfirm,
   onCancel,
   isOpen,
+  userLibraries = [],
 }: BulkAddConfirmModalProps) {
   const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
 
@@ -34,6 +38,7 @@ export default function BulkAddConfirmModal({
   const [submitting, setSubmitting] = useState(false);
   const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
   const [selectedIsbns, setSelectedIsbns] = useState<string[]>(isbns);
+  const [selectedLibraries, setSelectedLibraries] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen && isbns.length > 0) {
@@ -70,7 +75,7 @@ export default function BulkAddConfirmModal({
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      await onConfirm(selectedIsbns, personalNotes);
+      await onConfirm(selectedIsbns, personalNotes, selectedLibraries.length > 0 ? selectedLibraries : undefined);
     } catch (error) {
       console.error('Erreur lors de la confirmation:', error);
     } finally {
@@ -235,6 +240,19 @@ export default function BulkAddConfirmModal({
                 ))}
               </div>
             </>
+          )}
+
+          {/* Sélecteur de bibliothèques */}
+          {!loading && validBooks.length > 0 && userLibraries.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <LibrarySelector
+                libraries={userLibraries}
+                selectedLibraries={selectedLibraries}
+                onSelectionChange={setSelectedLibraries}
+                title="Ajouter tous les livres à une bibliothèque (optionnel)"
+                emptyMessage="Créez d'abord des bibliothèques pour organiser vos livres"
+              />
+            </div>
           )}
         </div>
 
