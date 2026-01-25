@@ -3,6 +3,7 @@ import AnnouncementBanner from './AnnouncementBanner';
 import AnnouncementModal from './AnnouncementModal';
 import type { Announcement } from '../types/announcement';
 import { getActiveAnnouncements } from '../services/announcements';
+import { auth } from '../firebase';
 
 interface AnnouncementDisplayProps {
   userEmail?: string | null;
@@ -18,9 +19,14 @@ export default function AnnouncementDisplay({ userEmail, isAdmin }: Announcement
 
   const loadAnnouncements = useCallback(async () => {
     try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.debug('[Annonces] Authentification en cours, annonces chargées après login');
+        return;
+      }
+
       const activeAnnouncements = await getActiveAnnouncements();
 
-      // Filtrer les annonces selon l'audience cible
       const filteredAnnouncements = activeAnnouncements.filter(announcement => {
         if (announcement.targetAudience === 'all') {
           return true;
@@ -35,14 +41,21 @@ export default function AnnouncementDisplay({ userEmail, isAdmin }: Announcement
       });
 
       setAnnouncements(filteredAnnouncements);
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'permission-denied') {
+        console.debug('[Annonces] Permissions insuffisantes (utilisateur non authentifié)');
+        return;
+      }
       console.error('Erreur chargement annonces:', error);
     }
   }, [userEmail, isAdmin]);
 
   useEffect(() => {
-    loadAnnouncements();
-  }, [loadAnnouncements]);
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      loadAnnouncements();
+    }
+  }, [loadAnnouncements, userEmail]);
 
   const processAnnouncements = useCallback(() => {
     // Séparer les annonces par type d'affichage

@@ -30,7 +30,6 @@ import {
   Bell,
   Stack,
   DownloadSimple,
-  CheckCircle,
   FilePdf,
   UsersThree,
   CaretDown as CaretDownIcon,
@@ -45,6 +44,7 @@ import PostScanConfirm from "./components/PostScanConfirm";
 import EditBookModal from "./components/EditBookModal";
 import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
+import LibrarySelector from "./components/LibrarySelector";
 import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import NotificationSettings from "./components/NotificationSettings";
@@ -972,7 +972,6 @@ const EMPTY_MANUAL_BOOK = {
 };
 
 function App() {
-  const [isbn, setIsbn] = useState("");
   const [book, setBook] = useState<GoogleBook | null>(null);
   const [scanning, setScanning] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -987,6 +986,8 @@ function App() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showBulkLibraryModal, setShowBulkLibraryModal] = useState(false);
+  const [bulkLibrarySelection, setBulkLibrarySelection] = useState<string[]>([]);
   const [addMessage, setAddMessage] = useState<{
     text: string;
     type: "success" | "error" | "warning" | "info";
@@ -996,7 +997,6 @@ function App() {
     type: "success" | "info";
   } | null>(null);
   const [selectedBook, setSelectedBook] = useState<CollectionBook | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GoogleBook[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1114,19 +1114,6 @@ function App() {
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
 
-  // États pour les accordéons de la page d'accueil
-  const [showIsbnSearch, setShowIsbnSearch] = useState(false);
-  const [showTextSearch, setShowTextSearch] = useState(false);
-
-  // États pour le mode lot ISBN
-  const [isbnBatchMode, setIsbnBatchMode] = useState(false);
-  const [isbnBatchList, setIsbnBatchList] = useState<string[]>([]);
-
-  // États pour le mode lot recherche manuelle
-  const [manualSearchBatchMode, setManualSearchBatchMode] = useState(false);
-  const [selectedSearchResults, setSelectedSearchResults] = useState<
-    GoogleBook[]
-  >([]);
 
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -1171,7 +1158,6 @@ function App() {
   }, [collectionBooks]);
 
   const handleDetected = async (code: string) => {
-    setIsbn(code);
     setScanning(false);
 
     if (!isOnline()) {
@@ -1546,7 +1532,6 @@ function App() {
       // Auto-fermeture après 2 secondes
       setTimeout(() => {
         setBook(null);
-        setIsbn("");
         setAddMessage(null);
       }, 2000);
     } catch (err) {
@@ -2092,8 +2077,6 @@ function App() {
       // Fermer la modale
       setShowBulkConfirmModal(false);
       setBulkScannedIsbns([]);
-      setIsbnBatchList([]); // Nettoyer aussi le lot ISBN si applicable
-      setSelectedSearchResults([]); // Nettoyer aussi la sélection recherche manuelle
     } catch (error) {
       console.error("Erreur lors de l'ajout groupé:", error);
       setAddMessage({
@@ -2107,6 +2090,46 @@ function App() {
   const handleBulkAddCancel = () => {
     setShowBulkConfirmModal(false);
     setBulkScannedIsbns([]);
+  };
+
+  const handleBulkAddToLibraries = async () => {
+    if (!user || bulkLibrarySelection.length === 0) return;
+
+    try {
+      for (const isbn of selectedBooks) {
+        const book = collectionBooks.find(b => b.isbn === isbn);
+        if (!book) continue;
+
+        const existingLibraries = book.libraries || [];
+        const newLibraries = [...new Set([...existingLibraries, ...bulkLibrarySelection])];
+
+        const updatedBook = {
+          ...book,
+          libraries: newLibraries
+        };
+
+        await updateBookInFirestore(updatedBook);
+      }
+
+      await fetchCollection(user.uid);
+
+      setAddMessage({
+        text: `${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''} ajouté${selectedBooks.length > 1 ? 's' : ''} à ${bulkLibrarySelection.length} bibliothèque${bulkLibrarySelection.length > 1 ? 's' : ''}`,
+        type: "success"
+      });
+
+      setShowBulkLibraryModal(false);
+      setBulkLibrarySelection([]);
+      setSelectedBooks([]);
+      setSelectionMode(false);
+
+    } catch (error) {
+      console.error("Erreur lors de l'ajout aux bibliothèques:", error);
+      setAddMessage({
+        text: "Erreur lors de l'ajout aux bibliothèques",
+        type: "error"
+      });
+    }
   };
 
   const exportCollectionToCSV = (libraryId?: string) => {
@@ -2549,128 +2572,15 @@ function App() {
     setShowExportMenuPdf(false);
   };
 
-  const handleIsbnBatchAdd = () => {
-    if (!isbn.trim()) {
-      setAddMessage({
-        text: "Veuillez saisir un ISBN",
-        type: "error",
-      });
-      setTimeout(() => setAddMessage(null), 3000);
-      return;
-    }
-
-    // Vérifier si déjà dans le lot
-    if (isbnBatchList.includes(isbn.trim())) {
-      setAddMessage({
-        text: "ISBN déjà dans le lot",
-        type: "error",
-      });
-      setTimeout(() => setAddMessage(null), 3000);
-      return;
-    }
-
-    // Vérifier si déjà dans la collection
-    if (existingIsbnsSet.has(isbn.trim())) {
-      setAddMessage({
-        text: "Livre déjà dans votre bibliothèque",
-        type: "error",
-      });
-      setTimeout(() => setAddMessage(null), 3000);
-      return;
-    }
-
-    // Ajouter au lot
-    setIsbnBatchList([...isbnBatchList, isbn.trim()]);
-    setIsbn(""); // Vider le champ pour le prochain
-
-    // Feedback visuel
-    if (navigator.vibrate) navigator.vibrate(50);
-  };
-
-  const handleIsbnBatchRemove = (isbnToRemove: string) => {
-    setIsbnBatchList(isbnBatchList.filter((i) => i !== isbnToRemove));
-  };
-
-  const handleIsbnBatchValidate = () => {
-    if (isbnBatchList.length === 0) {
-      setAddMessage({
-        text: "Aucun ISBN à valider",
-        type: "error",
-      });
-      setTimeout(() => setAddMessage(null), 3000);
-      return;
-    }
-
-    // Réutiliser le système de validation par lot existant
-    setBulkScannedIsbns(isbnBatchList);
-    setShowBulkConfirmModal(true);
-  };
-
-  const handleIsbnBatchReset = () => {
-    setIsbnBatchList([]);
-    setIsbn("");
-  };
-
-  const handleManualSearchToggle = (book: GoogleBook) => {
-    if (!book.isbn) return; // Ignorer les livres sans ISBN
-
-    const isSelected = selectedSearchResults.some((b) => b.isbn === book.isbn);
-    if (isSelected) {
-      setSelectedSearchResults(
-        selectedSearchResults.filter((b) => b.isbn !== book.isbn)
-      );
-    } else {
-      // Vérifier si déjà dans la collection
-      if (existingIsbnsSet.has(book.isbn)) {
-        setAddMessage({
-          text: "Livre déjà dans votre bibliothèque",
-          type: "error",
-        });
-        setTimeout(() => setAddMessage(null), 3000);
-        return;
-      }
-      setSelectedSearchResults([...selectedSearchResults, book]);
-      if (navigator.vibrate) navigator.vibrate(50);
-    }
-  };
-
   const handleManualSearchSelect = (
     book: GoogleBook,
     isInCollection: boolean
   ) => {
-    if (manualSearchBatchMode) {
-      if (!isInCollection) {
-        handleManualSearchToggle(book);
-      }
-      return;
-    }
+    if (isInCollection) return;
 
     setBook(book);
     setShowSearchResults(false);
     setSearchResults([]);
-    setSearchQuery("");
-  };
-
-  const handleManualSearchBatchValidate = () => {
-    if (selectedSearchResults.length === 0) {
-      setAddMessage({
-        text: "Aucun livre sélectionné",
-        type: "error",
-      });
-      setTimeout(() => setAddMessage(null), 3000);
-      return;
-    }
-
-    // Extraire les ISBN et réutiliser le système de validation par lot
-    const isbns = selectedSearchResults
-      .map((book) => book.isbn)
-      .filter((isbn): isbn is string => isbn !== undefined);
-    setBulkScannedIsbns(isbns);
-    setShowBulkConfirmModal(true);
-  };
-
-  const handleManualSearchBatchReset = () => {
-    setSelectedSearchResults([]);
   };
 
   const handleDeleteAccount = async () => {
@@ -2958,28 +2868,28 @@ function App() {
           </p>
         </div>
 
-        {/* Unified Search Bar */}
-        <div className="mb-6 sm:mb-8">
-          <UnifiedSearchBar
-            onSearch={(query, type) => {
-              if (type === 'isbn') {
-                handleSearch(query);
-              } else {
-                handleTextSearch(query);
-              }
-            }}
-            onScanClick={() => {
-              setScanMode("single");
-              setScanning(true);
-            }}
-            disabled={isOffline}
-          />
-        </div>
-
         {/* Scanner Section */}
         <div className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8">
           {!scanning ? (
             <div className="flex flex-col items-center space-y-6">
+              {/* Unified Search Bar */}
+              <div className="w-full max-w-3xl">
+                <UnifiedSearchBar
+                  onSearch={(query, type) => {
+                    if (type === 'isbn') {
+                      handleSearch(query);
+                    } else {
+                      handleTextSearch(query);
+                    }
+                  }}
+                  onScanClick={() => {
+                    setScanMode("single");
+                    setScanning(true);
+                  }}
+                  disabled={isOffline}
+                />
+              </div>
+
               {/* Boutons de scan */}
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button
@@ -3011,460 +2921,6 @@ function App() {
                 <strong>Scan par lot</strong> : Scannez plusieurs livres puis
                 validez en une fois
               </p>
-
-              {/* Recherche ISBN manuelle - Collapsible */}
-              <button
-                onClick={() => setShowIsbnSearch(!showIsbnSearch)}
-                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full cursor-pointer"
-                aria-expanded={showIsbnSearch}
-                aria-controls="isbn-search-panel"
-              >
-                <MagnifyingGlass size={20} weight="bold" />
-                Recherche par ISBN
-                <CaretDown
-                  size={20}
-                  weight="bold"
-                  className={`transition-transform ${
-                    showIsbnSearch ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {showIsbnSearch && (
-                <div
-                  id="isbn-search-panel"
-                  className="w-full max-w-3xl animate-fadeIn"
-                >
-                  {/* Card Container avec design moderne */}
-                  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {/* Header avec toggle intégré */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-gray-200 p-4">
-                      <div className="flex items-center justify-between flex-wrap gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-lg shadow-sm">
-                            <MagnifyingGlass
-                              size={24}
-                              weight="bold"
-                              className="text-blue-600"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 text-base">
-                              Recherche ISBN
-                            </h3>
-                            <p className="text-xs text-gray-600">
-                              {isbnBatchMode
-                                ? "Mode lot - Ajoutez plusieurs ISBN"
-                                : "Mode unique - Recherche directe"}
-                            </p>
-                          </div>
-                        </div>
-                        {/* Toggle compact */}
-                        <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm">
-                          <button
-                            onClick={() => {
-                              setIsbnBatchMode(false);
-                              setIsbnBatchList([]);
-                              setIsbn("");
-                            }}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                              !isbnBatchMode
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            Unique
-                          </button>
-                          <button
-                            onClick={() => setIsbnBatchMode(true)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer ${
-                              isbnBatchMode
-                                ? "bg-green-600 text-white shadow-sm"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            <Stack size={14} weight="bold" />
-                            Lot
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="p-5 space-y-4">
-                      {/* Zone de saisie */}
-                      <div className="flex gap-2">
-                        <div className="flex-1 relative">
-                          <input
-                            value={isbn}
-                            onChange={(e) => setIsbn(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                if (isbnBatchMode) {
-                                  handleIsbnBatchAdd();
-                                } else {
-                                  handleSearch(isbn);
-                                }
-                              }
-                            }}
-                            placeholder={
-                              isbnBatchMode ? "978XXXXXXXXXX" : "Saisir un ISBN"
-                            }
-                            className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono text-sm"
-                          />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <MagnifyingGlass size={20} weight="regular" />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() =>
-                            isbnBatchMode
-                              ? handleIsbnBatchAdd()
-                              : handleSearch(isbn)
-                          }
-                          className={`px-6 py-3 text-sm font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
-                            isbnBatchMode
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "bg-blue-600 hover:bg-blue-700"
-                          }`}
-                        >
-                          {isbnBatchMode ? "+ Ajouter" : "Rechercher"}
-                        </button>
-                      </div>
-
-                      {/* Preview du lot avec design amélioré */}
-                      {isbnBatchMode && (
-                        <div
-                          className={`transition-all ${
-                            isbnBatchList.length > 0
-                              ? "opacity-100"
-                              : "opacity-50"
-                          }`}
-                        >
-                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-green-600 rounded-lg">
-                                  <Stack
-                                    size={16}
-                                    weight="bold"
-                                    className="text-white"
-                                  />
-                                </div>
-                                <span className="font-bold text-green-900">
-                                  {isbnBatchList.length} ISBN
-                                  {isbnBatchList.length !== 1 && "s"}
-                                </span>
-                              </div>
-                              {isbnBatchList.length > 0 && (
-                                <button
-                                  onClick={handleIsbnBatchReset}
-                                  className="text-xs font-medium text-green-700 hover:text-green-900 flex items-center gap-1 px-2 py-1 hover:bg-green-100 rounded transition-colors"
-                                >
-                                  <Trash size={14} weight="bold" />
-                                  Vider
-                                </button>
-                              )}
-                            </div>
-
-                            {isbnBatchList.length > 0 ? (
-                              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
-                                {isbnBatchList.map((isbnItem, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center justify-between gap-2 px-3 py-2 bg-white border border-green-200 rounded-lg shadow-sm group hover:shadow-md transition-all"
-                                  >
-                                    <span className="text-sm font-mono text-gray-700 font-medium">
-                                      {isbnItem}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        handleIsbnBatchRemove(isbnItem)
-                                      }
-                                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
-                                      title="Retirer"
-                                      aria-label="Retirer"
-                                    >
-                                      <X
-                                        size={16}
-                                        weight="bold"
-                                        className="text-red-600"
-                                      />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-6 text-sm text-green-700">
-                                <Book
-                                  size={32}
-                                  weight="regular"
-                                  className="mx-auto mb-2 opacity-50"
-                                />
-                                <p>Aucun ISBN ajouté</p>
-                                <p className="text-xs opacity-75 mt-1">
-                                  Saisissez des ISBN ci-dessus
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer action bar - seulement si lot non vide */}
-                    {isbnBatchMode && isbnBatchList.length > 0 && (
-                      <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
-                        <button
-                          onClick={handleIsbnBatchValidate}
-                          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle size={20} weight="bold" />
-                          Valider le lot ({isbnBatchList.length} livre
-                          {isbnBatchList.length > 1 && "s"})
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Recherche par titre/auteur - Collapsible */}
-              <button
-                onClick={() => setShowTextSearch(!showTextSearch)}
-                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full mt-2 cursor-pointer"
-                aria-expanded={showTextSearch}
-                aria-controls="text-search-panel"
-              >
-                <MagnifyingGlass size={20} weight="bold" />
-                Recherche par titre/auteur
-                <CaretDown
-                  size={20}
-                  weight="bold"
-                  className={`transition-transform ${
-                    showTextSearch ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {showTextSearch && (
-                <div
-                  id="text-search-panel"
-                  className="w-full max-w-3xl animate-fadeIn"
-                >
-                  {/* Card Container avec design moderne */}
-                  <div className="bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {/* Header avec toggle intégré */}
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-gray-200 p-4">
-                      <div className="flex items-center justify-between flex-wrap gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-lg shadow-sm">
-                            <MagnifyingGlass
-                              size={24}
-                              weight="bold"
-                              className="text-green-600"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 text-base">
-                              Recherche Titre/Auteur
-                            </h3>
-                            <p className="text-xs text-gray-600">
-                              {manualSearchBatchMode
-                                ? "Mode sélection - Choisissez plusieurs livres"
-                                : "Mode unique - Un livre à la fois"}
-                            </p>
-                          </div>
-                        </div>
-                        {/* Toggle compact */}
-                        <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm">
-                          <button
-                            onClick={() => {
-                              setManualSearchBatchMode(false);
-                              setSelectedSearchResults([]);
-                            }}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                              !manualSearchBatchMode
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            Unique
-                          </button>
-                          <button
-                            onClick={() => setManualSearchBatchMode(true)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer ${
-                              manualSearchBatchMode
-                                ? "bg-green-600 text-white shadow-sm"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            <Stack size={14} weight="bold" />
-                            Sélection
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="p-5 space-y-4">
-                      {/* Zone de recherche */}
-                      <div className="flex gap-2">
-                        <div className="flex-1 relative">
-                          <input
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Ex: Harry Potter, J.K. Rowling..."
-                            className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-sm"
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter" && !isSearching) {
-                                handleTextSearch(searchQuery);
-                                setShowSearchResults(true);
-                              }
-                            }}
-                          />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <MagnifyingGlass size={20} weight="regular" />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            handleTextSearch(searchQuery);
-                            setShowSearchResults(true);
-                          }}
-                          disabled={isSearching}
-                          className="px-6 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-sm transition-all hover:shadow-md disabled:bg-green-400 disabled:cursor-not-allowed hover:bg-green-700 cursor-pointer"
-                        >
-                          {isSearching ? (
-                            <>
-                              <Timer
-                                size={16}
-                                weight="bold"
-                                className="inline mr-2 align-middle"
-                              />
-                              Recherche...
-                            </>
-                          ) : (
-                            "Rechercher"
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Preview de la sélection en mode lot */}
-                      {manualSearchBatchMode && (
-                        <div
-                          className={`transition-all ${
-                            selectedSearchResults.length > 0
-                              ? "opacity-100"
-                              : "opacity-50"
-                          }`}
-                        >
-                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-green-600 rounded-lg">
-                                  <Stack
-                                    size={16}
-                                    weight="bold"
-                                    className="text-white"
-                                  />
-                                </div>
-                                <span className="font-bold text-green-900">
-                                  {selectedSearchResults.length} livre
-                                  {selectedSearchResults.length !== 1 &&
-                                    "s"}{" "}
-                                  sélectionné
-                                  {selectedSearchResults.length !== 1 && "s"}
-                                </span>
-                              </div>
-                              {selectedSearchResults.length > 0 && (
-                                <button
-                                  onClick={handleManualSearchBatchReset}
-                                  className="text-xs font-medium text-green-700 hover:text-green-900 flex items-center gap-1 px-2 py-1 hover:bg-green-100 rounded transition-colors"
-                                >
-                                  <Trash size={14} weight="bold" />
-                                  Vider
-                                </button>
-                              )}
-                            </div>
-
-                            {selectedSearchResults.length > 0 ? (
-                              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
-                                {selectedSearchResults.map((book, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center gap-3 px-3 py-2 bg-white border border-green-200 rounded-lg shadow-sm group hover:shadow-md transition-all"
-                                  >
-                                    <img
-                                      src={
-                                        book.imageLinks?.thumbnail ||
-                                        "/img/default-cover.png"
-                                      }
-                                      alt={book.title}
-                                      className="w-8 h-12 object-cover rounded"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-gray-900 truncate">
-                                        {book.title}
-                                      </p>
-                                      <p className="text-xs text-gray-600 truncate">
-                                        {book.authors?.join(", ")}
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={() =>
-                                        handleManualSearchToggle(book)
-                                      }
-                                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
-                                      title="Retirer"
-                                      aria-label="Retirer"
-                                    >
-                                      <X
-                                        size={16}
-                                        weight="bold"
-                                        className="text-red-600"
-                                      />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-6 text-sm text-green-700">
-                                <Book
-                                  size={32}
-                                  weight="regular"
-                                  className="mx-auto mb-2 opacity-50"
-                                />
-                                <p>Aucun livre sélectionné</p>
-                                <p className="text-xs opacity-75 mt-1">
-                                  Lancez une recherche et cliquez sur les livres
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer action bar - seulement si sélection non vide */}
-                    {manualSearchBatchMode &&
-                      selectedSearchResults.length > 0 && (
-                        <div className="border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4">
-                          <button
-                            onClick={handleManualSearchBatchValidate}
-                            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle size={20} weight="bold" />
-                            Valider la sélection ({
-                              selectedSearchResults.length
-                            }{" "}
-                            livre{selectedSearchResults.length > 1 && "s"})
-                          </button>
-                        </div>
-                      )}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <Suspense
@@ -3508,7 +2964,6 @@ function App() {
                 onClick={() => {
                   setShowSearchResults(false);
                   setSearchResults([]);
-                  setSearchQuery("");
                   setCurrentPage(1);
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
@@ -3561,9 +3016,6 @@ function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentResults.map((searchBook, index) => {
-                    const isSelected = selectedSearchResults.some(
-                      (b) => b.isbn === searchBook.isbn
-                    );
                     const isInCollection = searchBook.isbn
                       ? existingIsbnsSet.has(searchBook.isbn)
                       : false;
@@ -3571,15 +3023,7 @@ function App() {
                     return (
                       <div
                         key={index}
-                        className={`bg-gray-50 border rounded-lg p-4 transition-all cursor-pointer relative ${
-                          manualSearchBatchMode
-                            ? isSelected
-                              ? "border-green-500 border-2 ring-2 ring-green-200 shadow-md"
-                              : isInCollection
-                              ? "border-gray-300 opacity-50"
-                              : "border-gray-200 hover:shadow-md"
-                            : "border-gray-200 hover:shadow-md"
-                        }`}
+                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all cursor-pointer relative hover:shadow-md"
                         onClick={() =>
                           handleManualSearchSelect(searchBook, isInCollection)
                         }
@@ -3590,35 +3034,9 @@ function App() {
                           }
                         }}
                         role="button"
-                        tabIndex={
-                          manualSearchBatchMode && isInCollection ? -1 : 0
-                        }
-                        aria-disabled={manualSearchBatchMode && isInCollection}
-                        aria-label={
-                          manualSearchBatchMode
-                            ? `Sélectionner ${searchBook.title}`
-                            : `Ouvrir ${searchBook.title}`
-                        }
+                        tabIndex={0}
+                        aria-label={`Ouvrir ${searchBook.title}`}
                       >
-                        {/* Checkbox overlay pour mode lot */}
-                        {manualSearchBatchMode && (
-                          <div className="absolute top-2 left-2 z-10">
-                            {isInCollection ? (
-                              <div className="px-2 py-1 bg-gray-600 text-white text-xs rounded font-medium">
-                                Déjà dans la collection
-                              </div>
-                            ) : (
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleManualSearchToggle(searchBook)} // Géré par onClick du div
-                                className="w-5 h-5 cursor-pointer accent-green-600"
-                                onClick={(e) => e.stopPropagation()}
-                                aria-label={`Sélectionner ${searchBook.title}`}
-                              />
-                            )}
-                          </div>
-                        )}
 
                         <div className="text-center">
                           <div className="mb-3">
@@ -4260,6 +3678,20 @@ function App() {
                             </span>
                           </button>
                         )}
+                        {selectedBooks.length > 0 && userLibraries.length > 0 && (
+                          <button
+                            onClick={() => setShowBulkLibraryModal(true)}
+                            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+                          >
+                            <FolderOpen size={16} weight="bold" />
+                            <span className="hidden sm:inline">
+                              Ajouter à bibliothèque(s)
+                            </span>
+                            <span className="inline sm:hidden">
+                              Bibliothèques
+                            </span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4809,6 +4241,55 @@ function App() {
                 <Trash size={16} weight="bold" />
                 Supprimer {selectedBooks.length} livre
                 {selectedBooks.length > 1 ? "s" : ""}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Add to Libraries Modal */}
+      {showBulkLibraryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-library-title"
+          >
+            <h2 id="bulk-library-title" className="text-xl font-bold text-gray-900 mb-4">
+              Ajouter à une ou plusieurs bibliothèques
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-4">
+              {selectedBooks.length} livre{selectedBooks.length > 1 ? 's' : ''} sélectionné{selectedBooks.length > 1 ? 's' : ''}
+            </p>
+
+            <div className="mb-6">
+              <LibrarySelector
+                libraries={userLibraries}
+                selectedLibraries={bulkLibrarySelection}
+                onSelectionChange={setBulkLibrarySelection}
+                title="Sélectionnez les bibliothèques"
+                emptyMessage="Aucune bibliothèque disponible"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowBulkLibraryModal(false);
+                  setBulkLibrarySelection([]);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleBulkAddToLibraries}
+                disabled={bulkLibrarySelection.length === 0}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Ajouter à {bulkLibrarySelection.length} bibliothèque{bulkLibrarySelection.length > 1 ? 's' : ''}
               </button>
             </div>
           </div>
