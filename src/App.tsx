@@ -3720,7 +3720,7 @@ function App() {
                 {user ? (
                   <>
                     <button
-                      onClick={addToCollection}
+                      onClick={() => addToCollection()}
                       disabled={addingToCollection}
                       className="px-8 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors shadow-md"
                     >
