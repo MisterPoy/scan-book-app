@@ -93,7 +93,7 @@ export default function UnifiedSearchBar({
             type="button"
             onClick={onScanClick}
             disabled={disabled}
-            className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+            className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
             aria-label="Scanner un code-barres"
             title="Scanner un code-barres ISBN"
           >
@@ -106,7 +106,7 @@ export default function UnifiedSearchBar({
         <button
           type="submit"
           disabled={disabled || !searchValue.trim()}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium"
           aria-label="Lancer la recherche"
         >
           <span className="hidden sm:inline">Rechercher</span>

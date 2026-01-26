@@ -2936,7 +2936,7 @@ function App() {
               <button
                 onClick={() => setShowScanModeModal(true)}
                 disabled={isOffline}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl flex items-center gap-3"
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium shadow-lg hover:shadow-xl flex items-center gap-3"
                 aria-label="Ouvrir le menu de choix du mode de scan"
               >
                 <Camera size={24} weight="bold" />
