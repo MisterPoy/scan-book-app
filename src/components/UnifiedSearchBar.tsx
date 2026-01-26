@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MagnifyingGlass, Barcode, Book } from 'phosphor-react';
+import { MagnifyingGlass, Barcode, Book, CircleNotch } from 'phosphor-react';
 import { detectSearchType } from '../utils/searchHelpers';
 
 interface UnifiedSearchBarProps {
@@ -8,6 +8,7 @@ interface UnifiedSearchBarProps {
   placeholder?: string;
   disabled?: boolean;
   showScanButton?: boolean;
+  isLoading?: boolean;
 }
 
 export default function UnifiedSearchBar({
@@ -16,6 +17,7 @@ export default function UnifiedSearchBar({
   placeholder = "ISBN ou titre/auteur...",
   disabled = false,
   showScanButton = true,
+  isLoading = false,
 }: UnifiedSearchBarProps) {
   const [searchValue, setSearchValue] = useState('');
   const [searchType, setSearchType] = useState<'isbn' | 'text'>('text');
@@ -105,12 +107,21 @@ export default function UnifiedSearchBar({
         {/* Bouton Rechercher */}
         <button
           type="submit"
-          disabled={disabled || !searchValue.trim()}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium"
+          disabled={disabled || !searchValue.trim() || isLoading}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium flex items-center gap-2"
           aria-label="Lancer la recherche"
         >
-          <span className="hidden sm:inline">Rechercher</span>
-          <MagnifyingGlass size={20} weight="bold" className="sm:hidden" />
+          {isLoading ? (
+            <>
+              <CircleNotch size={20} weight="bold" className="animate-spin" aria-hidden="true" />
+              <span className="hidden sm:inline">Recherche...</span>
+            </>
+          ) : (
+            <>
+              <span className="hidden sm:inline">Rechercher</span>
+              <MagnifyingGlass size={20} weight="bold" className="sm:hidden" aria-hidden="true" />
+            </>
+          )}
         </button>
       </div>
 

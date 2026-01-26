@@ -97,7 +97,8 @@ export default function AnnouncementModal({ announcement, onClose }: Announcemen
           <button
             onClick={onClose}
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer ml-4"
-            aria-label="Fermer"
+            aria-label="Fermer l'annonce"
+            title="Fermer"
           >
             <X size={24} weight="bold" aria-hidden="true" />
           </button>

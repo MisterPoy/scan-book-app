@@ -41,6 +41,8 @@ import {
   FilePdf,
   UsersThree,
   CaretDown as CaretDownIcon,
+  CircleNotch,
+  Plus,
 } from "phosphor-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -53,6 +55,7 @@ import EditBookModal from "./components/EditBookModal";
 import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
 import LibrarySelector from "./components/LibrarySelector";
+import SearchResultCard from "./components/SearchResultCard";
 import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
 import NotificationSettings from "./components/NotificationSettings";
@@ -249,11 +252,11 @@ function CompactBookCard({
     >
       {/* Desktop/Tablet : Layout vertical */}
       <div className="hidden md:block">
-        <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
+        <div className="aspect-[2/3] bg-gray-100 overflow-hidden relative">
           <img
             src={coverSrc}
             alt={book.title}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
           />
           {/* Checkbox de sélection */}
           {selectionMode && (
@@ -384,11 +387,11 @@ function CompactBookCard({
 
       {/* Mobile : Layout optimisé pleine largeur */}
       <div className="flex md:hidden items-center p-4 relative">
-        <div className="w-16 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-4">
+        <div className="w-20 h-28 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-4">
           <img
             src={coverSrc}
             alt={book.title}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="flex-1 min-w-0">
@@ -1018,6 +1021,8 @@ function App() {
   const collectionResultsPerPage = 20;
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualBook, setManualBook] = useState({ ...EMPTY_MANUAL_BOOK });
+  const [selectedSearchResults, setSelectedSearchResults] = useState<string[]>([]);
+  const [searchSelectionMode, setSearchSelectionMode] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [bookToEdit, setBookToEdit] = useState<CollectionBook | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -1118,6 +1123,19 @@ function App() {
   useEffect(() => {
     isOfflineRef.current = isOffline;
   }, [isOffline]);
+
+  // Scroll automatique vers les résultats quand ils apparaissent
+  useEffect(() => {
+    if (showSearchResults && searchResults.length > 0) {
+      const element = document.getElementById("search-results");
+      if (element) {
+        // Délai court pour laisser le DOM se mettre à jour
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }, [showSearchResults, searchResults.length]);
 
   useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
   useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
@@ -2627,6 +2645,73 @@ function App() {
     setSearchResults([]);
   };
 
+  const handleAddSelectedBooks = async () => {
+    if (!user || selectedSearchResults.length === 0) return;
+
+    if (!requireOnline("l'ajout de livres")) {
+      return;
+    }
+
+    try {
+      // Récupérer les infos complètes des livres sélectionnés
+      const booksToAdd = searchResults.filter(googleBook => {
+        const isbn = googleBook.volumeInfo.industryIdentifiers?.find(
+          id => id.type === "ISBN_13" || id.type === "ISBN_10"
+        )?.identifier;
+        return isbn && selectedSearchResults.includes(isbn);
+      });
+
+      // Ajouter chaque livre à Firestore
+      const promises = booksToAdd.map(async (googleBook) => {
+        const bookData = {
+          title: googleBook.volumeInfo.title,
+          authors: googleBook.volumeInfo.authors || [],
+          isbn: googleBook.volumeInfo.industryIdentifiers?.find(
+            id => id.type === "ISBN_13" || id.type === "ISBN_10"
+          )?.identifier || "",
+          publisher: googleBook.volumeInfo.publisher || "",
+          publishedDate: googleBook.volumeInfo.publishedDate || "",
+          pageCount: googleBook.volumeInfo.pageCount || 0,
+          categories: googleBook.volumeInfo.categories || [],
+          imageLinks: googleBook.volumeInfo.imageLinks,
+          addedAt: new Date().toISOString(),
+          status: "unread" as const,
+          customCoverUrl: "",
+          libraries: []
+        };
+
+        const docRef = doc(db, `users/${user.uid}/collection`, bookData.isbn);
+        await setDoc(docRef, bookData);
+      });
+
+      await Promise.all(promises);
+
+      // Recharger la collection
+      const collectionRef = collection(db, `users/${user.uid}/collection`);
+      const snapshot = await getDocs(collectionRef);
+      const books = snapshot.docs.map(docSnap => ({ ...docSnap.data() }) as CollectionBook);
+      setCollectionBooks(books);
+
+      // Feedback
+      setAddMessage({
+        text: `${selectedSearchResults.length} livre${selectedSearchResults.length > 1 ? 's' : ''} ajouté${selectedSearchResults.length > 1 ? 's' : ''} à votre collection`,
+        type: "success"
+      });
+
+      // Reset
+      setSelectedSearchResults([]);
+      setSearchSelectionMode(false);
+      setShowSearchResults(false);
+      setSearchResults([]);
+    } catch (error) {
+      console.error("Erreur ajout multiple:", error);
+      setAddMessage({
+        text: "Erreur lors de l'ajout des livres",
+        type: "error"
+      });
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
 
@@ -2929,19 +3014,37 @@ function App() {
                   onScanClick={() => setShowScanModeModal(true)}
                   disabled={isOffline}
                   showScanButton={false}
+                  isLoading={isSearching}
                 />
               </div>
 
-              {/* Bouton de scan unifié */}
-              <button
-                onClick={() => setShowScanModeModal(true)}
-                disabled={isOffline}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium shadow-lg hover:shadow-xl flex items-center gap-3"
-                aria-label="Ouvrir le menu de choix du mode de scan"
-              >
-                <Camera size={24} weight="bold" />
-                <span>Scanner un livre</span>
-              </button>
+              {/* Boutons d'action */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                {/* Bouton de scan unifié */}
+                <button
+                  onClick={() => setShowScanModeModal(true)}
+                  disabled={isOffline}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium shadow-lg hover:shadow-xl flex items-center gap-3"
+                  aria-label="Ouvrir le menu de choix du mode de scan"
+                >
+                  <Camera size={24} weight="bold" aria-hidden="true" />
+                  <span>Scanner un livre</span>
+                </button>
+
+                {/* Séparateur "ou" */}
+                <span className="hidden sm:block text-gray-400 font-medium">ou</span>
+
+                {/* Bouton Ajouter manuellement */}
+                <button
+                  onClick={() => setShowManualAdd(true)}
+                  disabled={isOffline}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium shadow-md hover:shadow-lg flex items-center gap-2.5"
+                  aria-label="Ajouter un livre manuellement sans scanner ni rechercher"
+                >
+                  <PencilSimple size={20} weight="bold" aria-hidden="true" />
+                  <span>Ajouter manuellement</span>
+                </button>
+              </div>
             </div>
           ) : (
             <Suspense
@@ -2998,16 +3101,10 @@ function App() {
             </div>
 
             {isSearching ? (
-              <div className="text-center py-12">
-                <div className="text-blue-600 mb-4">
-                  <Hourglass size={48} weight="regular" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Recherche en cours...
-                </h3>
-                <p className="text-gray-600">
-                  Interrogation de Google Books et OpenLibrary
-                </p>
+              <div className="flex flex-col items-center justify-center py-12" role="status" aria-live="polite">
+                <CircleNotch size={48} weight="bold" className="text-blue-600 animate-spin mb-4" aria-hidden="true" />
+                <p className="text-gray-900 font-medium text-lg">Recherche en cours...</p>
+                <p className="text-gray-600 text-sm mt-2">Cela peut prendre quelques instants</p>
               </div>
             ) : searchResults.length === 0 ? (
               <div className="text-center py-12">
@@ -3021,6 +3118,50 @@ function App() {
               </div>
             ) : (
               <>
+                {/* Barre d'actions sélection */}
+                <div className="flex items-center justify-between mb-4 bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSearchSelectionMode(!searchSelectionMode)}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      {searchSelectionMode ? 'Annuler la sélection' : 'Sélectionner'}
+                    </button>
+                    {searchSelectionMode && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const pageIsbns = currentResults
+                              .map(b => b.isbn)
+                              .filter((isbn): isbn is string => Boolean(isbn));
+                            setSelectedSearchResults(pageIsbns);
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                        >
+                          Tout sélectionner ({currentResults.length})
+                        </button>
+                        {selectedSearchResults.length > 0 && (
+                          <span className="text-sm text-gray-600" role="status" aria-live="polite" aria-atomic="true">
+                            {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''} sélectionné{selectedSearchResults.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Bouton Ajouter sélection */}
+                  {selectedSearchResults.length > 0 && (
+                    <button
+                      onClick={handleAddSelectedBooks}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer font-medium flex items-center gap-2"
+                      aria-label={`Ajouter ${selectedSearchResults.length} livre${selectedSearchResults.length > 1 ? 's' : ''} à la collection`}
+                    >
+                      <Plus size={18} weight="bold" aria-hidden="true" />
+                      Ajouter {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''}
+                    </button>
+                  )}
+                </div>
+
                 {/* Pagination info */}
                 {totalPages > 1 && (
                   <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
@@ -3041,54 +3182,41 @@ function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentResults.map((searchBook, index) => {
-                    const isInCollection = searchBook.isbn
-                      ? existingIsbnsSet.has(searchBook.isbn)
-                      : false;
+                    const isbn = searchBook.isbn || "";
+                    const isInCollection = isbn ? existingIsbnsSet.has(isbn) : false;
 
                     return (
-                      <div
-                        key={index}
-                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all cursor-pointer relative hover:shadow-md"
-                        onClick={() =>
-                          handleManualSearchSelect(searchBook, isInCollection)
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleManualSearchSelect(
-                              searchBook,
-                              isInCollection,
-                            );
+                      <SearchResultCard
+                        key={isbn || index}
+                        book={{
+                          volumeInfo: {
+                            title: searchBook.title,
+                            authors: searchBook.authors,
+                            publisher: searchBook.publisher,
+                            publishedDate: searchBook.publishedDate,
+                            pageCount: searchBook.pageCount,
+                            categories: searchBook.categories,
+                            imageLinks: searchBook.imageLinks,
+                            industryIdentifiers: searchBook.isbn ? [{
+                              type: "ISBN_13",
+                              identifier: searchBook.isbn
+                            }] : []
                           }
                         }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Ouvrir ${searchBook.title}`}
-                      >
-                        <div className="text-center">
-                          <div className="mb-3">
-                            <img
-                              src={
-                                searchBook.imageLinks?.thumbnail ||
-                                "/img/default-cover.png"
-                              }
-                              alt={searchBook.title}
-                              className="w-16 h-24 object-cover mx-auto rounded"
-                            />
-                          </div>
-                          <h4 className="font-semibold text-sm text-gray-900 mb-2 line-clamp-2">
-                            {searchBook.title}
-                          </h4>
-                          <p className="text-xs text-gray-600 mb-2">
-                            {searchBook.authors?.join(", ") || "Auteur inconnu"}
-                          </p>
-                          {searchBook.publishedDate && (
-                            <p className="text-xs text-gray-500">
-                              {searchBook.publishedDate}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                        isInCollection={isInCollection}
+                        isSelected={selectedSearchResults.includes(isbn)}
+                        selectionMode={searchSelectionMode}
+                        onToggleSelect={(isbn) => {
+                          if (selectedSearchResults.includes(isbn)) {
+                            setSelectedSearchResults(prev => prev.filter(id => id !== isbn));
+                          } else {
+                            setSelectedSearchResults(prev => [...prev, isbn]);
+                          }
+                        }}
+                        onCardClick={() => {
+                          handleManualSearchSelect(searchBook, isInCollection);
+                        }}
+                      />
                     );
                   })}
                 </div>
@@ -3233,18 +3361,6 @@ function App() {
           </div>
         )}
 
-        {/* Ajout manuel - Bouton direct */}
-        {!scanning && (
-          <div className="text-center mt-8 mb-6">
-            <button
-              onClick={() => setShowManualAdd(true)}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-md cursor-pointer"
-            >
-              <PencilSimple size={20} weight="bold" />
-              Ajouter un livre manuellement
-            </button>
-          </div>
-        )}
       </main>
 
       {/* Collection Modal */}
@@ -3473,7 +3589,8 @@ function App() {
                 <button
                   onClick={closeCollectionModal}
                   className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
-                  aria-label="Fermer"
+                  aria-label="Fermer la fenêtre de ma collection"
+                  title="Fermer"
                 >
                   <X size={24} weight="bold" aria-hidden="true" />
                 </button>
@@ -3482,21 +3599,22 @@ function App() {
 
             {/* Navigation par bibliothèques */}
             {!selectedBook && userLibraries.length > 0 && (
-              <div className="bg-gray-50 border-b px-6 py-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-medium text-gray-900 text-sm">
+              <div className="bg-gray-50 border-b px-4 py-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium text-gray-900 text-xs">
                     <FolderOpen
-                      size={16}
+                      size={14}
                       weight="regular"
-                      className="inline mr-2"
+                      className="inline mr-1"
+                      aria-hidden="true"
                     />
-                    Naviguer par bibliothèque :
+                    Bibliothèques :
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setSelectedLibraryView(null)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                       selectedLibraryView === null
                         ? "bg-blue-600 text-white cursor-pointer"
                         : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 cursor-pointer"
@@ -3512,7 +3630,7 @@ function App() {
                       <button
                         key={library.id}
                         onClick={() => setSelectedLibraryView(library.id)}
-                        className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1 border ${
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 border ${
                           selectedLibraryView === library.id
                             ? "text-white border-transparent cursor-pointer"
                             : "bg-white text-gray-700 hover:bg-gray-100 border-gray-200 cursor-pointer"
@@ -3524,7 +3642,7 @@ function App() {
                         }
                       >
                         <span>
-                          {renderLibraryIcon(library.icon || "BK", 20)}
+                          {renderLibraryIcon(library.icon || "BK", 16)}
                         </span>
                         <span>
                           {library.name} ({bookCount})
@@ -3889,7 +4007,8 @@ function App() {
             <button
               onClick={closeAuthModal}
               className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
-              aria-label="Fermer"
+              aria-label="Fermer la fenêtre de connexion"
+              title="Fermer"
             >
               <X size={24} weight="bold" aria-hidden="true" />
             </button>
@@ -3921,7 +4040,8 @@ function App() {
               <button
                 onClick={closeManualAdd}
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
-                aria-label="Fermer"
+                aria-label="Fermer la fenêtre d'ajout manuel"
+                title="Fermer"
               >
                 <X size={24} weight="bold" aria-hidden="true" />
               </button>
@@ -4188,10 +4308,11 @@ function App() {
             </h2>
             <button
               onClick={closeUserManagementModal}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Fermer"
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              aria-label="Fermer la fenêtre de gestion des utilisateurs"
+              title="Fermer"
             >
-              <X size={24} />
+              <X size={24} weight="bold" aria-hidden="true" />
             </button>
           </div>
           <UserManagement />
@@ -4410,7 +4531,8 @@ function App() {
               <button
                 onClick={closeSettingsModal}
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
-                aria-label="Fermer"
+                aria-label="Fermer la fenêtre des paramètres"
+                title="Fermer"
               >
                 <X size={20} weight="bold" aria-hidden="true" />
               </button>
