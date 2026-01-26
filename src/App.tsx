@@ -1270,23 +1270,18 @@ function App() {
       return;
     }
 
-    console.log('[handleTextSearch] Recherche lancée pour:', query);
     setIsSearching(true);
-    console.log('[handleTextSearch] isSearching mis à true');
     setCurrentPage(1); // Reset à la première page
     let allBooks: GoogleBook[] = [];
 
     try {
       // 1. Recherche Google Books
-      console.log('[handleTextSearch] Appel Google Books API...');
       const googleRes = await fetch(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
           query,
         )}&maxResults=40`,
       );
-      console.log('[handleTextSearch] Réponse Google Books reçue, status:', googleRes.status);
       const googleData = await googleRes.json();
-      console.log('[handleTextSearch] Données Google Books parsées, items:', googleData.items?.length || 0);
       const googleBooks: GoogleBook[] =
         googleData.items?.map(
           (item: {
@@ -1304,11 +1299,9 @@ function App() {
         ) || [];
 
       allBooks = [...googleBooks];
-      console.log('[handleTextSearch] Total Google Books après mapping:', allBooks.length);
 
       // 2. Si pas assez de résultats, essayer OpenLibrary
       if (allBooks.length < 5) {
-        console.log('[handleTextSearch] Pas assez de résultats, tentative OpenLibrary...');
         try {
           const openLibRes = await fetch(
             `https://openlibrary.org/search.json?q=${encodeURIComponent(
@@ -1355,23 +1348,18 @@ function App() {
           );
 
           allBooks = [...allBooks, ...uniqueOpenLibBooks];
-          console.log('[handleTextSearch] Total après ajout OpenLibrary:', allBooks.length);
         } catch (openLibErr) {
           console.error("Erreur OpenLibrary:", openLibErr);
         }
       }
 
-      console.log('[handleTextSearch] Appel setSearchResults avec', allBooks.length, 'résultats');
       setSearchResults(allBooks); // Garder tous les résultats pour la pagination
-      console.log('[handleTextSearch] setSearchResults appelé');
+      setShowSearchResults(true); // Afficher la section des résultats
     } catch (err) {
       console.error("Erreur lors de la recherche par texte :", err);
-      console.log('[handleTextSearch] Erreur détectée, appel setSearchResults([])');
       setSearchResults([]);
     } finally {
-      console.log('[handleTextSearch] finally: appel setIsSearching(false)');
       setIsSearching(false);
-      console.log('[handleTextSearch] Terminé');
     }
   };
 
