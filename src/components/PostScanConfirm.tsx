@@ -113,15 +113,17 @@ export default function PostScanConfirm({
           <button
             onClick={onCancel}
             className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
+            aria-label="Annuler et ne pas ajouter ce livre"
           >
-            <X size={18} weight="bold" />
+            <X size={18} weight="bold" aria-hidden="true" />
             Annuler
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors cursor-pointer flex items-center justify-center gap-2"
+            aria-label="Confirmer et ajouter ce livre à ma collection"
           >
-            <CheckCircle size={18} weight="bold" />
+            <CheckCircle size={18} weight="bold" aria-hidden="true" />
             Ajouter à ma collection
           </button>
         </div>

@@ -14,7 +14,7 @@ const TYPE_STYLES = {
     border: 'border-blue-200',
     text: 'text-blue-900',
     title: 'text-blue-800',
-    icon: <Info size={24} weight="bold" />,
+    icon: <Info size={24} weight="bold" aria-hidden="true" />,
     iconColor: 'text-blue-600',
     button: 'bg-blue-600 hover:bg-blue-700'
   },
@@ -23,7 +23,7 @@ const TYPE_STYLES = {
     border: 'border-yellow-200',
     text: 'text-yellow-900',
     title: 'text-yellow-800',
-    icon: <Warning size={24} weight="bold" />,
+    icon: <Warning size={24} weight="bold" aria-hidden="true" />,
     iconColor: 'text-yellow-600',
     button: 'bg-yellow-600 hover:bg-yellow-700'
   },
@@ -32,7 +32,7 @@ const TYPE_STYLES = {
     border: 'border-green-200',
     text: 'text-green-900',
     title: 'text-green-800',
-    icon: <CheckCircle size={24} weight="bold" />,
+    icon: <CheckCircle size={24} weight="bold" aria-hidden="true" />,
     iconColor: 'text-green-600',
     button: 'bg-green-600 hover:bg-green-700'
   },
@@ -41,7 +41,7 @@ const TYPE_STYLES = {
     border: 'border-red-200',
     text: 'text-red-900',
     title: 'text-red-800',
-    icon: <XCircle size={24} weight="bold" />,
+    icon: <XCircle size={24} weight="bold" aria-hidden="true" />,
     iconColor: 'text-red-600',
     button: 'bg-red-600 hover:bg-red-700'
   }
@@ -99,7 +99,7 @@ export default function AnnouncementModal({ announcement, onClose }: Announcemen
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer ml-4"
             aria-label="Fermer"
           >
-            <X size={24} weight="bold" />
+            <X size={24} weight="bold" aria-hidden="true" />
           </button>
         </div>
 

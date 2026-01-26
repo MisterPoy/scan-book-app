@@ -26,7 +26,7 @@ export default function LibrarySelector({
 
   if (libraries.length === 0) {
     return (
-      <div className="text-sm text-gray-500 text-center py-4">
+      <div className="text-sm text-gray-500 text-center py-4" role="status">
         {emptyMessage}
       </div>
     );
@@ -46,7 +46,10 @@ export default function LibrarySelector({
             <button
               key={library.id}
               type="button"
+              role="checkbox"
+              aria-checked={isSelected}
               onClick={() => handleToggle(library.id)}
+              aria-label={`${isSelected ? 'Désélectionner' : 'Sélectionner'} la bibliothèque ${library.name}`}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 transition-all cursor-pointer ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50'
@@ -60,6 +63,7 @@ export default function LibrarySelector({
                     ? 'bg-blue-600 border-blue-600'
                     : 'bg-white border-gray-300'
                 }`}
+                aria-hidden="true"
               >
                 {isSelected && <Check size={14} weight="bold" className="text-white" />}
               </div>
@@ -70,6 +74,7 @@ export default function LibrarySelector({
                   <span
                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
                     style={{ backgroundColor: library.color || '#3B82F6' }}
+                    aria-hidden="true"
                   >
                     {library.icon}
                   </span>
@@ -91,7 +96,12 @@ export default function LibrarySelector({
       </div>
 
       {selectedLibraries.length > 0 && (
-        <div className="text-xs text-gray-600 bg-blue-50 px-3 py-2 rounded-md">
+        <div
+          className="text-xs text-gray-600 bg-blue-50 px-3 py-2 rounded-md"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {selectedLibraries.length} bibliothèque{selectedLibraries.length > 1 ? 's' : ''} sélectionnée{selectedLibraries.length > 1 ? 's' : ''}
         </div>
       )}

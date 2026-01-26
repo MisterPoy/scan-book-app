@@ -3294,7 +3294,7 @@ function App() {
                       aria-controls="export-menu"
                       aria-haspopup="menu"
                     >
-                      <DownloadSimple size={18} weight="bold" />
+                      <DownloadSimple size={18} weight="bold" aria-hidden="true" />
                       <span className="hidden sm:inline">Exporter CSV</span>
                       <CaretDown
                         size={14}
@@ -3302,6 +3302,7 @@ function App() {
                         className={`transition-transform ${
                           showExportMenu ? "rotate-180" : ""
                         }`}
+                        aria-hidden="true"
                       />
                     </button>
 
@@ -3474,7 +3475,7 @@ function App() {
                   className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                   aria-label="Fermer"
                 >
-                  <X size={24} weight="bold" />
+                  <X size={24} weight="bold" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -3890,7 +3891,7 @@ function App() {
               className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
               aria-label="Fermer"
             >
-              <X size={24} weight="bold" />
+              <X size={24} weight="bold" aria-hidden="true" />
             </button>
             <div className="p-6">
               <Login onLogin={closeAuthModal} />
@@ -3914,7 +3915,7 @@ function App() {
                 id="manual-add-title"
                 className="text-2xl font-bold text-gray-900"
               >
-                <PencilSimple size={16} weight="regular" /> Ajouter un livre
+                <PencilSimple size={16} weight="regular" aria-hidden="true" /> Ajouter un livre
                 manuellement
               </h2>
               <button
@@ -3922,7 +3923,7 @@ function App() {
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 aria-label="Fermer"
               >
-                <X size={24} weight="bold" />
+                <X size={24} weight="bold" aria-hidden="true" />
               </button>
             </div>
 
@@ -4240,7 +4241,7 @@ function App() {
             aria-labelledby="bulk-delete-title"
           >
             <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center" aria-hidden="true">
                 <Warning size={24} weight="bold" className="text-red-600" />
               </div>
               <div className="flex-1">
@@ -4248,7 +4249,7 @@ function App() {
                   id="bulk-delete-title"
                   className="text-xl font-bold text-red-600 mb-2"
                 >
-                  ⚠️ Supprimer définitivement ?
+                  Supprimer définitivement ?
                 </h2>
                 <p className="text-gray-700">
                   Vous êtes sur le point de supprimer{" "}
@@ -4267,10 +4268,12 @@ function App() {
               <button
                 onClick={closeBulkDeleteModal}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+                aria-label="Annuler la suppression"
               >
                 Annuler
               </button>
               <button
+                aria-label={`Supprimer définitivement ${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''}`}
                 onClick={async () => {
                   try {
                     if (!user) return;
@@ -4322,7 +4325,7 @@ function App() {
                 }}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer flex items-center gap-2"
               >
-                <Trash size={16} weight="bold" />
+                <Trash size={16} weight="bold" aria-hidden="true" />
                 Supprimer {selectedBooks.length} livre
                 {selectedBooks.length > 1 ? "s" : ""}
               </button>
@@ -4347,7 +4350,7 @@ function App() {
               Ajouter à une ou plusieurs bibliothèques
             </h2>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 mb-4" role="status">
               {selectedBooks.length} livre{selectedBooks.length > 1 ? "s" : ""}{" "}
               sélectionné{selectedBooks.length > 1 ? "s" : ""}
             </p>
@@ -4369,6 +4372,7 @@ function App() {
                   setBulkLibrarySelection([]);
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                aria-label="Annuler et fermer"
               >
                 Annuler
               </button>
@@ -4376,6 +4380,7 @@ function App() {
                 onClick={handleBulkAddToLibraries}
                 disabled={bulkLibrarySelection.length === 0}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                aria-label={`Ajouter ${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''} à ${bulkLibrarySelection.length} bibliothèque${bulkLibrarySelection.length > 1 ? 's' : ''}`}
               >
                 Ajouter à {bulkLibrarySelection.length} bibliothèque
                 {bulkLibrarySelection.length > 1 ? "s" : ""}
@@ -4407,7 +4412,7 @@ function App() {
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 aria-label="Fermer"
               >
-                <X size={20} weight="bold" />
+                <X size={20} weight="bold" aria-hidden="true" />
               </button>
             </div>
 

@@ -11,25 +11,25 @@ const TYPE_STYLES = {
   info: {
     bg: 'bg-blue-50 border-blue-200',
     text: 'text-blue-900',
-    icon: <Info size={16} weight="bold" />,
+    icon: <Info size={16} weight="bold" aria-hidden="true" />,
     iconColor: 'text-blue-600'
   },
   warning: {
     bg: 'bg-yellow-50 border-yellow-200',
     text: 'text-yellow-900',
-    icon: <Warning size={16} weight="bold" />,
+    icon: <Warning size={16} weight="bold" aria-hidden="true" />,
     iconColor: 'text-yellow-600'
   },
   success: {
     bg: 'bg-green-50 border-green-200',
     text: 'text-green-900',
-    icon: <CheckCircle size={16} weight="bold" />,
+    icon: <CheckCircle size={16} weight="bold" aria-hidden="true" />,
     iconColor: 'text-green-600'
   },
   error: {
     bg: 'bg-red-50 border-red-200',
     text: 'text-red-900',
-    icon: <XCircle size={16} weight="bold" />,
+    icon: <XCircle size={16} weight="bold" aria-hidden="true" />,
     iconColor: 'text-red-600'
   }
 };
@@ -83,7 +83,7 @@ export default function AnnouncementBanner({ announcement, onDismiss }: Announce
           title="Fermer cette annonce"
           aria-label="Fermer l'annonce"
         >
-          <X size={16} weight="bold" />
+          <X size={16} weight="bold" aria-hidden="true" />
         </button>
       </div>
     </div>

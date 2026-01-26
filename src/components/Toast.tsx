@@ -27,25 +27,25 @@ export default function Toast({ message, type, isVisible, onClose, duration = 50
       bg: 'bg-green-50',
       border: 'border-green-200',
       text: 'text-green-800',
-      icon: <CheckCircle size={24} weight="bold" className="text-green-600" />
+      icon: <CheckCircle size={24} weight="bold" className="text-green-600" aria-hidden="true" />
     },
     error: {
       bg: 'bg-red-50',
       border: 'border-red-200',
       text: 'text-red-800',
-      icon: <XCircle size={24} weight="bold" className="text-red-600" />
+      icon: <XCircle size={24} weight="bold" className="text-red-600" aria-hidden="true" />
     },
     warning: {
       bg: 'bg-orange-50',
       border: 'border-orange-200',
       text: 'text-orange-800',
-      icon: <Warning size={24} weight="bold" className="text-orange-600" />
+      icon: <Warning size={24} weight="bold" className="text-orange-600" aria-hidden="true" />
     },
     info: {
       bg: 'bg-blue-50',
       border: 'border-blue-200',
       text: 'text-blue-800',
-      icon: <CheckCircle size={24} weight="bold" className="text-blue-600" />
+      icon: <CheckCircle size={24} weight="bold" className="text-blue-600" aria-hidden="true" />
     }
   };
 
@@ -70,9 +70,9 @@ export default function Toast({ message, type, isVisible, onClose, duration = 50
         <button
           onClick={onClose}
           className={`flex-shrink-0 p-1 rounded-full hover:bg-white/50 transition-colors cursor-pointer ${style.text}`}
-          aria-label="Fermer"
+          aria-label="Fermer la notification"
         >
-          <X size={18} weight="bold" />
+          <X size={18} weight="bold" aria-hidden="true" />
         </button>
         {duration > 0 && <ToastProgressBar duration={duration} isVisible={isVisible} type={type} />}
       </div>

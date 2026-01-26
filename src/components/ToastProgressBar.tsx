@@ -36,7 +36,14 @@ export default function ToastProgressBar({ duration, isVisible, type }: ToastPro
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-lg overflow-hidden">
+    <div
+      className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-lg overflow-hidden"
+      role="progressbar"
+      aria-valuenow={Math.round(progress)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Temps restant avant fermeture automatique"
+    >
       <div
         className={`h-full ${colorMap[type]} transition-all duration-50 ease-linear`}
         style={{ width: `${progress}%` }}

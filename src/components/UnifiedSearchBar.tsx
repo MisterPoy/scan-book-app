@@ -63,7 +63,11 @@ export default function UnifiedSearchBar({
 
             {/* Indicateur de type détecté */}
             {searchValue && (
-              <div className={`absolute right-3 flex items-center gap-1.5 ${typeIndicator.color} bg-white px-2 py-1 rounded text-xs font-medium`}>
+              <div
+                className={`absolute right-3 flex items-center gap-1.5 ${typeIndicator.color} bg-white px-2 py-1 rounded text-xs font-medium`}
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 {typeIndicator.icon}
                 <span>{typeIndicator.label}</span>
               </div>
@@ -112,10 +116,15 @@ export default function UnifiedSearchBar({
 
       {/* Hint text */}
       {searchValue && (
-        <p className="text-xs text-gray-500 mt-1.5 ml-1">
+        <p
+          className="text-xs text-gray-500 mt-1.5 ml-1"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {searchType === 'isbn'
-            ? "🔍 Recherche par ISBN détectée"
-            : "🔍 Recherche par titre ou auteur"}
+            ? "Recherche par ISBN détectée"
+            : "Recherche par titre ou auteur"}
         </p>
       )}
     </form>
