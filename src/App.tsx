@@ -1270,6 +1270,7 @@ function App() {
       return;
     }
 
+    console.log('[handleTextSearch] Recherche lancée pour:', query);
     setIsSearching(true);
     setCurrentPage(1); // Reset à la première page
     let allBooks: GoogleBook[] = [];
@@ -2925,10 +2926,7 @@ function App() {
                       handleTextSearch(query);
                     }
                   }}
-                  onScanClick={() => {
-                    setScanMode("single");
-                    setScanning(true);
-                  }}
+                  onScanClick={() => setShowScanModeModal(true)}
                   disabled={isOffline}
                   showScanButton={false}
                 />

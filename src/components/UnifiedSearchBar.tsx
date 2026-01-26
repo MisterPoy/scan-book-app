@@ -27,8 +27,12 @@ export default function UnifiedSearchBar({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[UnifiedSearchBar] handleSubmit appelé - searchValue:', searchValue, 'searchType:', searchType);
     if (searchValue.trim()) {
+      console.log('[UnifiedSearchBar] Appel onSearch avec:', searchValue.trim(), searchType);
       onSearch(searchValue.trim(), searchType);
+    } else {
+      console.log('[UnifiedSearchBar] searchValue vide, pas d\'appel onSearch');
     }
   };
 
