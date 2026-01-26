@@ -3,22 +3,16 @@ import { Book, CheckCircle } from 'phosphor-react';
 import { imageQueue, hasFailedBefore } from '../utils/imageQueue';
 
 interface GoogleBook {
-  volumeInfo: {
-    title: string;
-    authors?: string[];
-    publisher?: string;
-    publishedDate?: string;
-    pageCount?: number;
-    categories?: string[];
-    imageLinks?: {
-      thumbnail?: string;
-      smallThumbnail?: string;
-    };
-    industryIdentifiers?: Array<{
-      type: string;
-      identifier: string;
-    }>;
+  isbn?: string;
+  title: string;
+  authors?: string[];
+  publisher?: string;
+  publishedDate?: string;
+  pageCount?: number;
+  imageLinks?: {
+    thumbnail?: string;
   };
+  categories?: string[];
 }
 
 interface SearchResultCardProps {
@@ -38,19 +32,15 @@ export default function SearchResultCard({
   onToggleSelect,
   onCardClick
 }: SearchResultCardProps) {
-  const isbn = book.volumeInfo.industryIdentifiers?.find(
-    id => id.type === "ISBN_13" || id.type === "ISBN_10"
-  )?.identifier || "";
+  const isbn = book.isbn || "";
 
   const [coverSrc, setCoverSrc] = useState(
-    book.volumeInfo.imageLinks?.thumbnail ||
-    book.volumeInfo.imageLinks?.smallThumbnail ||
-    "/img/default-cover.png"
+    book.imageLinks?.thumbnail || "/img/default-cover.png"
   );
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   useEffect(() => {
-    const thumbnailUrl = book.volumeInfo.imageLinks?.thumbnail;
+    const thumbnailUrl = book.imageLinks?.thumbnail;
     if (!thumbnailUrl) {
       setCoverSrc("/img/default-cover.png");
       setImageStatus('loaded');
@@ -65,16 +55,16 @@ export default function SearchResultCard({
     }
 
     // Utiliser la queue pour charger l'image
-    imageQueue.add(thumbnailUrl)
-      .then((url) => {
-        setCoverSrc(url);
+    imageQueue.loadImage(thumbnailUrl, isbn)
+      .then((result) => {
+        setCoverSrc(result.url);
         setImageStatus('loaded');
       })
       .catch(() => {
         setCoverSrc("/img/default-cover.png");
         setImageStatus('error');
       });
-  }, [book.volumeInfo.imageLinks?.thumbnail]);
+  }, [book.imageLinks?.thumbnail, isbn]);
 
   const handleClick = () => {
     if (selectionMode) {
@@ -93,8 +83,8 @@ export default function SearchResultCard({
       role={selectionMode ? "checkbox" : "button"}
       aria-checked={selectionMode ? isSelected : undefined}
       aria-label={selectionMode
-        ? `${isSelected ? 'Désélectionner' : 'Sélectionner'} ${book.volumeInfo.title}`
-        : `Voir les détails de ${book.volumeInfo.title}`
+        ? `${isSelected ? 'Désélectionner' : 'Sélectionner'} ${book.title}`
+        : `Voir les détails de ${book.title}`
       }
     >
       {/* Checkbox en mode sélection */}
@@ -120,7 +110,7 @@ export default function SearchResultCard({
         )}
         <img
           src={coverSrc}
-          alt={book.volumeInfo.title}
+          alt={book.title}
           className="w-full h-full object-cover"
           loading="lazy"
         />
@@ -134,14 +124,14 @@ export default function SearchResultCard({
       {/* Infos */}
       <div className="p-3">
         <h3 className="font-semibold text-sm line-clamp-2 mb-1 text-gray-900">
-          {book.volumeInfo.title}
+          {book.title}
         </h3>
         <p className="text-xs text-gray-600 line-clamp-1 mb-1">
-          {book.volumeInfo.authors?.join(', ') || 'Auteur inconnu'}
+          {book.authors?.join(', ') || 'Auteur inconnu'}
         </p>
-        {book.volumeInfo.publishedDate && (
+        {book.publishedDate && (
           <p className="text-xs text-gray-500">
-            {book.volumeInfo.publishedDate.substring(0, 4)}
+            {book.publishedDate.substring(0, 4)}
           </p>
         )}
         {isInCollection && (

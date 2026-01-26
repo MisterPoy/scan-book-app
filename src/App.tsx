@@ -971,6 +971,7 @@ interface GoogleBook {
   customCoverUrl?: string;
   genre?: string;
   tags?: string[];
+  categories?: string[];
   source?: string;
 }
 
@@ -2655,25 +2656,21 @@ function App() {
     try {
       // Récupérer les infos complètes des livres sélectionnés
       const booksToAdd = searchResults.filter(googleBook => {
-        const isbn = googleBook.volumeInfo.industryIdentifiers?.find(
-          id => id.type === "ISBN_13" || id.type === "ISBN_10"
-        )?.identifier;
+        const isbn = googleBook.isbn || "";
         return isbn && selectedSearchResults.includes(isbn);
       });
 
       // Ajouter chaque livre à Firestore
       const promises = booksToAdd.map(async (googleBook) => {
         const bookData = {
-          title: googleBook.volumeInfo.title,
-          authors: googleBook.volumeInfo.authors || [],
-          isbn: googleBook.volumeInfo.industryIdentifiers?.find(
-            id => id.type === "ISBN_13" || id.type === "ISBN_10"
-          )?.identifier || "",
-          publisher: googleBook.volumeInfo.publisher || "",
-          publishedDate: googleBook.volumeInfo.publishedDate || "",
-          pageCount: googleBook.volumeInfo.pageCount || 0,
-          categories: googleBook.volumeInfo.categories || [],
-          imageLinks: googleBook.volumeInfo.imageLinks,
+          title: googleBook.title,
+          authors: googleBook.authors || [],
+          isbn: googleBook.isbn || "",
+          publisher: googleBook.publisher || "",
+          publishedDate: googleBook.publishedDate || "",
+          pageCount: googleBook.pageCount || 0,
+          categories: googleBook.categories || [],
+          imageLinks: googleBook.imageLinks,
           addedAt: new Date().toISOString(),
           status: "unread" as const,
           customCoverUrl: "",
@@ -3188,21 +3185,7 @@ function App() {
                     return (
                       <SearchResultCard
                         key={isbn || index}
-                        book={{
-                          volumeInfo: {
-                            title: searchBook.title,
-                            authors: searchBook.authors,
-                            publisher: searchBook.publisher,
-                            publishedDate: searchBook.publishedDate,
-                            pageCount: searchBook.pageCount,
-                            categories: searchBook.categories,
-                            imageLinks: searchBook.imageLinks,
-                            industryIdentifiers: searchBook.isbn ? [{
-                              type: "ISBN_13",
-                              identifier: searchBook.isbn
-                            }] : []
-                          }
-                        }}
+                        book={searchBook}
                         isInCollection={isInCollection}
                         isSelected={selectedSearchResults.includes(isbn)}
                         selectionMode={searchSelectionMode}
