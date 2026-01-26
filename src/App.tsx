@@ -1,4 +1,13 @@
-import { useEffect, useState, lazy, Suspense, useRef, useMemo, useCallback, type RefObject } from "react";
+import {
+  useEffect,
+  useState,
+  lazy,
+  Suspense,
+  useRef,
+  useMemo,
+  useCallback,
+  type RefObject,
+} from "react";
 import {
   Check,
   Circle,
@@ -77,7 +86,10 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
-import { syncUserProfile, updateUserProfileStats } from "./services/userProfiles";
+import {
+  syncUserProfile,
+  updateUserProfileStats,
+} from "./services/userProfiles";
 import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
@@ -113,7 +125,7 @@ const getIsOnline = () =>
 function useModalCloseRequest<T extends HTMLElement>(
   ref: RefObject<T | null>,
   isActive: boolean,
-  onClose: () => void
+  onClose: () => void,
 ) {
   useEffect(() => {
     if (!isActive) return;
@@ -227,9 +239,7 @@ function CompactBookCard({
       tabIndex={0}
       aria-pressed={selectionMode ? !!isSelected : undefined}
       aria-label={
-        selectionMode
-          ? `Sélectionner ${book.title}`
-          : `Ouvrir ${book.title}`
+        selectionMode ? `Sélectionner ${book.title}` : `Ouvrir ${book.title}`
       }
       className={`bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-0.5 ${
         isSelected
@@ -554,7 +564,7 @@ function CollectionBookCard({
     setLoadingDetails(true);
     try {
       const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}`
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}`,
       );
       const data = await res.json();
       const volumeInfo = data.items?.[0]?.volumeInfo;
@@ -574,7 +584,7 @@ function CollectionBookCard({
   };
 
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file || !onUpdateCover) return;
@@ -987,7 +997,9 @@ function App() {
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkLibraryModal, setShowBulkLibraryModal] = useState(false);
-  const [bulkLibrarySelection, setBulkLibrarySelection] = useState<string[]>([]);
+  const [bulkLibrarySelection, setBulkLibrarySelection] = useState<string[]>(
+    [],
+  );
   const [addMessage, setAddMessage] = useState<{
     text: string;
     type: "success" | "error" | "warning" | "info";
@@ -1019,7 +1031,9 @@ function App() {
     libraries: [],
   });
   const [userLibraries, setUserLibraries] = useState<UserLibrary[]>([]);
-  const [selectedLibrariesForAdd, setSelectedLibrariesForAdd] = useState<string[]>([]);
+  const [selectedLibrariesForAdd, setSelectedLibrariesForAdd] = useState<
+    string[]
+  >([]);
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
@@ -1029,14 +1043,17 @@ function App() {
   const [isOffline, setIsOffline] = useState(!getIsOnline());
   const isOfflineRef = useRef(isOffline);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
-    null
+    null,
   ); // null = tous les livres
   const authModalRef = useFocusTrap<HTMLDivElement>(showAuthModal);
   const manualAddModalRef = useFocusTrap<HTMLDivElement>(showManualAdd);
   const collectionModalRef = useFocusTrap<HTMLDivElement>(showCollectionModal);
   const bulkDeleteModalRef = useFocusTrap<HTMLDivElement>(showBulkDeleteModal);
-  const settingsModalRef = useFocusTrap<HTMLDivElement>(showNotificationSettings);
-  const userManagementModalRef = useFocusTrap<HTMLDivElement>(showUserManagement);
+  const settingsModalRef = useFocusTrap<HTMLDivElement>(
+    showNotificationSettings,
+  );
+  const userManagementModalRef =
+    useFocusTrap<HTMLDivElement>(showUserManagement);
 
   const closeAuthModal = () => setShowAuthModal(false);
 
@@ -1104,16 +1121,31 @@ function App() {
 
   useModalCloseRequest(authModalRef, showAuthModal, closeAuthModal);
   useModalCloseRequest(manualAddModalRef, showManualAdd, closeManualAdd);
-  useModalCloseRequest(collectionModalRef, showCollectionModal, closeCollectionModal);
-  useModalCloseRequest(bulkDeleteModalRef, showBulkDeleteModal, closeBulkDeleteModal);
-  useModalCloseRequest(settingsModalRef, showNotificationSettings, closeSettingsModal);
-  useModalCloseRequest(userManagementModalRef, showUserManagement, closeUserManagementModal);
+  useModalCloseRequest(
+    collectionModalRef,
+    showCollectionModal,
+    closeCollectionModal,
+  );
+  useModalCloseRequest(
+    bulkDeleteModalRef,
+    showBulkDeleteModal,
+    closeBulkDeleteModal,
+  );
+  useModalCloseRequest(
+    settingsModalRef,
+    showNotificationSettings,
+    closeSettingsModal,
+  );
+  useModalCloseRequest(
+    userManagementModalRef,
+    showUserManagement,
+    closeUserManagementModal,
+  );
 
   // États pour le mode multi-scan
   const [scanMode, setScanMode] = useState<"single" | "batch">("single");
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
-
 
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -1218,7 +1250,7 @@ function App() {
 
     try {
       const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`,
       );
       const data = await res.json();
       const volumeInfo = data.items?.[0]?.volumeInfo || null;
@@ -1245,8 +1277,8 @@ function App() {
       // 1. Recherche Google Books
       const googleRes = await fetch(
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
-          query
-        )}&maxResults=40`
+          query,
+        )}&maxResults=40`,
       );
       const googleData = await googleRes.json();
       const googleBooks: GoogleBook[] =
@@ -1259,10 +1291,10 @@ function App() {
             ...item.volumeInfo,
             isbn:
               item.volumeInfo?.industryIdentifiers?.find(
-                (id) => id.type === "ISBN_13" || id.type === "ISBN_10"
+                (id) => id.type === "ISBN_13" || id.type === "ISBN_10",
               )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
             source: "Google Books",
-          })
+          }),
         ) || [];
 
       allBooks = [...googleBooks];
@@ -1272,8 +1304,8 @@ function App() {
         try {
           const openLibRes = await fetch(
             `https://openlibrary.org/search.json?q=${encodeURIComponent(
-              query
-            )}&limit=40`
+              query,
+            )}&limit=40`,
           );
           const openLibData = await openLibRes.json();
           interface OpenLibDoc {
@@ -1310,8 +1342,8 @@ function App() {
                 (gBook) =>
                   gBook.title?.toLowerCase() === olBook.title?.toLowerCase() &&
                   gBook.authors?.[0]?.toLowerCase() ===
-                    olBook.authors?.[0]?.toLowerCase()
-              )
+                    olBook.authors?.[0]?.toLowerCase(),
+              ),
           );
 
           allBooks = [...allBooks, ...uniqueOpenLibBooks];
@@ -1334,7 +1366,7 @@ function App() {
   const startIndex = (currentPage - 1) * resultsPerPage;
   const currentResults = searchResults.slice(
     startIndex,
-    startIndex + resultsPerPage
+    startIndex + resultsPerPage,
   );
 
   const handlePageChange = (page: number) => {
@@ -1381,7 +1413,7 @@ function App() {
       const bookRef = doc(
         db,
         `users/${user.uid}/collection`,
-        scannedBookData.isbn
+        scannedBookData.isbn,
       );
       await setDoc(bookRef, bookData);
 
@@ -1389,7 +1421,7 @@ function App() {
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
       const books = snapshot.docs.map(
-        (docSnap) => ({ ...docSnap.data() } as CollectionBook)
+        (docSnap) => ({ ...docSnap.data() }) as CollectionBook,
       );
       setCollectionBooks(books);
 
@@ -1454,7 +1486,7 @@ function App() {
   };
 
   const handleManualCoverUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1553,7 +1585,7 @@ function App() {
           ({
             id: doc.id,
             ...doc.data(),
-          } as CollectionBook & { id: string })
+          }) as CollectionBook & { id: string },
       );
       setCollectionBooks(list);
       const lastActivity =
@@ -1616,7 +1648,7 @@ function App() {
   }, []);
 
   const createUserLibrary = async (
-    library: Omit<UserLibrary, "id" | "createdAt">
+    library: Omit<UserLibrary, "id" | "createdAt">,
   ) => {
     if (!user) return;
 
@@ -1649,7 +1681,7 @@ function App() {
 
   const updateUserLibrary = async (
     libraryId: string,
-    library: Omit<UserLibrary, "id" | "createdAt">
+    library: Omit<UserLibrary, "id" | "createdAt">,
   ) => {
     if (!user) return;
 
@@ -1684,7 +1716,7 @@ function App() {
 
       // Retirer cette bibliothèque de tous les livres
       const booksToUpdate = collectionBooks.filter((book) =>
-        book.libraries?.includes(libraryId)
+        book.libraries?.includes(libraryId),
       );
 
       for (const book of booksToUpdate) {
@@ -1723,7 +1755,7 @@ function App() {
               displayName: user.displayName,
               lastLogin: new Date().toISOString(),
             },
-            { merge: true }
+            { merge: true },
           );
         }
         setIsAdmin(true);
@@ -1743,7 +1775,7 @@ function App() {
     const isChromeMobile =
       /Chrome/.test(navigator.userAgent) &&
       (/Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(
-        navigator.userAgent
+        navigator.userAgent,
       ) ||
         window.innerWidth <= 768);
 
@@ -1780,18 +1812,18 @@ function App() {
 
     handleRedirectResult();
 
-      const unsubscribe = onAuthStateChanged(auth, async (u) => {
-        setUser(u);
-        if (u) {
-          try {
-            await syncUserProfile(u);
-          } catch (error) {
-            console.error("Erreur synchronisation profil utilisateur:", error);
-          }
-          // Vérifier et configurer le statut admin
-          await checkAndSetupAdmin(u);
-          fetchCollection(u.uid);
-          fetchUserLibraries(u.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        try {
+          await syncUserProfile(u);
+        } catch (error) {
+          console.error("Erreur synchronisation profil utilisateur:", error);
+        }
+        // Vérifier et configurer le statut admin
+        await checkAndSetupAdmin(u);
+        fetchCollection(u.uid);
+        fetchUserLibraries(u.uid);
         setAuthMessage({
           text: `Connecté en tant que ${u.displayName}`,
           type: "success",
@@ -1838,7 +1870,7 @@ function App() {
 
   const updateBookCover = async (
     isbn: string,
-    newCoverUrl: string | null | undefined
+    newCoverUrl: string | null | undefined,
   ) => {
     if (!user) return;
 
@@ -1887,7 +1919,7 @@ function App() {
         if (typeof obj === "object") {
           const cleaned: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(
-            obj as Record<string, unknown>
+            obj as Record<string, unknown>,
           )) {
             if (value !== undefined) {
               cleaned[key] = cleanObject(value);
@@ -1988,7 +2020,7 @@ function App() {
     if (currentLibraries.includes(libraryId)) {
       // Retirer la bibliothèque
       updatedLibraries = currentLibraries.filter(
-        (id: string) => id !== libraryId
+        (id: string) => id !== libraryId,
       );
     } else {
       // Ajouter la bibliothèque
@@ -2013,7 +2045,7 @@ function App() {
   const handleBulkAddConfirm = async (
     isbns: string[],
     personalNotes: Record<string, string>,
-    selectedLibraries?: string[]
+    selectedLibraries?: string[],
   ) => {
     if (!user) {
       setAddMessage({
@@ -2034,14 +2066,14 @@ function App() {
         db,
         collectionBooks,
         personalNotes,
-        selectedLibraries
+        selectedLibraries,
       );
 
       // Recharger la collection depuis Firestore
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const snapshot = await getDocs(collectionRef);
       const books = snapshot.docs.map(
-        (doc) => ({ ...doc.data() } as CollectionBook)
+        (doc) => ({ ...doc.data() }) as CollectionBook,
       );
       setCollectionBooks(books);
 
@@ -2097,15 +2129,17 @@ function App() {
 
     try {
       for (const isbn of selectedBooks) {
-        const book = collectionBooks.find(b => b.isbn === isbn);
+        const book = collectionBooks.find((b) => b.isbn === isbn);
         if (!book) continue;
 
         const existingLibraries = book.libraries || [];
-        const newLibraries = [...new Set([...existingLibraries, ...bulkLibrarySelection])];
+        const newLibraries = [
+          ...new Set([...existingLibraries, ...bulkLibrarySelection]),
+        ];
 
         const updatedBook = {
           ...book,
-          libraries: newLibraries
+          libraries: newLibraries,
         };
 
         await updateBookInFirestore(updatedBook);
@@ -2114,20 +2148,19 @@ function App() {
       await fetchCollection(user.uid);
 
       setAddMessage({
-        text: `${selectedBooks.length} livre${selectedBooks.length > 1 ? 's' : ''} ajouté${selectedBooks.length > 1 ? 's' : ''} à ${bulkLibrarySelection.length} bibliothèque${bulkLibrarySelection.length > 1 ? 's' : ''}`,
-        type: "success"
+        text: `${selectedBooks.length} livre${selectedBooks.length > 1 ? "s" : ""} ajouté${selectedBooks.length > 1 ? "s" : ""} à ${bulkLibrarySelection.length} bibliothèque${bulkLibrarySelection.length > 1 ? "s" : ""}`,
+        type: "success",
       });
 
       setShowBulkLibraryModal(false);
       setBulkLibrarySelection([]);
       setSelectedBooks([]);
       setSelectionMode(false);
-
     } catch (error) {
       console.error("Erreur lors de l'ajout aux bibliothèques:", error);
       setAddMessage({
         text: "Erreur lors de l'ajout aux bibliothèques",
-        type: "error"
+        type: "error",
       });
     }
   };
@@ -2409,11 +2442,9 @@ function App() {
 
       const exportDateStr = formatDate(new Date().toISOString());
       doc.text(
-        libraryName
-          ? `Bibliothèque : ${libraryName}`
-          : "Collection complète",
+        libraryName ? `Bibliothèque : ${libraryName}` : "Collection complète",
         50,
-        28
+        28,
       );
       doc.text(`Date d'export : ${exportDateStr}`, 50, 34);
 
@@ -2511,9 +2542,13 @@ function App() {
       });
 
       const exportAttribution = "Généré par Kodeks - Développé par GregDev";
-      const lastAutoTable = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable;
+      const lastAutoTable = (doc as { lastAutoTable?: { finalY?: number } })
+        .lastAutoTable;
       const pageHeight = doc.internal.pageSize.getHeight();
-      const attributionY = Math.min((lastAutoTable?.finalY ?? 56) + 6, pageHeight - 16);
+      const attributionY = Math.min(
+        (lastAutoTable?.finalY ?? 56) + 6,
+        pageHeight - 16,
+      );
 
       doc.setPage(doc.getNumberOfPages());
       doc.setFontSize(9);
@@ -2532,7 +2567,7 @@ function App() {
           `Page ${i} / ${totalPages}`,
           doc.internal.pageSize.getWidth() / 2,
           doc.internal.pageSize.getHeight() - 10,
-          { align: "center" }
+          { align: "center" },
         );
 
         // Date de génération à droite
@@ -2540,7 +2575,7 @@ function App() {
           `Généré le ${exportDateStr}`,
           doc.internal.pageSize.getWidth() - 14,
           doc.internal.pageSize.getHeight() - 10,
-          { align: "right" }
+          { align: "right" },
         );
       }
 
@@ -2574,7 +2609,7 @@ function App() {
 
   const handleManualSearchSelect = (
     book: GoogleBook,
-    isInCollection: boolean
+    isInCollection: boolean,
   ) => {
     if (isInCollection) return;
 
@@ -2593,13 +2628,13 @@ function App() {
         "• Vos bibliothèques personnalisées\n" +
         "• Vos notes et paramètres\n" +
         "• Votre compte utilisateur\n\n" +
-        "Êtes-vous absolument sûr de vouloir continuer ?"
+        "Êtes-vous absolument sûr de vouloir continuer ?",
     );
 
     if (!confirmDelete) return;
 
     const confirmDeleteFinal = window.confirm(
-      "Dernière confirmation : Voulez-vous vraiment supprimer définitivement votre compte ?"
+      "Dernière confirmation : Voulez-vous vraiment supprimer définitivement votre compte ?",
     );
 
     if (!confirmDeleteFinal) return;
@@ -2613,7 +2648,7 @@ function App() {
       const collectionRef = collection(db, `users/${user.uid}/collection`);
       const booksSnapshot = await getDocs(collectionRef);
       const deletePromises = booksSnapshot.docs.map((doc) =>
-        deleteDoc(doc.ref)
+        deleteDoc(doc.ref),
       );
       await Promise.all(deletePromises);
 
@@ -2646,13 +2681,13 @@ function App() {
   // Utilisation du hook de filtres
   const { filteredBooks: baseFilteredBooks, availableGenres } = useBookFilters(
     collectionBooks,
-    filters
+    filters,
   );
 
   // Filtrage par bibliothèque sélectionnée
   const libraryFilteredBooks = selectedLibraryView
     ? baseFilteredBooks.filter((book) =>
-        book.libraries?.includes(selectedLibraryView)
+        book.libraries?.includes(selectedLibraryView),
       )
     : baseFilteredBooks;
 
@@ -2662,7 +2697,7 @@ function App() {
         const query = collectionSearchQuery.toLowerCase();
         const titleMatch = book.title?.toLowerCase().includes(query);
         const authorMatch = book.authors?.some((author) =>
-          author.toLowerCase().includes(query)
+          author.toLowerCase().includes(query),
         );
         const isbnMatch = book.isbn?.toLowerCase().includes(query);
         return titleMatch || authorMatch || isbnMatch;
@@ -2671,12 +2706,12 @@ function App() {
 
   const collectionTotalPages = Math.max(
     1,
-    Math.ceil(displayedBooks.length / collectionResultsPerPage)
+    Math.ceil(displayedBooks.length / collectionResultsPerPage),
   );
   const collectionStartIndex = (collectionPage - 1) * collectionResultsPerPage;
   const collectionPageBooks = displayedBooks.slice(
     collectionStartIndex,
-    collectionStartIndex + collectionResultsPerPage
+    collectionStartIndex + collectionResultsPerPage,
   );
   const collectionPageIsbns = collectionPageBooks.map((book) => book.isbn);
   const isPageFullySelected =
@@ -2876,7 +2911,7 @@ function App() {
               <div className="w-full max-w-3xl">
                 <UnifiedSearchBar
                   onSearch={(query, type) => {
-                    if (type === 'isbn') {
+                    if (type === "isbn") {
                       handleSearch(query);
                     } else {
                       handleTextSearch(query);
@@ -2927,7 +2962,11 @@ function App() {
             <Suspense
               fallback={
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 shadow-xl" role="status" aria-live="polite">
+                  <div
+                    className="bg-white rounded-lg p-6 shadow-xl"
+                    role="status"
+                    aria-live="polite"
+                  >
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                     <p className="mt-4 text-center text-gray-600">
                       Chargement du scanner...
@@ -3009,7 +3048,7 @@ function App() {
                       Affichage {startIndex + 1}-
                       {Math.min(
                         startIndex + resultsPerPage,
-                        searchResults.length
+                        searchResults.length,
                       )}
                     </span>
                   </div>
@@ -3031,14 +3070,16 @@ function App() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            handleManualSearchSelect(searchBook, isInCollection);
+                            handleManualSearchSelect(
+                              searchBook,
+                              isInCollection,
+                            );
                           }
                         }}
                         role="button"
                         tabIndex={0}
                         aria-label={`Ouvrir ${searchBook.title}`}
                       >
-
                         <div className="text-center">
                           <div className="mb-3">
                             <img
@@ -3240,19 +3281,22 @@ function App() {
                     alt="Kodeks"
                     className="h-8 w-8 sm:h-10 sm:w-10"
                   />
-                  <h2 id="collection-modal-title" className="text-2xl font-bold text-gray-900">
+                  <h2
+                    id="collection-modal-title"
+                    className="text-2xl font-bold text-gray-900"
+                  >
                     {/* <Books size={20} weight="bold" className="inline mr-2" /> */}
                     Ma Collection
                   </h2>
                 </div>
-                {selectedBook && (
+                {/* {selectedBook && (
                   <button
                     onClick={() => setSelectedBook(null)}
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
                   >
                     ← Retour à la grille
                   </button>
-                )}
+                )} */}
               </div>
               <div className="flex items-center gap-2">
                 {!selectedBook && collectionBooks.length > 0 && (
@@ -3307,7 +3351,8 @@ function App() {
                               </div>
                               {userLibraries.map((library) => {
                                 const bookCount = collectionBooks.filter(
-                                  (book) => book.libraries?.includes(library.id)
+                                  (book) =>
+                                    book.libraries?.includes(library.id),
                                 ).length;
                                 return (
                                   <button
@@ -3321,7 +3366,7 @@ function App() {
                                     <span>
                                       {renderLibraryIcon(
                                         library.icon || "BK",
-                                        16
+                                        16,
                                       )}
                                     </span>
                                     <div className="flex-1">
@@ -3395,7 +3440,8 @@ function App() {
                               </div>
                               {userLibraries.map((library) => {
                                 const bookCount = collectionBooks.filter(
-                                  (book) => book.libraries?.includes(library.id)
+                                  (book) =>
+                                    book.libraries?.includes(library.id),
                                 ).length;
                                 return (
                                   <button
@@ -3409,7 +3455,7 @@ function App() {
                                     <span>
                                       {renderLibraryIcon(
                                         library.icon || "BK",
-                                        16
+                                        16,
                                       )}
                                     </span>
                                     <div className="flex-1">
@@ -3430,7 +3476,14 @@ function App() {
                     )}
                   </div>
                 )}
-
+                {selectedBook && (
+                  <button
+                    onClick={() => setSelectedBook(null)}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
+                  >
+                    ← Retour à la grille
+                  </button>
+                )}
                 <button
                   onClick={closeCollectionModal}
                   className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
@@ -3467,7 +3520,7 @@ function App() {
                   </button>
                   {userLibraries.map((library) => {
                     const bookCount = collectionBooks.filter((book) =>
-                      book.libraries?.includes(library.id)
+                      book.libraries?.includes(library.id),
                     ).length;
                     return (
                       <button
@@ -3521,7 +3574,7 @@ function App() {
                     book={selectedBook}
                     onRemove={() => {
                       const confirmDelete = window.confirm(
-                        `Êtes-vous sûr de vouloir supprimer "${selectedBook.title}" de votre collection ?\n\nCette action est irréversible.`
+                        `Êtes-vous sûr de vouloir supprimer "${selectedBook.title}" de votre collection ?\n\nCette action est irréversible.`,
                       );
                       if (confirmDelete) {
                         removeFromCollection(selectedBook.isbn);
@@ -3639,14 +3692,14 @@ function App() {
                             if (isPageFullySelected) {
                               setSelectedBooks((prev) =>
                                 prev.filter(
-                                  (isbn) => !collectionPageIsbns.includes(isbn)
-                                )
+                                  (isbn) => !collectionPageIsbns.includes(isbn),
+                                ),
                               );
                             } else {
                               setSelectedBooks((prev) =>
                                 Array.from(
-                                  new Set([...prev, ...collectionPageIsbns])
-                                )
+                                  new Set([...prev, ...collectionPageIsbns]),
+                                ),
                               );
                             }
                           }}
@@ -3679,20 +3732,21 @@ function App() {
                             </span>
                           </button>
                         )}
-                        {selectedBooks.length > 0 && userLibraries.length > 0 && (
-                          <button
-                            onClick={() => setShowBulkLibraryModal(true)}
-                            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
-                          >
-                            <FolderOpen size={16} weight="bold" />
-                            <span className="hidden sm:inline">
-                              Ajouter à bibliothèque(s)
-                            </span>
-                            <span className="inline sm:hidden">
-                              Bibliothèques
-                            </span>
-                          </button>
-                        )}
+                        {selectedBooks.length > 0 &&
+                          userLibraries.length > 0 && (
+                            <button
+                              onClick={() => setShowBulkLibraryModal(true)}
+                              className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+                            >
+                              <FolderOpen size={16} weight="bold" />
+                              <span className="hidden sm:inline">
+                                Ajouter à bibliothèque(s)
+                              </span>
+                              <span className="inline sm:hidden">
+                                Bibliothèques
+                              </span>
+                            </button>
+                          )}
                       </div>
                     )}
                   </div>
@@ -3746,7 +3800,7 @@ function App() {
                                 setSelectedBooks((prev) =>
                                   prev.includes(item.isbn)
                                     ? prev.filter((isbn) => isbn !== item.isbn)
-                                    : [...prev, item.isbn]
+                                    : [...prev, item.isbn],
                                 );
                               }
                             }}
@@ -3757,7 +3811,7 @@ function App() {
                               setSelectedBooks((prev) =>
                                 prev.includes(item.isbn)
                                   ? prev
-                                  : [...prev, item.isbn]
+                                  : [...prev, item.isbn],
                               );
                             }}
                             isSelected={selectedBooks.includes(item.isbn)}
@@ -3770,7 +3824,9 @@ function App() {
                       {collectionTotalPages > 1 && (
                         <div className="flex justify-center items-center gap-2 mt-6 pt-6 border-t">
                           <button
-                            onClick={() => setCollectionPage(collectionPage - 1)}
+                            onClick={() =>
+                              setCollectionPage(collectionPage - 1)
+                            }
                             disabled={collectionPage === 1}
                             className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                           >
@@ -3786,7 +3842,8 @@ function App() {
                                 } else if (collectionPage <= 3) {
                                   pageNum = i + 1;
                                 } else if (
-                                  collectionPage >= collectionTotalPages - 2
+                                  collectionPage >=
+                                  collectionTotalPages - 2
                                 ) {
                                   pageNum = collectionTotalPages - 4 + i;
                                 } else {
@@ -3806,12 +3863,14 @@ function App() {
                                     {pageNum}
                                   </button>
                                 );
-                              }
+                              },
                             )}
                           </div>
 
                           <button
-                            onClick={() => setCollectionPage(collectionPage + 1)}
+                            onClick={() =>
+                              setCollectionPage(collectionPage + 1)
+                            }
                             disabled={collectionPage === collectionTotalPages}
                             className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                           >
@@ -3866,7 +3925,10 @@ function App() {
             aria-labelledby="manual-add-title"
           >
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 id="manual-add-title" className="text-2xl font-bold text-gray-900">
+              <h2
+                id="manual-add-title"
+                className="text-2xl font-bold text-gray-900"
+              >
                 <PencilSimple size={16} weight="regular" /> Ajouter un livre
                 manuellement
               </h2>
@@ -3884,7 +3946,10 @@ function App() {
                 {/* Colonne gauche - Informations */}
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="manual-title" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="manual-title"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Titre * (obligatoire)
                     </label>
                     <input
@@ -3903,7 +3968,10 @@ function App() {
                   </div>
 
                   <div>
-                    <label htmlFor="manual-authors" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="manual-authors"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Auteur(s) (séparés par des virgules)
                     </label>
                     <input
@@ -3922,7 +3990,10 @@ function App() {
                   </div>
 
                   <div>
-                    <label htmlFor="manual-publisher" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="manual-publisher"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Éditeur
                     </label>
                     <input
@@ -3942,7 +4013,10 @@ function App() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="manual-published-date" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="manual-published-date"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Année
                       </label>
                       <input
@@ -3961,7 +4035,10 @@ function App() {
                     </div>
 
                     <div>
-                      <label htmlFor="manual-page-count" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="manual-page-count"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Pages
                       </label>
                       <input
@@ -3981,7 +4058,10 @@ function App() {
                   </div>
 
                   <div>
-                    <label htmlFor="manual-description" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="manual-description"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Description
                     </label>
                     <textarea
@@ -4114,7 +4194,10 @@ function App() {
           aria-labelledby="user-management-title"
         >
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <h2 id="user-management-title" className="text-xl font-bold text-gray-900">
+            <h2
+              id="user-management-title"
+              className="text-xl font-bold text-gray-900"
+            >
               Gestion des Utilisateurs
             </h2>
             <button
@@ -4169,12 +4252,18 @@ function App() {
                 <Warning size={24} weight="bold" className="text-red-600" />
               </div>
               <div className="flex-1">
-                <h2 id="bulk-delete-title" className="text-xl font-bold text-red-600 mb-2">
+                <h2
+                  id="bulk-delete-title"
+                  className="text-xl font-bold text-red-600 mb-2"
+                >
                   ⚠️ Supprimer définitivement ?
                 </h2>
                 <p className="text-gray-700">
                   Vous êtes sur le point de supprimer{" "}
-                  <strong className="text-red-600">{selectedBooks.length}</strong> livre
+                  <strong className="text-red-600">
+                    {selectedBooks.length}
+                  </strong>{" "}
+                  livre
                   {selectedBooks.length > 1 ? "s" : ""} de votre collection.
                 </p>
                 <p className="text-sm font-semibold text-red-600 mt-2">
@@ -4197,18 +4286,20 @@ function App() {
                     // Supprimer tous les livres sélectionnés
                     await Promise.all(
                       selectedBooks.map((isbn) =>
-                        deleteDoc(doc(db, `users/${user.uid}/collection`, isbn))
-                      )
+                        deleteDoc(
+                          doc(db, `users/${user.uid}/collection`, isbn),
+                        ),
+                      ),
                     );
 
                     // Recharger la collection
                     const collectionRef = collection(
                       db,
-                      `users/${user.uid}/collection`
+                      `users/${user.uid}/collection`,
                     );
                     const snapshot = await getDocs(collectionRef);
                     const books = snapshot.docs.map(
-                      (docSnap) => ({ ...docSnap.data() } as CollectionBook)
+                      (docSnap) => ({ ...docSnap.data() }) as CollectionBook,
                     );
                     setCollectionBooks(books);
 
@@ -4229,7 +4320,7 @@ function App() {
                   } catch (error) {
                     console.error(
                       "Erreur lors de la suppression groupée:",
-                      error
+                      error,
                     );
                     setAddMessage({
                       text: "Erreur lors de la suppression des livres",
@@ -4257,12 +4348,16 @@ function App() {
             aria-modal="true"
             aria-labelledby="bulk-library-title"
           >
-            <h2 id="bulk-library-title" className="text-xl font-bold text-gray-900 mb-4">
+            <h2
+              id="bulk-library-title"
+              className="text-xl font-bold text-gray-900 mb-4"
+            >
               Ajouter à une ou plusieurs bibliothèques
             </h2>
 
             <p className="text-sm text-gray-600 mb-4">
-              {selectedBooks.length} livre{selectedBooks.length > 1 ? 's' : ''} sélectionné{selectedBooks.length > 1 ? 's' : ''}
+              {selectedBooks.length} livre{selectedBooks.length > 1 ? "s" : ""}{" "}
+              sélectionné{selectedBooks.length > 1 ? "s" : ""}
             </p>
 
             <div className="mb-6">
@@ -4290,7 +4385,8 @@ function App() {
                 disabled={bulkLibrarySelection.length === 0}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                Ajouter à {bulkLibrarySelection.length} bibliothèque{bulkLibrarySelection.length > 1 ? 's' : ''}
+                Ajouter à {bulkLibrarySelection.length} bibliothèque
+                {bulkLibrarySelection.length > 1 ? "s" : ""}
               </button>
             </div>
           </div>
@@ -4308,7 +4404,10 @@ function App() {
             aria-labelledby="settings-modal-title"
           >
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 id="settings-modal-title" className="text-xl font-bold text-gray-900">
+              <h2
+                id="settings-modal-title"
+                className="text-xl font-bold text-gray-900"
+              >
                 Paramètres
               </h2>
               <button
