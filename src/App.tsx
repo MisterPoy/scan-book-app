@@ -37,7 +37,6 @@ import {
   Hourglass,
   Megaphone,
   Bell,
-  Stack,
   DownloadSimple,
   FilePdf,
   UsersThree,
@@ -65,6 +64,7 @@ import ModalScrollToTop from "./components/ModalScrollToTop";
 import Toast from "./components/Toast";
 import Footer from "./components/Footer";
 import UnifiedSearchBar from "./components/UnifiedSearchBar";
+import ScanModeSelector from "./components/ScanModeSelector";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
@@ -1146,6 +1146,7 @@ function App() {
   const [scanMode, setScanMode] = useState<"single" | "batch">("single");
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+  const [showScanModeModal, setShowScanModeModal] = useState(false);
 
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -2033,6 +2034,13 @@ function App() {
     };
 
     await updateBookInFirestore(updatedBook);
+  };
+
+  // Handler pour sélection du mode de scan
+  const handleScanModeSelect = (mode: 'single' | 'batch') => {
+    setScanMode(mode);
+    setScanning(true);
+    setShowScanModeModal(false);
   };
 
   // Handlers pour le mode multi-scan
@@ -2926,37 +2934,16 @@ function App() {
                 />
               </div>
 
-              {/* Boutons de scan */}
-              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <button
-                  onClick={() => {
-                    setScanMode("single");
-                    setScanning(true);
-                  }}
-                  className="flex-1 px-6 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Camera size={20} weight="bold" />
-                  Scan unique
-                </button>
-                <button
-                  onClick={() => {
-                    setScanMode("batch");
-                    setScanning(true);
-                  }}
-                  className="flex-1 px-6 py-4 text-base font-semibold text-gray-900 bg-green-300 rounded-lg hover:bg-green-400 transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Stack size={20} weight="bold" />
-                  Scan par lot
-                </button>
-              </div>
-
-              <p className="text-sm text-gray-600 text-center max-w-md">
-                <strong>Scan unique</strong> : Scannez un livre et ajoutez-le
-                immédiatement
-                <br />
-                <strong>Scan par lot</strong> : Scannez plusieurs livres puis
-                validez en une fois
-              </p>
+              {/* Bouton de scan unifié */}
+              <button
+                onClick={() => setShowScanModeModal(true)}
+                disabled={isOffline}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl flex items-center gap-3"
+                aria-label="Ouvrir le menu de choix du mode de scan"
+              >
+                <Camera size={24} weight="bold" />
+                <span>Scanner un livre</span>
+              </button>
             </div>
           ) : (
             <Suspense
@@ -4235,6 +4222,13 @@ function App() {
         onConfirm={handleBulkAddConfirm}
         onCancel={handleBulkAddCancel}
         userLibraries={userLibraries}
+      />
+
+      {/* Scan Mode Selector Modal */}
+      <ScanModeSelector
+        isOpen={showScanModeModal}
+        onClose={() => setShowScanModeModal(false)}
+        onSelectMode={handleScanModeSelect}
       />
 
       {/* Bulk Delete Confirmation Modal */}
