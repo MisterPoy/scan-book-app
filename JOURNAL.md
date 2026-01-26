@@ -4,6 +4,115 @@
 
 ---
 
+## 2026-01-26 - 🔧 Fix Erreurs TypeScript Build (Commit f2ac387)
+
+### ⚠️ Problème Découvert
+Le déploiement Vercel du commit précédent (7ec6a3d) a échoué avec plusieurs erreurs TypeScript :
+- `Property 'volumeInfo' does not exist on type 'GoogleBook'`
+- `Property 'add' does not exist on type 'ImageLoadQueue'`
+- `Property 'categories' does not exist on type 'GoogleBook'`
+- `Parameter implicitly has an 'any' type`
+
+**Cause** : Incompatibilité entre le type `GoogleBook` défini dans App.tsx (objet plat) et l'utilisation dans SearchResultCard (structure imbriquée avec `volumeInfo`).
+
+### 🔧 Corrections Appliquées
+
+#### 1. **SearchResultCard.tsx** - Adapter à GoogleBook plat
+```typescript
+// AVANT (structure imbriquée)
+interface GoogleBook {
+  volumeInfo: {
+    title: string;
+    authors?: string[];
+    // ...
+  };
+}
+
+// APRÈS (structure plate)
+interface GoogleBook {
+  isbn?: string;
+  title: string;
+  authors?: string[];
+  publisher?: string;
+  publishedDate?: string;
+  pageCount?: number;
+  imageLinks?: {
+    thumbnail?: string;
+  };
+  categories?: string[];
+}
+```
+
+#### 2. **SearchResultCard.tsx** - Corriger imageQueue
+```typescript
+// AVANT (méthode inexistante)
+imageQueue.add(thumbnailUrl)
+
+// APRÈS (méthode correcte)
+imageQueue.loadImage(thumbnailUrl, isbn)
+```
+
+#### 3. **App.tsx** - Passer searchBook directement
+```typescript
+// AVANT (wrapping inutile)
+<SearchResultCard
+  book={{
+    volumeInfo: {
+      title: searchBook.title,
+      authors: searchBook.authors,
+      // ...
+    }
+  }}
+/>
+
+// APRÈS (direct)
+<SearchResultCard
+  book={searchBook}
+/>
+```
+
+#### 4. **App.tsx** - Ajouter categories à l'interface
+```typescript
+interface GoogleBook {
+  // ... propriétés existantes
+  categories?: string[];  // AJOUTÉ
+  source?: string;
+}
+```
+
+#### 5. **handleAddSelectedBooks** - Utiliser propriétés directes
+```typescript
+// AVANT
+const isbn = googleBook.volumeInfo.industryIdentifiers?.find(...)?.identifier;
+const bookData = {
+  title: googleBook.volumeInfo.title,
+  // ...
+};
+
+// APRÈS
+const isbn = googleBook.isbn || "";
+const bookData = {
+  title: googleBook.title,
+  authors: googleBook.authors || [],
+  isbn: googleBook.isbn || "",
+  // ...
+};
+```
+
+### ✅ Validation
+```bash
+npm run build
+# ✓ built in 1m 6s
+# ✓ Success - Aucune erreur TypeScript
+```
+
+### 📦 Commit & Push
+- **Commit** : `f2ac387` - "fix: corriger erreurs TypeScript build"
+- **Push** : `7ec6a3d..f2ac387 main -> main`
+- **Déploiement** : En cours sur Vercel
+
+---
+
 ## 2026-01-26 - 🎨 9 Améliorations UX/Accessibilité Post-Audit
 
 ### 🎯 Objectif
