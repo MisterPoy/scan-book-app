@@ -4,6 +4,209 @@
 
 ---
 
+## 2026-01-27 - ✨ Checkboxes Toujours Visibles + Fix Mixed Content (Commit e873e92)
+
+### 🎯 Objectifs
+1. **Amélioration UX** : Rendre les checkboxes toujours visibles sans bouton "Sélectionner" (Option 1)
+2. **Fix sécurité** : Éliminer les 97 warnings Mixed Content (images HTTP sur site HTTPS)
+
+### 🚀 Améliorations UX - Checkboxes Toujours Visibles
+
+**Problème initial** : L'utilisateur devait cliquer sur un bouton "Sélectionner" avant de pouvoir sélectionner des livres dans les résultats de recherche. Pas intuitif (feedback utilisateur : "ce n'est pas intuitif de devoir cliquer sur le bouton 'Sélectionner' en haut").
+
+**Solution appliquée** : Checkboxes toujours visibles comme Gmail/Google Photos
+
+#### Modifications apportées
+
+**1. SearchResultCard.tsx - Checkbox toujours visible**
+```typescript
+// Supprimé la prop selectionMode
+interface SearchResultCardProps {
+  book: GoogleBook;
+  isInCollection: boolean;
+  isSelected: boolean;
+  onToggleSelect: (isbn: string) => void;
+  onCardClick: (book: GoogleBook) => void;
+}
+
+// Checkbox maintenant toujours rendue
+<button
+  onClick={handleCheckboxClick}
+  className="absolute top-2 left-2 z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+  type="button"
+  role="checkbox"
+  aria-checked={isSelected}
+  aria-label={`${isSelected ? 'Désélectionner' : 'Sélectionner'} ${book.title}`}
+>
+  <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+    isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+  }`}>
+    {isSelected && <CheckCircle size={16} weight="bold" className="text-white" />}
+  </div>
+</button>
+
+// Handlers séparés pour éviter conflits
+const handleCardClick = () => onCardClick(book);
+const handleCheckboxClick = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  onToggleSelect(isbn);
+};
+```
+
+**2. App.tsx - Simplification barre d'actions**
+```typescript
+// Supprimé l'état searchSelectionMode
+// AVANT : const [searchSelectionMode, setSearchSelectionMode] = useState(false);
+// APRÈS : (supprimé)
+
+// Barre d'actions simplifiée
+<div className="flex items-center justify-between mb-4 bg-gray-50 p-4 rounded-lg">
+  <div className="flex items-center gap-4">
+    {/* Bouton "Tout sélectionner" directement visible */}
+    <button onClick={() => {
+      const pageIsbns = currentResults.map(b => b.isbn).filter(Boolean);
+      setSelectedSearchResults(pageIsbns);
+    }}>
+      Tout sélectionner ({currentResults.length})
+    </button>
+
+    {selectedSearchResults.length > 0 && (
+      <>
+        <span>•</span>
+        <span role="status" aria-live="polite">
+          {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''} sélectionné{selectedSearchResults.length > 1 ? 's' : ''}
+        </span>
+        <button onClick={() => setSelectedSearchResults([])}>
+          Tout désélectionner
+        </button>
+      </>
+    )}
+  </div>
+
+  {/* Bouton Ajouter visible uniquement si sélection active */}
+  {selectedSearchResults.length > 0 && (
+    <button onClick={handleAddSelectedBooks}>
+      Ajouter {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''}
+    </button>
+  )}
+</div>
+```
+
+### 🔒 Fix Mixed Content Warnings (97 warnings)
+
+**Problème** : Google Books API renvoie des images en HTTP (`http://books.google.com/...`) ce qui cause des erreurs Mixed Content quand l'app tourne en HTTPS.
+
+**Impact** :
+- 97 warnings dans la console
+- Certaines images ne se chargent pas
+- Déploiement Vercel affiche des erreurs de sécurité
+
+**Solution** : Forcer HTTPS partout où on reçoit des URLs d'images
+
+#### Modifications apportées
+
+**1. bookApi.ts - Fonction utilitaire forceHttps**
+```typescript
+/**
+ * Force une URL d'image à utiliser HTTPS au lieu de HTTP
+ * Évite les erreurs Mixed Content dans les applications HTTPS
+ */
+function forceHttps(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  return url.replace(/^http:\/\//i, 'https://');
+}
+
+// Appliqué dans fetchBookMetadata
+return {
+  title: volumeInfo.title || 'Titre inconnu',
+  // ...
+  thumbnail: forceHttps(volumeInfo.imageLinks?.thumbnail),  // ✅ Fix ici
+};
+
+// Aussi pour OpenLibrary fallback
+return {
+  // ...
+  thumbnail: forceHttps(bookData.cover?.medium || bookData.cover?.small),  // ✅ Fix ici
+};
+```
+
+**2. useImageRecovery.ts - Fix fetch Google Books**
+```typescript
+if (data.items && data.items.length > 0) {
+  const thumbnail = data.items[0].volumeInfo?.imageLinks?.thumbnail;
+  // Forcer HTTPS pour éviter Mixed Content warnings
+  return thumbnail ? thumbnail.replace(/^http:\/\//i, 'https://') : null;  // ✅ Fix ici
+}
+```
+
+**3. App.tsx - Fix dans handleSearch et handleTextSearch**
+```typescript
+// Dans handleSearch (recherche par ISBN)
+const volumeInfo = data.items?.[0]?.volumeInfo || null;
+if (volumeInfo && volumeInfo.imageLinks?.thumbnail) {
+  volumeInfo.imageLinks.thumbnail = volumeInfo.imageLinks.thumbnail.replace(/^http:\/\//i, 'https://');  // ✅ Fix ici
+}
+
+// Dans handleTextSearch (recherche par texte)
+const googleBooks: GoogleBook[] = googleData.items?.map((item) => {
+  const book = { ...item.volumeInfo };
+  if (book.imageLinks?.thumbnail) {
+    book.imageLinks.thumbnail = book.imageLinks.thumbnail.replace(/^http:\/\//i, 'https://');  // ✅ Fix ici
+  }
+  return { ...book, isbn: ..., source: "Google Books" };
+}) || [];
+```
+
+### ✅ Résultats
+
+**UX Checkboxes** :
+- ✅ Checkboxes toujours visibles sans bouton de mode
+- ✅ Interaction intuitive : checkbox → sélection, carte → détails
+- ✅ Compteur en temps réel
+- ✅ Boutons "Tout sélectionner/désélectionner" accessibles
+- ✅ Accessibilité : `role="checkbox"`, `aria-checked`, `aria-label`
+
+**Mixed Content** :
+- ✅ 97 warnings éliminés
+- ✅ Toutes les images forcées en HTTPS
+- ✅ Déploiement Vercel sécurisé
+- ✅ Appliqué sur 4 points d'entrée (bookApi, useImageRecovery, App.tsx×2)
+
+### 📊 Build & Déploiement
+```bash
+npm run build
+# ✅ BUILD RÉUSSI (1m 25s)
+# ✅ TypeScript compilation OK
+# ✅ Vite production build OK
+# ✅ PWA service worker généré
+
+git add src/App.tsx src/components/SearchResultCard.tsx src/hooks/useImageRecovery.ts src/utils/bookApi.ts
+git commit -m "feat: checkboxes toujours visibles + fix Mixed Content warnings"
+git push
+# ✅ Push réussi (commit e873e92)
+```
+
+### ⚠️ Problèmes Restants
+
+**1. Violations setTimeout (526+)** - Performance ISBNScanner
+- Le scanner utilise `setTimeout` en boucle (200-400ms par cycle)
+- Cause : Barcode detection dans ISBNScanner tourne en continu
+- Impact : Console saturée de violations
+- Solution potentielle : `requestAnimationFrame` ou throttling
+
+**2. Dependabot Vulnerabilities (12)**
+- 1 critical, 6 high, 5 moderate
+- Voir : https://github.com/MisterPoy/scan-book-app/security/dependabot
+- À traiter prochainement
+
+### 🔄 Prochaines Étapes Suggérées
+1. **Optimiser ISBNScanner** : Réduire les violations setTimeout
+2. **Mettre à jour dépendances** : Corriger les 12 vulnérabilités Dependabot
+3. **Tests utilisateurs** : Valider la nouvelle UX checkboxes
+4. **Documentation** : Mettre à jour README si besoin
+
+---
+
 ## 2026-01-26 - 🔧 Fix Erreurs TypeScript Build (Commit f2ac387)
 
 ### ⚠️ Problème Découvert
