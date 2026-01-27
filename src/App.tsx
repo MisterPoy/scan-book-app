@@ -1023,7 +1023,6 @@ function App() {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualBook, setManualBook] = useState({ ...EMPTY_MANUAL_BOOK });
   const [selectedSearchResults, setSelectedSearchResults] = useState<string[]>([]);
-  const [searchSelectionMode, setSearchSelectionMode] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [bookToEdit, setBookToEdit] = useState<CollectionBook | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -1274,6 +1273,12 @@ function App() {
       );
       const data = await res.json();
       const volumeInfo = data.items?.[0]?.volumeInfo || null;
+      if (volumeInfo) {
+        // Forcer HTTPS pour éviter Mixed Content warnings
+        if (volumeInfo.imageLinks?.thumbnail) {
+          volumeInfo.imageLinks.thumbnail = volumeInfo.imageLinks.thumbnail.replace(/^http:\/\//i, 'https://');
+        }
+      }
       setBook({ ...volumeInfo, isbn: code });
     } catch (err) {
       console.error("Erreur lors de la recherche Google Books :", err);
@@ -1307,14 +1312,21 @@ function App() {
             volumeInfo: GoogleBook & {
               industryIdentifiers?: Array<{ type: string; identifier: string }>;
             };
-          }) => ({
-            ...item.volumeInfo,
-            isbn:
-              item.volumeInfo?.industryIdentifiers?.find(
-                (id) => id.type === "ISBN_13" || id.type === "ISBN_10",
-              )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
-            source: "Google Books",
-          }),
+          }) => {
+            const book = { ...item.volumeInfo };
+            // Forcer HTTPS pour éviter Mixed Content warnings
+            if (book.imageLinks?.thumbnail) {
+              book.imageLinks.thumbnail = book.imageLinks.thumbnail.replace(/^http:\/\//i, 'https://');
+            }
+            return {
+              ...book,
+              isbn:
+                item.volumeInfo?.industryIdentifiers?.find(
+                  (id) => id.type === "ISBN_13" || id.type === "ISBN_10",
+                )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
+              source: "Google Books",
+            };
+          },
         ) || [];
 
       allBooks = [...googleBooks];
@@ -2697,7 +2709,6 @@ function App() {
 
       // Reset
       setSelectedSearchResults([]);
-      setSearchSelectionMode(false);
       setShowSearchResults(false);
       setSearchResults([]);
     } catch (error) {
@@ -3119,29 +3130,30 @@ function App() {
                 <div className="flex items-center justify-between mb-4 bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => setSearchSelectionMode(!searchSelectionMode)}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      onClick={() => {
+                        const pageIsbns = currentResults
+                          .map(b => b.isbn)
+                          .filter((isbn): isbn is string => Boolean(isbn));
+                        setSelectedSearchResults(pageIsbns);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                      aria-label={`Sélectionner tous les livres de cette page (${currentResults.length})`}
                     >
-                      {searchSelectionMode ? 'Annuler la sélection' : 'Sélectionner'}
+                      Tout sélectionner ({currentResults.length})
                     </button>
-                    {searchSelectionMode && (
+                    {selectedSearchResults.length > 0 && (
                       <>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-sm text-gray-600" role="status" aria-live="polite" aria-atomic="true">
+                          {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''} sélectionné{selectedSearchResults.length > 1 ? 's' : ''}
+                        </span>
                         <button
-                          onClick={() => {
-                            const pageIsbns = currentResults
-                              .map(b => b.isbn)
-                              .filter((isbn): isbn is string => Boolean(isbn));
-                            setSelectedSearchResults(pageIsbns);
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                          onClick={() => setSelectedSearchResults([])}
+                          className="text-sm text-gray-500 hover:text-gray-700 font-medium cursor-pointer underline"
+                          aria-label="Tout désélectionner"
                         >
-                          Tout sélectionner ({currentResults.length})
+                          Tout désélectionner
                         </button>
-                        {selectedSearchResults.length > 0 && (
-                          <span className="text-sm text-gray-600" role="status" aria-live="polite" aria-atomic="true">
-                            {selectedSearchResults.length} livre{selectedSearchResults.length > 1 ? 's' : ''} sélectionné{selectedSearchResults.length > 1 ? 's' : ''}
-                          </span>
-                        )}
                       </>
                     )}
                   </div>
@@ -3188,7 +3200,6 @@ function App() {
                         book={searchBook}
                         isInCollection={isInCollection}
                         isSelected={selectedSearchResults.includes(isbn)}
-                        selectionMode={searchSelectionMode}
                         onToggleSelect={(isbn) => {
                           if (selectedSearchResults.includes(isbn)) {
                             setSelectedSearchResults(prev => prev.filter(id => id !== isbn));

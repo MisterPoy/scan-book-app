@@ -136,7 +136,8 @@ async function fetchGoogleBookscover(isbn: string): Promise<string | null> {
 
     if (data.items && data.items.length > 0) {
       const thumbnail = data.items[0].volumeInfo?.imageLinks?.thumbnail;
-      return thumbnail || null;
+      // Forcer HTTPS pour éviter Mixed Content warnings
+      return thumbnail ? thumbnail.replace(/^http:\/\//i, 'https://') : null;
     }
 
     return null;

@@ -2,6 +2,15 @@ import type { BookMetadata, ScannedBook } from '../types/bulkAdd';
 import type { Firestore } from 'firebase/firestore';
 
 /**
+ * Force une URL d'image à utiliser HTTPS au lieu de HTTP
+ * Évite les erreurs Mixed Content dans les applications HTTPS
+ */
+function forceHttps(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  return url.replace(/^http:\/\//i, 'https://');
+}
+
+/**
  * Récupère les métadonnées d'un livre via son ISBN
  * Utilise Google Books API en priorité, puis OpenLibrary en fallback
  */
@@ -22,7 +31,7 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
         publishedDate: volumeInfo.publishedDate,
         description: volumeInfo.description,
         pageCount: volumeInfo.pageCount,
-        thumbnail: volumeInfo.imageLinks?.thumbnail,
+        thumbnail: forceHttps(volumeInfo.imageLinks?.thumbnail),
       };
     }
 
@@ -41,7 +50,7 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
         publishedDate: bookData.publish_date,
         description: bookData.notes || bookData.subtitle,
         pageCount: bookData.number_of_pages,
-        thumbnail: bookData.cover?.medium || bookData.cover?.small,
+        thumbnail: forceHttps(bookData.cover?.medium || bookData.cover?.small),
       };
     }
 

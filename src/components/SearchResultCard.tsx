@@ -19,7 +19,6 @@ interface SearchResultCardProps {
   book: GoogleBook;
   isInCollection: boolean;
   isSelected: boolean;
-  selectionMode: boolean;
   onToggleSelect: (isbn: string) => void;
   onCardClick: (book: GoogleBook) => void;
 }
@@ -28,7 +27,6 @@ export default function SearchResultCard({
   book,
   isInCollection,
   isSelected,
-  selectionMode,
   onToggleSelect,
   onCardClick
 }: SearchResultCardProps) {
@@ -66,12 +64,13 @@ export default function SearchResultCard({
       });
   }, [book.imageLinks?.thumbnail, isbn]);
 
-  const handleClick = () => {
-    if (selectionMode) {
-      onToggleSelect(isbn);
-    } else {
-      onCardClick(book);
-    }
+  const handleCardClick = () => {
+    onCardClick(book);
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleSelect(isbn);
   };
 
   return (
@@ -79,27 +78,28 @@ export default function SearchResultCard({
       className={`relative bg-white rounded-lg border-2 shadow hover:shadow-md transition-all cursor-pointer overflow-hidden ${
         isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
       }`}
-      onClick={handleClick}
-      role={selectionMode ? "checkbox" : "button"}
-      aria-checked={selectionMode ? isSelected : undefined}
-      aria-label={selectionMode
-        ? `${isSelected ? 'Désélectionner' : 'Sélectionner'} ${book.title}`
-        : `Voir les détails de ${book.title}`
-      }
+      onClick={handleCardClick}
+      role="button"
+      aria-label={`Voir les détails de ${book.title}`}
     >
-      {/* Checkbox en mode sélection */}
-      {selectionMode && (
-        <div className="absolute top-2 left-2 z-10">
-          <div
-            className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-              isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
-            }`}
-            aria-hidden="true"
-          >
-            {isSelected && <CheckCircle size={16} weight="bold" className="text-white" />}
-          </div>
+      {/* Checkbox toujours visible */}
+      <button
+        onClick={handleCheckboxClick}
+        className="absolute top-2 left-2 z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+        type="button"
+        role="checkbox"
+        aria-checked={isSelected}
+        aria-label={`${isSelected ? 'Désélectionner' : 'Sélectionner'} ${book.title}`}
+      >
+        <div
+          className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+            isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+          }`}
+          aria-hidden="true"
+        >
+          {isSelected && <CheckCircle size={16} weight="bold" className="text-white" />}
         </div>
-      )}
+      </button>
 
       {/* Image */}
       <div className="aspect-[2/3] bg-gray-100 overflow-hidden relative">
