@@ -4981,3 +4981,15 @@ facturation Firebase. L'application reste volontairement sur le forfait Spark.
 - build de production : validé, 35 ressources préchargées pour environ 3,5 Mo ;
 - recette navigateur : accueil, ajout manuel déconnecté, information de
   compression et page de confidentialité validés sans erreur console.
+
+---
+
+## 2026-07-26 - Ajustements mobiles de la collection
+
+- header de la collection rendu responsive : le titre conserve son espace et
+  les actions d'export deviennent compactes sur mobile sans le recouvrir ;
+- navigation par bibliothèques transformée en panneau repliable ;
+- résumé permanent de la bibliothèque active et du nombre de livres ;
+- action explicite `Choisir` / `Réduire`, chevron animé et attributs ARIA ;
+- repli automatique après le choix d'une bibliothèque pour rendre de l'espace
+  à la collection.

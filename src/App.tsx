@@ -1073,6 +1073,7 @@ function App() {
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
     null,
   ); // null = tous les livres
+  const [showLibraryChoices, setShowLibraryChoices] = useState(false);
   const authModalRef = useFocusTrap<HTMLDivElement>(showAuthModal);
   const manualAddModalRef = useFocusTrap<HTMLDivElement>(showManualAdd);
   const collectionModalRef = useFocusTrap<HTMLDivElement>(showCollectionModal);
@@ -1109,6 +1110,7 @@ function App() {
   const closeCollectionModal = () => {
     setShowCollectionModal(false);
     setSelectedBook(null);
+    setShowLibraryChoices(false);
   };
 
   const closeBulkDeleteModal = () => setShowBulkDeleteModal(false);
@@ -2877,6 +2879,15 @@ function App() {
       )
     : baseFilteredBooks;
 
+  const activeLibrary = selectedLibraryView
+    ? userLibraries.find((library) => library.id === selectedLibraryView)
+    : null;
+  const activeLibraryBookCount = selectedLibraryView
+    ? collectionBooks.filter((book) =>
+        book.libraries?.includes(selectedLibraryView),
+      ).length
+    : collectionBooks.length;
+
   // Filtrage par recherche textuelle
   const displayedBooks = collectionSearchQuery.trim()
     ? libraryFilteredBooks.filter((book) => {
@@ -3476,22 +3487,20 @@ function App() {
             aria-labelledby="collection-modal-title"
           >
             {/* Header avec navigation */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-b p-4 sm:p-6">
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                   <img
                     src="/KodeksLogo.png"
                     alt="Kodeks"
-                    className="h-8 w-8 sm:h-10 sm:w-10"
+                    className="h-7 w-7 shrink-0 sm:h-10 sm:w-10"
                   />
                   <h2
                     id="collection-modal-title"
-                    className="text-2xl font-bold text-gray-900"
+                    className="min-w-0 whitespace-nowrap text-lg font-bold leading-tight text-gray-900 sm:text-2xl"
                   >
                     {/* <Books size={20} weight="bold" className="inline mr-2" /> */}
                     Ma Collection
                   </h2>
-                </div>
                 {/* {selectedBook && (
                   <button
                     onClick={() => setSelectedBook(null)}
@@ -3501,13 +3510,14 @@ function App() {
                   </button>
                 )} */}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                 {!selectedBook && collectionBooks.length > 0 && (
                   <div className="relative" data-export-menu>
                     <button
                       onClick={() => setShowExportMenu(!showExportMenu)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer"
+                      className="flex min-h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-md border border-green-200 bg-green-50 p-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-100 sm:gap-2 sm:px-3 sm:py-2"
                       title="Exporter en CSV"
+                      aria-label="Exporter la collection au format CSV"
                       aria-expanded={showExportMenu}
                       aria-controls="export-menu"
                       aria-haspopup="menu"
@@ -3517,7 +3527,7 @@ function App() {
                       <CaretDown
                         size={14}
                         weight="bold"
-                        className={`transition-transform ${
+                        className={`hidden transition-transform sm:block ${
                           showExportMenu ? "rotate-180" : ""
                         }`}
                         aria-hidden="true"
@@ -3596,8 +3606,9 @@ function App() {
                   <div className="relative" data-export-menu-pdf>
                     <button
                       onClick={() => setShowExportMenuPdf(!showExportMenuPdf)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+                      className="flex min-h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-md border border-blue-200 bg-blue-50 p-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 sm:gap-2 sm:px-3 sm:py-2"
                       title="Exporter en PDF"
+                      aria-label="Exporter la collection au format PDF"
                       aria-expanded={showExportMenuPdf}
                       aria-controls="export-menu-pdf"
                       aria-haspopup="menu"
@@ -3607,7 +3618,7 @@ function App() {
                       <CaretDown
                         size={14}
                         weight="bold"
-                        className={`transition-transform ${
+                        className={`hidden transition-transform sm:block ${
                           showExportMenuPdf ? "rotate-180" : ""
                         }`}
                       />
@@ -3690,7 +3701,7 @@ function App() {
                 )}
                 <button
                   onClick={closeCollectionModal}
-                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
+                  className="flex min-h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gray-100 p-2 text-gray-700 transition-all hover:bg-gray-200 hover:text-gray-900"
                   aria-label="Fermer la fenêtre de ma collection"
                   title="Fermer"
                 >
@@ -3701,21 +3712,53 @@ function App() {
 
             {/* Navigation par bibliothèques */}
             {!selectedBook && userLibraries.length > 0 && (
-              <div className="bg-gray-50 border-b px-4 py-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium text-gray-900 text-xs">
-                    <FolderOpen
-                      size={14}
-                      weight="regular"
-                      className="inline mr-1"
+              <div className="border-b bg-gray-50 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setShowLibraryChoices((isOpen) => !isOpen)}
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  aria-expanded={showLibraryChoices}
+                  aria-controls="collection-library-choices"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                      <FolderOpen size={18} weight="bold" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-gray-900">
+                        Bibliothèques
+                      </span>
+                      <span className="block truncate text-xs text-gray-600">
+                        {activeLibrary?.name || "Tous les livres"} ·{" "}
+                        {activeLibraryBookCount} livre
+                        {activeLibraryBookCount > 1 ? "s" : ""}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-700">
+                    {showLibraryChoices ? "Réduire" : "Choisir"}
+                    <CaretDown
+                      size={16}
+                      weight="bold"
+                      className={`transition-transform duration-200 ${
+                        showLibraryChoices ? "rotate-180" : ""
+                      }`}
                       aria-hidden="true"
                     />
-                    Bibliothèques :
                   </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
+                </button>
+
+                {showLibraryChoices && (
+                  <div
+                    id="collection-library-choices"
+                    className="mt-3 flex flex-wrap gap-1.5 border-t border-gray-200 pt-3"
+                  >
                   <button
-                    onClick={() => setSelectedLibraryView(null)}
+                    onClick={() => {
+                      setSelectedLibraryView(null);
+                      setShowLibraryChoices(false);
+                    }}
+                    aria-pressed={selectedLibraryView === null}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                       selectedLibraryView === null
                         ? "bg-blue-600 text-white cursor-pointer"
@@ -3731,7 +3774,11 @@ function App() {
                     return (
                       <button
                         key={library.id}
-                        onClick={() => setSelectedLibraryView(library.id)}
+                        onClick={() => {
+                          setSelectedLibraryView(library.id);
+                          setShowLibraryChoices(false);
+                        }}
+                        aria-pressed={selectedLibraryView === library.id}
                         className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 border ${
                           selectedLibraryView === library.id
                             ? "text-white border-transparent cursor-pointer"
@@ -3752,7 +3799,8 @@ function App() {
                       </button>
                     );
                   })}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
