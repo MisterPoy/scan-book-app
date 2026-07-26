@@ -13,6 +13,7 @@ interface GoogleBook {
     thumbnail?: string;
   };
   categories?: string[];
+  language?: string;
 }
 
 interface SearchResultCardProps {
@@ -40,8 +41,8 @@ export default function SearchResultCard({
   useEffect(() => {
     const thumbnailUrl = book.imageLinks?.thumbnail;
     if (!thumbnailUrl) {
-      setCoverSrc("/img/default-cover.png");
-      setImageStatus('loaded');
+      setCoverSrc("");
+      setImageStatus('error');
       return;
     }
 
@@ -80,7 +81,14 @@ export default function SearchResultCard({
       }`}
       onClick={handleCardClick}
       role="button"
+      tabIndex={0}
       aria-label={`Voir les détails de ${book.title}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleCardClick();
+        }
+      }}
     >
       {/* Checkbox toujours visible */}
       <button
@@ -102,21 +110,26 @@ export default function SearchResultCard({
       </button>
 
       {/* Image */}
-      <div className="aspect-[2/3] bg-gray-100 overflow-hidden relative">
+      <div className="h-52 bg-gray-100 overflow-hidden relative sm:h-56">
         {imageStatus === 'loading' && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <img
-          src={coverSrc}
-          alt={book.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {imageStatus !== 'error' && (
+          <img
+            src={coverSrc}
+            alt={`Couverture de ${book.title}`}
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+        )}
         {imageStatus === 'error' && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
             <Book size={48} weight="regular" className="text-gray-400" />
+            <span className="text-xs font-medium text-gray-500">
+              Couverture indisponible
+            </span>
           </div>
         )}
       </div>
@@ -132,6 +145,7 @@ export default function SearchResultCard({
         {book.publishedDate && (
           <p className="text-xs text-gray-500">
             {book.publishedDate.substring(0, 4)}
+            {book.language && ` · ${book.language.toUpperCase()}`}
           </p>
         )}
         {isInCollection && (

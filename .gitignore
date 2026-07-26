@@ -40,3 +40,4 @@ JOURNAL_*.md
 journal_*.md
 notes_dev.md
 .local/
+.codex-remote-attachments/

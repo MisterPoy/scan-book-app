@@ -55,7 +55,8 @@ export default function ScanModeSelector({ isOpen, onClose, onSelectMode }: Scan
           Choisir le mode de scan
         </h2>
         <p className="text-gray-600 mb-6 text-sm">
-          Sélectionnez le mode de scan adapté à vos besoins
+          Sélectionnez le mode adapté à vos besoins. Le navigateur demandera
+          l’accès à la caméra après votre choix ; aucune image n’est enregistrée.
         </p>
 
         <div className="space-y-4">

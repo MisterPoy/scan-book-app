@@ -1,8 +1,10 @@
 import { ArrowLeft, Buildings, Envelope, Globe } from 'phosphor-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function MentionsLegales() {
-  const navigate = useNavigate();
+  const navigateBack = () => {
+    if (window.history.length > 1) window.history.back();
+    else window.location.assign('/');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -10,7 +12,7 @@ export default function MentionsLegales() {
         {/* Header avec bouton retour */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(-1)}
+            onClick={navigateBack}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 cursor-pointer"
           >
             <ArrowLeft size={20} weight="bold" />

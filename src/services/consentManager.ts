@@ -98,6 +98,9 @@ export const getLatestConsent = async (consentType: ConsentType): Promise<Consen
 export const saveConsentsToLocalStorage = (consents: UserConsents): void => {
   try {
     localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(consents));
+    window.dispatchEvent(new CustomEvent('kodeks-consent-changed', {
+      detail: consents,
+    }));
   } catch (error) {
     console.error('Erreur sauvegarde consentements localStorage:', error);
   }

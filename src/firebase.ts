@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 
 
 
@@ -54,6 +55,7 @@ if (typeof window !== 'undefined') {
   });
 }
 export const storage = getStorage(app);
+export const functions = getFunctions(app, 'us-central1');
 
 // Fonctions d'authentification
 export const registerWithEmail = async (email: string, password: string, displayName: string) => {

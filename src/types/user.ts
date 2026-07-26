@@ -18,7 +18,6 @@ export interface UserData {
     email: string | null;
   }[];
   disabled: boolean;
-  isAdmin?: boolean;
 }
 
 export interface UserStats {

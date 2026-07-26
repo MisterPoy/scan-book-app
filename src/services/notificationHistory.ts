@@ -8,6 +8,8 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 import type {
   NotificationHistory,
   NotificationStatus,
@@ -170,22 +172,8 @@ export const getAnnouncementNotificationHistory = async (
 
 // Nettoyer l'ancien historique (garder seulement les 30 derniers jours)
 export const cleanupOldNotificationHistory = async (): Promise<void> => {
-  try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const cutoffDate = thirtyDaysAgo.toISOString();
-
-    query(
-      collection(db, NOTIFICATION_HISTORY_COLLECTION),
-      where('sentAt', '<', cutoffDate),
-      limit(100) // Traiter par batch pour éviter les timeout
-    );
-
-    // Note: Firebase ne permet pas les suppressions en batch facilement
-    // Dans un vrai projet, on utiliserait Cloud Functions pour cela
-  } catch (error) {
-    console.error('Erreur nettoyage historique:', error);
-  }
+  const cleanupHistory = httpsCallable(functions, 'cleanupNotificationHistory');
+  await cleanupHistory();
 };
 
 // Obtenir des statistiques détaillées sur les notifications

@@ -44,10 +44,19 @@ import {
   CircleNotch,
   Plus,
 } from "phosphor-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
+const AnnouncementManager = lazy(
+  () => import("./components/AnnouncementManager"),
+);
+const NotificationSettings = lazy(
+  () => import("./components/NotificationSettings"),
+);
+const UserManagement = lazy(() =>
+  import("./components/UserManagement").then((module) => ({
+    default: module.UserManagement,
+  })),
+);
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
 import PostScanConfirm from "./components/PostScanConfirm";
@@ -56,10 +65,7 @@ import FiltersPanel, { type FilterState } from "./components/FiltersPanel";
 import LibraryManager from "./components/LibraryManager";
 import LibrarySelector from "./components/LibrarySelector";
 import SearchResultCard from "./components/SearchResultCard";
-import AnnouncementManager from "./components/AnnouncementManager";
 import AnnouncementDisplay from "./components/AnnouncementDisplay";
-import NotificationSettings from "./components/NotificationSettings";
-import { UserManagement } from "./components/UserManagement";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import BulkAddConfirmModal from "./components/BulkAddConfirmModal";
 import ScrollToTop from "./components/ScrollToTop";
@@ -71,13 +77,14 @@ import ScanModeSelector from "./components/ScanModeSelector";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
-import { auth, db } from "./firebase";
+import { auth, db, functions } from "./firebase";
 import {
   onAuthStateChanged,
   getRedirectResult,
-  deleteUser,
+  getIdTokenResult,
   type User,
 } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 import {
   doc,
   setDoc,
@@ -85,7 +92,6 @@ import {
   deleteDoc,
   updateDoc,
   collection,
-  getDoc,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { resizeImage } from "./firebase";
@@ -96,6 +102,9 @@ import {
 import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
+import { deduplicateAndRankBooks } from "./utils/searchRanking";
+import InlineNotice from "./components/InlineNotice";
+import ConfirmDialog from "./components/ConfirmDialog";
 
 interface CollectionBook {
   isbn: string;
@@ -538,6 +547,7 @@ function CollectionBookCard({
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   useEffect(() => {
     // Si image personnalisée, l'utiliser en priorité
@@ -594,15 +604,16 @@ function CollectionBookCard({
 
     // Validation du fichier
     if (!file.type.startsWith("image/")) {
-      alert("Veuillez sélectionner un fichier image");
+      setCoverError("Sélectionnez un fichier image.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       // 5MB max
-      alert("Le fichier doit faire moins de 5MB");
+      setCoverError("Le fichier doit faire moins de 5 Mo.");
       return;
     }
 
+    setCoverError(null);
     setUploadingCover(true);
     try {
       // Redimensionner et convertir en base64 (gratuit!)
@@ -610,7 +621,7 @@ function CollectionBookCard({
       onUpdateCover(base64Image);
     } catch (error) {
       console.error("Erreur traitement image:", error);
-      alert("Erreur lors du traitement de l'image");
+      setCoverError("L'image n'a pas pu être traitée.");
     } finally {
       setUploadingCover(false);
     }
@@ -624,6 +635,7 @@ function CollectionBookCard({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+      <InlineNotice message={coverError} />
       <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
         <img
           src={coverSrc}
@@ -973,6 +985,7 @@ interface GoogleBook {
   tags?: string[];
   categories?: string[];
   source?: string;
+  language?: string;
 }
 
 const EMPTY_MANUAL_BOOK = {
@@ -989,6 +1002,7 @@ function App() {
   const [book, setBook] = useState<GoogleBook | null>(null);
   const [scanning, setScanning] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [authStateResolved, setAuthStateResolved] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [collectionBooks, setCollectionBooks] = useState<CollectionBook[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1013,15 +1027,23 @@ function App() {
     type: "success" | "info";
   } | null>(null);
   const [selectedBook, setSelectedBook] = useState<CollectionBook | null>(null);
+  const [bookPendingRemoval, setBookPendingRemoval] =
+    useState<CollectionBook | null>(null);
   const [searchResults, setSearchResults] = useState<GoogleBook[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchScrollPositionRef = useRef(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const resultsPerPage = 10;
   const collectionResultsPerPage = 20;
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualBook, setManualBook] = useState({ ...EMPTY_MANUAL_BOOK });
+  const [manualFormError, setManualFormError] = useState<string | null>(null);
+  const [resumeManualAddAfterAuth, setResumeManualAddAfterAuth] =
+    useState(false);
   const [selectedSearchResults, setSelectedSearchResults] = useState<string[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [bookToEdit, setBookToEdit] = useState<CollectionBook | null>(null);
@@ -1045,6 +1067,11 @@ function App() {
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] =
     useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] =
+    useState(false);
+  const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
+    useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isOffline, setIsOffline] = useState(!getIsOnline());
   const isOfflineRef = useRef(isOffline);
   const [selectedLibraryView, setSelectedLibraryView] = useState<string | null>(
@@ -1057,6 +1084,9 @@ function App() {
   const settingsModalRef = useFocusTrap<HTMLDivElement>(
     showNotificationSettings,
   );
+  const deleteAccountModalRef = useFocusTrap<HTMLDivElement>(
+    showDeleteAccountConfirm,
+  );
   const userManagementModalRef =
     useFocusTrap<HTMLDivElement>(showUserManagement);
 
@@ -1065,6 +1095,19 @@ function App() {
   const closeManualAdd = () => {
     setShowManualAdd(false);
     setManualBook({ ...EMPTY_MANUAL_BOOK });
+    setManualFormError(null);
+    setResumeManualAddAfterAuth(false);
+  };
+
+  const openManualAdd = () => {
+    setManualFormError(null);
+    setShowManualAdd(true);
+  };
+
+  const authenticateBeforeManualAdd = () => {
+    setResumeManualAddAfterAuth(true);
+    setShowManualAdd(false);
+    setShowAuthModal(true);
   };
 
   const closeCollectionModal = () => {
@@ -1075,6 +1118,12 @@ function App() {
   const closeBulkDeleteModal = () => setShowBulkDeleteModal(false);
 
   const closeSettingsModal = () => setShowNotificationSettings(false);
+
+  const closeDeleteAccountModal = () => {
+    if (isDeletingAccount) return;
+    setShowDeleteAccountConfirm(false);
+    setDeleteAccountConfirmation("");
+  };
 
   const closeUserManagementModal = () => setShowUserManagement(false);
 
@@ -1159,12 +1208,53 @@ function App() {
     showUserManagement,
     closeUserManagementModal,
   );
+  useModalCloseRequest(
+    deleteAccountModalRef,
+    showDeleteAccountConfirm,
+    closeDeleteAccountModal,
+  );
 
   // États pour le mode multi-scan
   const [scanMode, setScanMode] = useState<"single" | "batch">("single");
   const [bulkScannedIsbns, setBulkScannedIsbns] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
   const [showScanModeModal, setShowScanModeModal] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const action = url.searchParams.get("action");
+    const view = url.searchParams.get("view");
+
+    if (action === "scan") {
+      setShowScanModeModal(true);
+      url.searchParams.delete("action");
+      window.history.replaceState(window.history.state, "", url);
+      return;
+    }
+
+    if (view === "collection" && authStateResolved) {
+      if (user) {
+        setShowCollectionModal(true);
+        url.searchParams.delete("view");
+        window.history.replaceState(window.history.state, "", url);
+      } else {
+        setShowAuthModal(true);
+      }
+    }
+  }, [authStateResolved, user]);
+
+  useEffect(() => {
+    const handleHistoryNavigation = () => {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("book") && searchResults.length > 0) {
+        setBook(null);
+        setShowSearchResults(true);
+      }
+    };
+
+    window.addEventListener("popstate", handleHistoryNavigation);
+    return () => window.removeEventListener("popstate", handleHistoryNavigation);
+  }, [searchResults.length]);
 
   // État pour le menu d'export CSV
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -1288,6 +1378,7 @@ function App() {
 
   const handleTextSearch = async (query: string) => {
     if (!query.trim()) return;
+    setLastSearchQuery(query.trim());
 
     if (!requireOnline("la recherche en ligne")) {
       setSearchResults([]);
@@ -1295,6 +1386,7 @@ function App() {
     }
 
     setIsSearching(true);
+    setSearchError(null);
     setCurrentPage(1); // Reset à la première page
     let allBooks: GoogleBook[] = [];
 
@@ -1309,6 +1401,7 @@ function App() {
       const googleBooks: GoogleBook[] =
         googleData.items?.map(
           (item: {
+            id: string;
             volumeInfo: GoogleBook & {
               industryIdentifiers?: Array<{ type: string; identifier: string }>;
             };
@@ -1323,7 +1416,7 @@ function App() {
               isbn:
                 item.volumeInfo?.industryIdentifiers?.find(
                   (id) => id.type === "ISBN_13" || id.type === "ISBN_10",
-                )?.identifier || `temp_google_${Date.now()}_${Math.random()}`,
+                )?.identifier || `google_${item.id}`,
               source: "Google Books",
             };
           },
@@ -1347,6 +1440,8 @@ function App() {
             publisher?: string[];
             isbn?: string[];
             cover_i?: number;
+            key: string;
+            language?: string[];
           }
           const openLibBooks: GoogleBook[] =
             openLibData.docs
@@ -1357,13 +1452,14 @@ function App() {
                 publisher: doc.publisher?.[0],
                 isbn:
                   doc.isbn?.[0] ||
-                  `temp_openlib_${Date.now()}_${Math.random()}`,
+                  `openlib_${doc.key.replace(/\//g, "_")}`,
                 imageLinks: doc.cover_i
                   ? {
                       thumbnail: `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`,
                     }
                   : undefined,
                 source: "Open Library",
+                language: doc.language?.[0],
               }))
               .filter((book: GoogleBook) => book.title) || [];
 
@@ -1384,11 +1480,15 @@ function App() {
         }
       }
 
-      setSearchResults(allBooks); // Garder tous les résultats pour la pagination
+      setSearchResults(deduplicateAndRankBooks(allBooks, query));
       setShowSearchResults(true); // Afficher la section des résultats
     } catch (err) {
       console.error("Erreur lors de la recherche par texte :", err);
       setSearchResults([]);
+      setShowSearchResults(true);
+      setSearchError(
+        "La recherche en ligne n'a pas abouti. Vérifiez votre connexion puis réessayez.",
+      );
     } finally {
       setIsSearching(false);
     }
@@ -1486,9 +1586,19 @@ function App() {
 
   const handleManualBookSubmit = () => {
     if (!manualBook.title.trim()) {
-      alert("Le titre est obligatoire");
+      setManualFormError("Indiquez le titre du livre.");
+      document.getElementById("manual-title")?.focus();
       return;
     }
+
+    if (!user) {
+      setManualFormError(
+        "Connectez-vous pour enregistrer ce livre. Votre saisie sera conservée.",
+      );
+      return;
+    }
+
+    setManualFormError(null);
 
     const book = {
       title: manualBook.title,
@@ -1501,7 +1611,7 @@ function App() {
       pageCount: manualBook.pageCount
         ? parseInt(manualBook.pageCount)
         : undefined,
-      isbn: `manual_${Date.now()}_${Math.random()}`,
+      isbn: `manual_${crypto.randomUUID()}`,
       customCoverUrl: manualBook.customCoverUrl || undefined,
     };
 
@@ -1525,20 +1635,21 @@ function App() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Veuillez sélectionner un fichier image");
+      setManualFormError("Sélectionnez un fichier image.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("Le fichier doit faire moins de 5MB");
+      setManualFormError("Le fichier doit faire moins de 5 Mo.");
       return;
     }
 
     try {
+      setManualFormError(null);
       const base64Image = await resizeImage(file, 400, 0.8);
       setManualBook((prev) => ({ ...prev, customCoverUrl: base64Image }));
     } catch (error) {
       console.error("Erreur traitement image:", error);
-      alert("Erreur lors du traitement de l'image");
+      setManualFormError("L'image n'a pas pu être traitée.");
     }
   };
 
@@ -1770,34 +1881,9 @@ function App() {
       return;
     }
 
-    // UID administrateur depuis les variables d'environnement
-    const ADMIN_UID = import.meta.env.VITE_ADMIN_UID;
-
     try {
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (user.uid === ADMIN_UID) {
-        // C'est Greg - s'assurer qu'il a le statut admin
-        if (!userDoc.exists() || !userDoc.data()?.isAdmin) {
-          await setDoc(
-            userRef,
-            {
-              email: "dreegoald@gmail.com",
-              isAdmin: true,
-              displayName: user.displayName,
-              lastLogin: new Date().toISOString(),
-            },
-            { merge: true },
-          );
-        }
-        setIsAdmin(true);
-      } else {
-        // Autre utilisateur - vérifier le statut admin existant
-        const adminStatus =
-          userDoc.exists() && userDoc.data()?.isAdmin === true;
-        setIsAdmin(adminStatus);
-      }
+      const token = await getIdTokenResult(user, true);
+      setIsAdmin(token.claims.admin === true);
     } catch (error) {
       console.error("Erreur vérification admin:", error);
       setIsAdmin(false);
@@ -1847,6 +1933,7 @@ function App() {
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
+      setAuthStateResolved(true);
       if (u) {
         try {
           await syncUserProfile(u);
@@ -1862,15 +1949,25 @@ function App() {
           type: "success",
         });
         setTimeout(() => setAuthMessage(null), 3000);
+        if (resumeManualAddAfterAuth) {
+          setShowAuthModal(false);
+          setShowManualAdd(true);
+          setResumeManualAddAfterAuth(false);
+        }
       } else {
-        setIsAdmin(false); // Réinitialiser le statut admin à la déconnexion
-        setAuthMessage({ text: "Vous êtes déconnecté", type: "info" });
-        setTimeout(() => setAuthMessage(null), 3000);
+        setIsAdmin(false);
+        setCollectionBooks([]);
+        setUserLibraries([]);
       }
     });
 
     return () => unsubscribe();
-  }, [checkAndSetupAdmin, fetchCollection, fetchUserLibraries]);
+  }, [
+    checkAndSetupAdmin,
+    fetchCollection,
+    fetchUserLibraries,
+    resumeManualAddAfterAuth,
+  ]);
 
   const removeFromCollection = async (isbn: string) => {
     if (!user) return;
@@ -2398,6 +2495,10 @@ function App() {
     }
 
     try {
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
       // Créer le document PDF en mode paysage (landscape) pour avoir plus d'espace
       const doc = new jsPDF({
         orientation: "landscape",
@@ -2653,9 +2754,23 @@ function App() {
   ) => {
     if (isInCollection) return;
 
+    searchScrollPositionRef.current = window.scrollY;
+    const url = new URL(window.location.href);
+    url.searchParams.set("book", book.isbn || book.title);
+    window.history.pushState({ view: "book" }, "", url);
     setBook(book);
     setShowSearchResults(false);
-    setSearchResults([]);
+  };
+
+  const returnToSearchResults = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("book");
+    window.history.replaceState(window.history.state, "", url);
+    setBook(null);
+    setShowSearchResults(true);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: searchScrollPositionRef.current, behavior: "auto" });
+    });
   };
 
   const handleAddSelectedBooks = async () => {
@@ -2721,62 +2836,36 @@ function App() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!user) return;
-
-    const confirmDelete = window.confirm(
-      "⚠️ ATTENTION : Cette action est irréversible.\n\n" +
-        "Toutes vos données seront définitivement supprimées :\n" +
-        "• Votre collection de livres\n" +
-        "• Vos bibliothèques personnalisées\n" +
-        "• Vos notes et paramètres\n" +
-        "• Votre compte utilisateur\n\n" +
-        "Êtes-vous absolument sûr de vouloir continuer ?",
-    );
-
-    if (!confirmDelete) return;
-
-    const confirmDeleteFinal = window.confirm(
-      "Dernière confirmation : Voulez-vous vraiment supprimer définitivement votre compte ?",
-    );
-
-    if (!confirmDeleteFinal) return;
+    if (!user || deleteAccountConfirmation !== "SUPPRIMER") return;
 
     if (!requireOnline("la suppression du compte")) {
       return;
     }
 
     try {
-      // 1. Supprimer tous les livres de la collection
-      const collectionRef = collection(db, `users/${user.uid}/collection`);
-      const booksSnapshot = await getDocs(collectionRef);
-      const deletePromises = booksSnapshot.docs.map((doc) =>
-        deleteDoc(doc.ref),
-      );
-      await Promise.all(deletePromises);
+      setIsDeletingAccount(true);
+      const deleteOwnAccount = httpsCallable(functions, "deleteOwnAccount");
+      await deleteOwnAccount();
 
-      // 2. Supprimer le document utilisateur principal si existe
-      const userDocRef = doc(db, `users/${user.uid}`);
-      await deleteDoc(userDocRef).catch(() => {
-        // Document peut ne pas exister, c'est OK
-      });
-
-      // 3. Supprimer le compte Firebase Auth
-      await deleteUser(user);
-
-      // 4. Afficher message de confirmation
       setAddMessage({
         text: "Votre compte a été supprimé avec succès",
         type: "success",
       });
-
-      // 5. Fermer la modale
+      setShowDeleteAccountConfirm(false);
+      setDeleteAccountConfirmation("");
       setShowNotificationSettings(false);
     } catch (error) {
       console.error("Erreur lors de la suppression du compte:", error);
+      const errorCode = (error as { code?: string }).code;
       setAddMessage({
-        text: "Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.",
+        text:
+          errorCode === "functions/failed-precondition"
+            ? "Pour votre sécurité, reconnectez-vous avant de supprimer votre compte."
+            : "La suppression n'a pas abouti. Réessayez ou contactez le support.",
         type: "error",
       });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -2993,7 +3082,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+      <main className="mx-auto max-w-7xl px-2 py-4 sm:px-4 sm:py-8 lg:px-8">
         {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
@@ -3044,7 +3133,7 @@ function App() {
 
                 {/* Bouton Ajouter manuellement */}
                 <button
-                  onClick={() => setShowManualAdd(true)}
+                  onClick={openManualAdd}
                   disabled={isOffline}
                   className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-medium shadow-md hover:shadow-lg flex items-center gap-2.5"
                   aria-label="Ajouter un livre manuellement sans scanner ni rechercher"
@@ -3113,6 +3202,21 @@ function App() {
                 <CircleNotch size={48} weight="bold" className="text-blue-600 animate-spin mb-4" aria-hidden="true" />
                 <p className="text-gray-900 font-medium text-lg">Recherche en cours...</p>
                 <p className="text-gray-600 text-sm mt-2">Cela peut prendre quelques instants</p>
+              </div>
+            ) : searchError ? (
+              <div className="py-12 text-center" role="alert">
+                <Warning size={48} className="mx-auto mb-4 text-red-500" />
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                  Recherche indisponible
+                </h3>
+                <p className="text-gray-600">{searchError}</p>
+                <button
+                  type="button"
+                  onClick={() => handleTextSearch(lastSearchQuery)}
+                  className="mt-4 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+                >
+                  Réessayer
+                </button>
               </div>
             ) : searchResults.length === 0 ? (
               <div className="text-center py-12">
@@ -3189,7 +3293,7 @@ function App() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                   {currentResults.map((searchBook, index) => {
                     const isbn = searchBook.isbn || "";
                     const isInCollection = isbn ? existingIsbnsSet.has(isbn) : false;
@@ -3275,6 +3379,15 @@ function App() {
             data-book-preview
             className="bg-white rounded-xl shadow-md border p-4 sm:p-8 mb-6 sm:mb-8"
           >
+            {searchResults.length > 0 && (
+              <button
+                type="button"
+                onClick={returnToSearchResults}
+                className="mb-6 inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                ← Retour aux résultats
+              </button>
+            )}
             <div className="text-center">
               <BookCard
                 title={book.title}
@@ -3670,15 +3783,7 @@ function App() {
                 <div className="max-w-2xl mx-auto">
                   <CollectionBookCard
                     book={selectedBook}
-                    onRemove={() => {
-                      const confirmDelete = window.confirm(
-                        `Êtes-vous sûr de vouloir supprimer "${selectedBook.title}" de votre collection ?\n\nCette action est irréversible.`,
-                      );
-                      if (confirmDelete) {
-                        removeFromCollection(selectedBook.isbn);
-                        setSelectedBook(null);
-                      }
-                    }}
+                    onRemove={() => setBookPendingRemoval(selectedBook)}
                     onToggleRead={() => {
                       toggleReadStatus(selectedBook.isbn);
                       // Mettre à jour selectedBook avec le nouveau statut
@@ -4042,6 +4147,22 @@ function App() {
             </div>
 
             <div className="p-6">
+              {!user && (
+                <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                  <p className="font-semibold">Connexion nécessaire pour enregistrer</p>
+                  <p className="mt-1">
+                    Vous pouvez préparer la fiche maintenant. Votre saisie sera
+                    conservée pendant la connexion.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={authenticateBeforeManualAdd}
+                    className="mt-3 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+                  >
+                    Se connecter
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Colonne gauche - Informations */}
                 <div className="space-y-4">
@@ -4064,7 +4185,18 @@ function App() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="Titre du livre"
+                      aria-invalid={manualFormError ? "true" : undefined}
+                      aria-describedby={manualFormError ? "manual-title-error" : undefined}
                     />
+                    {manualFormError && (
+                      <p
+                        id="manual-title-error"
+                        role="alert"
+                        className="mt-2 text-sm font-medium text-red-700"
+                      >
+                        {manualFormError}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -4241,10 +4373,10 @@ function App() {
                   Annuler
                 </button>
                 <button
-                  onClick={handleManualBookSubmit}
+                  onClick={user ? handleManualBookSubmit : authenticateBeforeManualAdd}
                   className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors cursor-pointer"
                 >
-                  Créer le livre
+                  {user ? "Créer le livre" : "Se connecter pour continuer"}
                 </button>
               </div>
             </div>
@@ -4278,11 +4410,15 @@ function App() {
       />
 
       {/* Announcement Manager Modal */}
-      <AnnouncementManager
-        isOpen={showAnnouncementManager}
-        onClose={() => setShowAnnouncementManager(false)}
-        currentUser={user ? { uid: user.uid, role: "admin" } : undefined}
-      />
+      {showAnnouncementManager && (
+        <Suspense fallback={null}>
+          <AnnouncementManager
+            isOpen
+            onClose={() => setShowAnnouncementManager(false)}
+            currentUser={user ? { uid: user.uid, role: "admin" } : undefined}
+          />
+        </Suspense>
+      )}
 
       {/* User Management Modal */}
       {showUserManagement && (
@@ -4309,7 +4445,11 @@ function App() {
               <X size={24} weight="bold" aria-hidden="true" />
             </button>
           </div>
-          <UserManagement />
+          <Suspense
+            fallback={<p className="p-6 text-gray-600">Chargement…</p>}
+          >
+            <UserManagement />
+          </Suspense>
         </div>
       )}
 
@@ -4538,11 +4678,13 @@ function App() {
                 <Bell size={20} weight="bold" />
                 Notifications
               </h3>
-              <NotificationSettings
-                userId={user?.uid || null}
-                userName={user?.displayName}
-                isAdmin={isAdmin}
-              />
+              <Suspense fallback={<p className="text-gray-600">Chargement…</p>}>
+                <NotificationSettings
+                  userId={user?.uid || null}
+                  userName={user?.displayName}
+                  isAdmin={isAdmin}
+                />
+              </Suspense>
             </div>
 
             {/* Gestion du compte */}
@@ -4561,7 +4703,7 @@ function App() {
                   bibliothèques, notes) seront définitivement supprimées.
                 </p>
                 <button
-                  onClick={handleDeleteAccount}
+                  onClick={() => setShowDeleteAccountConfirm(true)}
                   className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
                 >
                   <Trash size={18} weight="bold" />
@@ -4572,6 +4714,83 @@ function App() {
           </div>
         </div>
       )}
+
+      {showDeleteAccountConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+          <div
+            ref={deleteAccountModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+          >
+            <h2 id="delete-account-title" className="text-xl font-bold text-red-900">
+              Supprimer définitivement votre compte ?
+            </h2>
+            <p className="mt-3 text-sm text-gray-700">
+              Vos livres, bibliothèques, couvertures, consentements,
+              notifications et données de compte seront supprimés. Cette action
+              est irréversible.
+            </p>
+            <label
+              htmlFor="delete-account-confirmation"
+              className="mt-4 block text-sm font-medium text-gray-900"
+            >
+              Saisissez <strong>SUPPRIMER</strong> pour confirmer
+            </label>
+            <input
+              id="delete-account-confirmation"
+              value={deleteAccountConfirmation}
+              onChange={(event) =>
+                setDeleteAccountConfirmation(event.target.value)
+              }
+              autoComplete="off"
+              className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200"
+            />
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeDeleteAccountModal}
+                disabled={isDeletingAccount}
+                className="rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={
+                  deleteAccountConfirmation !== "SUPPRIMER" ||
+                  isDeletingAccount
+                }
+                className="rounded-md bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeletingAccount
+                  ? "Suppression en cours…"
+                  : "Supprimer définitivement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={bookPendingRemoval !== null}
+        title="Retirer ce livre de la collection ?"
+        description={
+          bookPendingRemoval
+            ? `« ${bookPendingRemoval.title} » sera retiré de votre collection.`
+            : ""
+        }
+        confirmLabel="Retirer le livre"
+        onCancel={() => setBookPendingRemoval(null)}
+        onConfirm={async () => {
+          if (!bookPendingRemoval) return;
+          await removeFromCollection(bookPendingRemoval.isbn);
+          setSelectedBook(null);
+          setBookPendingRemoval(null);
+        }}
+      />
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />

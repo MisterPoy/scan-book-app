@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Clock, Plus, Trash, Calendar, Bell, Play, Pause, X } from 'phosphor-react';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
+import InlineNotice from './InlineNotice';
+import ConfirmDialog from './ConfirmDialog';
 
 interface ScheduledNotification {
   id?: string;
@@ -24,6 +26,9 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
   const [notifications, setNotifications] = useState<ScheduledNotification[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [notificationPendingDeletion, setNotificationPendingDeletion] =
+    useState<ScheduledNotification | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -53,6 +58,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
       setNotifications(notifs);
     } catch (error) {
       console.error('Erreur chargement notifications programmées:', error);
+      setNotice("Les notifications programmées n'ont pas pu être chargées.");
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
       await loadScheduledNotifications();
     } catch (error) {
       console.error('Erreur création notification programmée:', error);
+      setNotice("La notification n'a pas pu être programmée.");
     } finally {
       setLoading(false);
     }
@@ -123,17 +130,18 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
       await loadScheduledNotifications();
     } catch (error) {
       console.error('Erreur toggle notification:', error);
+      setNotice("Le statut n'a pas pu être modifié.");
     }
   };
 
   const deleteNotification = async (id: string) => {
-    if (!confirm('Supprimer cette notification programmée ?')) return;
-
     try {
       await deleteDoc(doc(db, 'scheduled_notifications', id));
+      setNotificationPendingDeletion(null);
       await loadScheduledNotifications();
     } catch (error) {
       console.error('Erreur suppression notification:', error);
+      setNotice("La notification programmée n'a pas pu être supprimée.");
     }
   };
 
@@ -154,6 +162,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
 
   return (
     <div className="space-y-6">
+      <InlineNotice message={notice} />
       {/* Header avec bouton créer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -371,7 +380,7 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
                   )}
 
                   <button
-                    onClick={() => deleteNotification(notification.id!)}
+                    onClick={() => setNotificationPendingDeletion(notification)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                     title="Supprimer"
                     aria-label="Supprimer la notification"
@@ -395,6 +404,22 @@ export default function ScheduledNotifications({ userId, userRole }: ScheduledNo
           <div>• Les notifications expirées sont conservées pour historique</div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={notificationPendingDeletion !== null}
+        title="Supprimer cette notification programmée ?"
+        description={
+          notificationPendingDeletion
+            ? `La notification « ${notificationPendingDeletion.title} » sera supprimée.`
+            : ''
+        }
+        confirmLabel="Supprimer"
+        onCancel={() => setNotificationPendingDeletion(null)}
+        onConfirm={() => {
+          if (notificationPendingDeletion?.id) {
+            return deleteNotification(notificationPendingDeletion.id);
+          }
+        }}
+      />
     </div>
   );
 }

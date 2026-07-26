@@ -4879,3 +4879,67 @@ Suite aux retours utilisateurs, plusieurs problèmes UX ont été identifiés :
 ### 🔧 Fichiers Modifiés
 - `src/components/ISBNScanner.tsx` - Feedback universel + zone responsive
 - `src/utils/bookApi.ts` - Correction bug batch writeBatch
+
+---
+
+## 2026-07-26 - Mise en œuvre du backlog post-audit
+
+### Sécurité et données
+
+- remplacement des droits administrateur modifiables en base par des Custom
+  Claims Firebase Auth ;
+- règles Firestore refusées par défaut et isolation des données par propriétaire ;
+- ajout de règles Storage pour les couvertures (propriétaire, image, 5 Mo maximum) ;
+- suppression complète du compte déplacée dans une Cloud Function avec contrôle
+  d'authentification récente ;
+- durcissement des CSP Vercel et Netlify ;
+- ajout d'un modèle `.env.example` et retrait prévu du `.env` suivi par Git ;
+- ajout de tests d'autorisation Firestore et Storage sur émulateurs.
+
+### Notifications et backend
+
+- envoi FCM réel pour les annonces, tests et relances ;
+- ciblage sécurisé des utilisateurs et administrateurs ;
+- traitement transactionnel des notifications planifiées et gestion de la
+  récurrence ;
+- nettoyage automatisé de l'historique ;
+- migration des fonctions vers Node.js 22 et verrouillage de leurs dépendances.
+
+### UX et produit
+
+- classement et déduplication des résultats, préférence française et priorité
+  aux ISBN exacts ;
+- grille de résultats plus dense, cartes moins hautes et meilleure gestion des
+  couvertures absentes ;
+- conservation des résultats et de la position lors de l'ouverture d'un détail ;
+- ajout d'un bouton explicite de retour aux résultats ;
+- avertissement de connexion avant l'ajout manuel avec conservation du brouillon ;
+- suppression des alertes navigateur au profit de retours intégrés et de
+  dialogues accessibles ;
+- distinction entre état vide, erreur réseau et action de nouvelle tentative ;
+- saisie ISBN manuelle proposée si la caméra est indisponible ;
+- consentement explicite avant le chargement de Vercel Analytics ;
+- suppression de compte sécurisée par la saisie du mot `SUPPRIMER`.
+
+### PWA, performance et qualité
+
+- injection contrôlée de la configuration Firebase dans le service worker ;
+- validation du build lorsque les variables requises sont absentes ;
+- réduction du précache aux ressources utiles et suppression des assets publics
+  dupliqués ou obsolètes ;
+- chargement différé des écrans d'administration et de l'export PDF ;
+- raccourcis PWA vers le scan et la collection ;
+- ajout de Vitest, Testing Library, d'une CI et de tests unitaires ;
+- mise à niveau de jsPDF/AutoTable et retrait de React Router, inutile pour les
+  trois routes statiques et concerné par un avis de sécurité ;
+- ajout de README, architecture, contribution, sécurité et licence MIT à jour.
+
+### Validation effectuée avant commit
+
+- lint, typecheck et syntaxe des fonctions : validés ;
+- 5 tests unitaires/composants et tests de règles Firestore/Storage : validés ;
+- build de production : validé, précache réduit à 36 entrées pour environ 3,6 Mo ;
+- audit du frontend de production : aucune vulnérabilité connue ;
+- les alertes restantes des fonctions sont transitives à Firebase Admin/Google
+  Cloud ; la correction forcée proposée rétrograde Firebase Admin et n'a donc
+  pas été appliquée.

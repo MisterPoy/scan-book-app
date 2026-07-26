@@ -18,29 +18,24 @@ export function usePWA() {
       const isInMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
 
       const installed = isInStandaloneMode || isInFullscreenMode || isInMinimalUi;
-      console.log('[PWA Debug] App déjà installée ?', {
-        isInStandaloneMode,
-        isInFullscreenMode,
-        isInMinimalUi,
-        installed
-      });
       setIsInstalled(installed);
     };
 
     checkInstalled();
 
     // Écouter l'événement beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('[PWA Debug] 🎉 beforeinstallprompt capturé !');
+    const handleBeforeInstallPrompt = async (e: Event) => {
       e.preventDefault();
       const event = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(event);
-      setIsInstallable(true);
+      const registration = await navigator.serviceWorker?.getRegistration();
+      if (registration?.active) {
+        setDeferredPrompt(event);
+        setIsInstallable(true);
+      }
     };
 
     // Écouter l'événement appinstalled
     const handleAppInstalled = () => {
-      console.log('[PWA Debug] ✅ App installée (appinstalled event)');
       setIsInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);

@@ -24,6 +24,8 @@ import {
   Timer,
   PencilSimple,
 } from "phosphor-react";
+import InlineNotice from './InlineNotice';
+import ConfirmDialog from './ConfirmDialog';
 
 interface LibraryManagerProps {
   libraries: UserLibrary[];
@@ -117,15 +119,19 @@ export default function LibraryManager({
   });
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [libraryPendingDeletion, setLibraryPendingDeletion] =
+    useState<UserLibrary | null>(null);
 
   const handleCreateLibrary = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newLibrary.name.trim()) {
-      alert("Le nom de la bibliothèque est obligatoire");
+      setNotice("Indiquez le nom de la bibliothèque.");
       return;
     }
 
+    setNotice(null);
     setCreating(true);
     try {
       await onCreateLibrary({
@@ -145,24 +151,19 @@ export default function LibraryManager({
       setShowCreateForm(false);
     } catch (error) {
       console.error("Erreur création bibliothèque:", error);
-      alert("Erreur lors de la création de la bibliothèque");
+      setNotice("La bibliothèque n'a pas pu être créée.");
     } finally {
       setCreating(false);
     }
   };
 
   const handleDeleteLibrary = async (library: UserLibrary) => {
-    if (
-      confirm(
-        `Êtes-vous sûr de vouloir supprimer la bibliothèque "${library.name}" ? Cette action est irréversible.`
-      )
-    ) {
-      try {
-        await onDeleteLibrary(library.id);
-      } catch (error) {
-        console.error("Erreur suppression bibliothèque:", error);
-        alert("Erreur lors de la suppression de la bibliothèque");
-      }
+    try {
+      await onDeleteLibrary(library.id);
+      setLibraryPendingDeletion(null);
+    } catch (error) {
+      console.error("Erreur suppression bibliothèque:", error);
+      setNotice("La bibliothèque n'a pas pu être supprimée.");
     }
   };
 
@@ -183,10 +184,11 @@ export default function LibraryManager({
     if (!editingLibrary || !onUpdateLibrary) return;
 
     if (!newLibrary.name.trim()) {
-      alert("Le nom de la bibliothèque est obligatoire");
+      setNotice("Indiquez le nom de la bibliothèque.");
       return;
     }
 
+    setNotice(null);
     setUpdating(true);
     try {
       await onUpdateLibrary(editingLibrary.id, {
@@ -207,7 +209,7 @@ export default function LibraryManager({
       setShowCreateForm(false);
     } catch (error) {
       console.error("Erreur modification bibliothèque:", error);
-      alert("Erreur lors de la modification de la bibliothèque");
+      setNotice("La bibliothèque n'a pas pu être modifiée.");
     } finally {
       setUpdating(false);
     }
@@ -266,6 +268,7 @@ export default function LibraryManager({
         </div>
 
         <div className="p-6">
+          <InlineNotice message={notice} />
           {/* Header avec bouton créer */}
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -520,7 +523,7 @@ export default function LibraryManager({
                         </button>
                       )}
                       <button
-                        onClick={() => handleDeleteLibrary(library)}
+                        onClick={() => setLibraryPendingDeletion(library)}
                         className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
                         title="Supprimer cette bibliothèque"
                         aria-label="Supprimer cette bibliothèque"
@@ -540,6 +543,22 @@ export default function LibraryManager({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={libraryPendingDeletion !== null}
+        title="Supprimer cette bibliothèque ?"
+        description={
+          libraryPendingDeletion
+            ? `La bibliothèque « ${libraryPendingDeletion.name} » sera supprimée. Les livres resteront dans votre collection.`
+            : ""
+        }
+        confirmLabel="Supprimer"
+        onCancel={() => setLibraryPendingDeletion(null)}
+        onConfirm={() => {
+          if (libraryPendingDeletion) {
+            return handleDeleteLibrary(libraryPendingDeletion);
+          }
+        }}
+      />
     </div>
   );
 }

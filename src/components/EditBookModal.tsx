@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { uploadImageToStorage, auth } from "../firebase";
+import InlineNotice from './InlineNotice';
 import type { UserLibrary } from "../types/library";
 import { renderLibraryIcon } from "../utils/iconRenderer";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -62,6 +63,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     libraries: [] as string[]
   });
   const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Initialiser le formulaire avec les données du livre
   useEffect(() => {
@@ -87,9 +89,12 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     e.preventDefault();
     
     if (!formData.title.trim()) {
-      alert("Le titre est obligatoire");
+      setFormError("Indiquez le titre du livre.");
+      document.getElementById('edit-title')?.focus();
       return;
     }
+
+    setFormError(null);
 
     const updatedBook: CollectionBook = {
       ...book,
@@ -116,19 +121,20 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner un fichier image');
+      setFormError('Sélectionnez un fichier image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Le fichier doit faire moins de 5MB');
+      setFormError('Le fichier doit faire moins de 5 Mo.');
       return;
     }
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      alert("Hors ligne: connexion requise pour envoyer une image.");
+      setFormError("Une connexion est nécessaire pour envoyer une image.");
       return;
     }
 
+    setFormError(null);
     setUploading(true);
     try {
       const currentUser = auth.currentUser;
@@ -141,7 +147,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
       setFormData(prev => ({ ...prev, customCoverUrl: imageUrl }));
     } catch (error) {
       console.error('Erreur upload image:', error);
-      alert('Erreur lors de l\'upload de l\'image');
+      setFormError("L'image n'a pas pu être envoyée.");
     } finally {
       setUploading(false);
     }
@@ -192,6 +198,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
         </div>
         
         <form onSubmit={handleSubmit} className="p-6">
+          <InlineNotice message={formError} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche - Informations */}
             <div className="space-y-4">

@@ -1,19 +1,38 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vite.dev/config/
-export default defineConfig({
+const firebaseEnvironmentKeys = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+] as const;
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const missingFirebaseKeys = firebaseEnvironmentKeys.filter((key) => !env[key]);
+
+  if (missingFirebaseKeys.length > 0) {
+    throw new Error(
+      `Configuration Firebase incomplète : ${missingFirebaseKeys.join(', ')}`,
+    );
+  }
+
+  return {
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
           // Vendor chunks pour meilleur caching
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/messaging'],
-          'ui-vendor': ['phosphor-react', 'recharts'],
+          'icons-vendor': ['phosphor-react'],
+          'charts-vendor': ['recharts'],
         }
       }
     },
@@ -27,18 +46,17 @@ export default defineConfig({
     }
   },
   define: {
-    // Injecter les variables d'environnement pour le Service Worker
-    __VITE_FIREBASE_API_KEY__: JSON.stringify(process.env.VITE_FIREBASE_API_KEY),
-    __VITE_FIREBASE_AUTH_DOMAIN__: JSON.stringify(process.env.VITE_FIREBASE_AUTH_DOMAIN),
-    __VITE_FIREBASE_PROJECT_ID__: JSON.stringify(process.env.VITE_FIREBASE_PROJECT_ID),
-    __VITE_FIREBASE_STORAGE_BUCKET__: JSON.stringify(process.env.VITE_FIREBASE_STORAGE_BUCKET),
-    __VITE_FIREBASE_MESSAGING_SENDER_ID__: JSON.stringify(process.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
-    __VITE_FIREBASE_APP_ID__: JSON.stringify(process.env.VITE_FIREBASE_APP_ID),
+    __VITE_FIREBASE_API_KEY__: JSON.stringify(env.VITE_FIREBASE_API_KEY),
+    __VITE_FIREBASE_AUTH_DOMAIN__: JSON.stringify(env.VITE_FIREBASE_AUTH_DOMAIN),
+    __VITE_FIREBASE_PROJECT_ID__: JSON.stringify(env.VITE_FIREBASE_PROJECT_ID),
+    __VITE_FIREBASE_STORAGE_BUCKET__: JSON.stringify(env.VITE_FIREBASE_STORAGE_BUCKET),
+    __VITE_FIREBASE_MESSAGING_SENDER_ID__: JSON.stringify(env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+    __VITE_FIREBASE_APP_ID__: JSON.stringify(env.VITE_FIREBASE_APP_ID),
   },
   plugins: [
     react(),
     tailwindcss(),
-    visualizer({
+    mode === 'analyze' && visualizer({
       filename: './dist/stats.html',
       open: false,
       gzipSize: true,
@@ -52,7 +70,21 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
+        globPatterns: [
+          'index.html',
+          'registerSW.js',
+          'assets/**/*.{js,css}',
+          'icons/icon-*.png',
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'KodeksLogo.png',
+          'img/default-cover.png',
+        ],
+        globIgnores: [
+          'assets/html2canvas*',
+          'assets/purify*',
+          'assets/index.es-*',
+        ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
       },
       manifest: {
@@ -146,4 +178,5 @@ export default defineConfig({
       }
     })
   ],
+  };
 });

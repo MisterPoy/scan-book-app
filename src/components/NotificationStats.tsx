@@ -8,6 +8,8 @@ import {
 } from '../services/notificationHistory';
 import { getAllAnnouncements } from '../services/announcements';
 import type { NotificationHistory } from '../types/notification';
+import { retryFailedNotifications } from '../services/notificationSender';
+import InlineNotice from './InlineNotice';
 
 interface NotificationStatsData {
   announcementId: string;
@@ -36,6 +38,7 @@ export default function NotificationStats() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<string | null>(null);
   const [failedNotifications, setFailedNotifications] = useState<NotificationHistory[]>([]);
   const [retrying, setRetrying] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     loadNotificationStats();
@@ -87,10 +90,10 @@ export default function NotificationStats() {
     try {
       await cleanupOldNotificationHistory();
       await loadNotificationStats(); // Recharger après nettoyage
-      alert('Nettoyage de l\'historique lancé (vérifiez les logs de la console)');
+      setNotice("L'historique de plus de 30 jours a été supprimé.");
     } catch (err) {
       console.error('Erreur nettoyage historique:', err);
-      alert('Erreur lors du nettoyage');
+      setNotice("L'historique n'a pas pu être nettoyé.");
     }
   };
 
@@ -108,21 +111,17 @@ export default function NotificationStats() {
   const handleRetryFailed = async (announcementId: string) => {
     setRetrying(true);
     try {
-      const history = await getAnnouncementNotificationHistory(announcementId);
-      const failed = history.filter(h => h.status === 'failed');
-
-      // TODO: Implémenter la logique de relance via le backend
-      // Pour l'instant, on simule la relance
-      console.log(`Relance de ${failed.length} notifications échouées pour l'annonce ${announcementId}`);
-
-      // Attendre 2 secondes pour simuler la relance
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const summary = await retryFailedNotifications(announcementId);
+      setNotice(
+        `${summary.sent} notification${summary.sent > 1 ? 's' : ''} relancée${summary.sent > 1 ? 's' : ''}, ${summary.failed} échec${summary.failed > 1 ? 's' : ''}.`,
+      );
 
       // Recharger les stats
       await loadNotificationStats();
       await handleViewDetails(announcementId);
     } catch (err) {
       console.error('Erreur relance notifications:', err);
+      setNotice("Les notifications en échec n'ont pas pu être relancées.");
     } finally {
       setRetrying(false);
     }
@@ -189,6 +188,7 @@ export default function NotificationStats() {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <InlineNotice message={notice} tone={notice?.includes('supprimé') ? 'success' : 'info'} />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <ChartBar size={24} weight="bold" className="text-blue-600" />

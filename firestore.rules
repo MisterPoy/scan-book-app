@@ -1,76 +1,69 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only access their own data
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Function to check if user is admin
-    // TODO: Migrer vers Custom Claims Firebase Auth (voir docs/firebase-admin-setup.md)
-    // Pour l'instant: vérifier UID admin (depuis .env) + champ isAdmin en Firestore
     function isAdmin() {
-      return request.auth != null && (
-        // IMPORTANT: Mettre à jour cet UID avec la valeur de VITE_ADMIN_UID
-        // Actuellement: wpZJ2pZ0zOdaw68optxamlkjRg13 (Greg)
-        request.auth.uid == "wpZJ2pZ0zOdaw68optxamlkjRg13" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
-      );
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     function isProfileOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function allowedUserProfileFields() {
       return [
-        "uid",
-        "email",
-        "displayName",
-        "photoURL",
-        "emailVerified",
-        "createdAt",
-        "lastLoginAt",
-        "totalBooks",
-        "totalLibraries",
-        "lastActivity",
-        "providerData"
+        "uid", "email", "displayName", "photoURL", "emailVerified",
+        "createdAt", "lastLoginAt", "totalBooks", "totalLibraries",
+        "lastActivity", "providerData"
       ];
     }
 
-    // User profiles rules (admin analytics)
+    // Private user data. Admin rights are never inferred from this writable tree.
+    match /users/{uid}/{document=**} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
     match /user_profiles/{userId} {
       allow read: if isAdmin();
-
       allow create: if isProfileOwner(userId) &&
         request.resource.data.uid == userId &&
         request.resource.data.keys().hasOnly(allowedUserProfileFields());
-
       allow update: if isProfileOwner(userId) &&
         request.resource.data.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(allowedUserProfileFields());
-
       allow delete: if isAdmin();
     }
 
-    // Announcements rules
     match /announcements/{announcementId} {
-      // All authenticated users can read announcements
-      allow read: if request.auth != null;
-
-      // Only admins can create, update, or delete announcements
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
-    // Scheduled notifications rules
-    match /scheduled_notifications/{notificationId} {
-      // Only admins can read scheduled notifications
-      allow read: if isAdmin();
+    // Append-only consent ledger. Account deletion is handled by the backend.
+    match /user_consents/{consentId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
 
-      // Only admins can create, update, or delete scheduled notifications
-      allow create, update, delete: if isAdmin();
+    // Delivery history is written by trusted backend code only.
+    match /notification_history/{historyId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /scheduled_notifications/{notificationId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -1,8 +1,10 @@
 import { ArrowLeft, Database, Eye, Shield, Trash, UserCircle } from 'phosphor-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function Confidentialite() {
-  const navigate = useNavigate();
+  const navigateBack = () => {
+    if (window.history.length > 1) window.history.back();
+    else window.location.assign('/');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -10,7 +12,7 @@ export default function Confidentialite() {
         {/* Header avec bouton retour */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(-1)}
+            onClick={navigateBack}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 cursor-pointer"
           >
             <ArrowLeft size={20} weight="bold" />
@@ -55,12 +57,15 @@ export default function Confidentialite() {
                   <li>Vos bibliothèques personnalisées</li>
                   <li>Notes personnelles sur les livres</li>
                   <li>Statut de lecture (lu/non lu)</li>
+                  <li>Choix de consentement et informations techniques du navigateur associées</li>
+                  <li>Jeton technique de notification, uniquement si vous activez les notifications</li>
                 </ul>
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
                 <p className="text-sm text-green-900">
-                  <strong>Nous ne collectons AUCUNE donnée de navigation, de géolocalisation ou de publicité.</strong>
+                  <strong>Aucune donnée publicitaire ou de géolocalisation n’est collectée.</strong>{' '}
+                  Les statistiques d’audience Vercel restent désactivées tant que vous ne les acceptez pas.
                 </p>
               </div>
             </div>
@@ -93,7 +98,8 @@ export default function Confidentialite() {
             <div className="pl-8 space-y-2">
               <p><strong>Base de données :</strong> Firebase Firestore (Google Cloud Platform)</p>
               <p><strong>Authentification :</strong> Firebase Authentication</p>
-              <p><strong>Frontend :</strong> Vercel (CDN global)</p>
+              <p><strong>Frontend et statistiques optionnelles :</strong> Vercel</p>
+              <p><strong>Métadonnées de livres :</strong> Google Books et OpenLibrary</p>
 
               <div className="mt-4 space-y-2">
                 <p className="font-semibold">Mesures de sécurité :</p>
@@ -153,7 +159,8 @@ export default function Confidentialite() {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Durée de conservation</h2>
             <div className="pl-8 space-y-2">
               <p>Vos données sont conservées tant que votre compte est actif.</p>
-              <p>En cas de suppression de compte, toutes vos données sont définitivement effacées de nos serveurs sous 30 jours.</p>
+              <p>Lorsque vous confirmez la suppression dans l’application, Kodeks demande immédiatement la suppression de votre compte, de ses sous-collections, couvertures, consentements et historiques associés.</p>
+              <p>Les sauvegardes techniques des sous-traitants peuvent suivre leurs propres délais de rotation documentés.</p>
             </div>
           </section>
 
@@ -164,8 +171,8 @@ export default function Confidentialite() {
               <p className="font-semibold">Nous ne partageons JAMAIS vos données personnelles avec des tiers à des fins commerciales.</p>
               <p className="mt-2">Les seules données partagées sont :</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Requêtes anonymisées vers l'API Google Books (recherche de métadonnées de livres par ISBN)</li>
-                <li>Hébergement technique via Firebase et Vercel (sous-traitants conformes RGPD)</li>
+                <li>Requêtes directes depuis votre navigateur vers Google Books et OpenLibrary pour rechercher les métadonnées et couvertures ; ces services reçoivent donc les informations techniques habituelles d’une requête web, notamment l’adresse IP.</li>
+                <li>Hébergement technique, authentification, stockage et notifications via Firebase, ainsi que l’hébergement frontend via Vercel.</li>
               </ul>
             </div>
           </section>
@@ -174,12 +181,12 @@ export default function Confidentialite() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Cookies et traceurs</h2>
             <div className="pl-8 space-y-2">
-              <p>Kodeks utilise uniquement des cookies strictement nécessaires au fonctionnement :</p>
+              <p>Kodeks utilise du stockage local et les mécanismes nécessaires au fonctionnement :</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>Cookies d'authentification Firebase (session utilisateur)</li>
                 <li>Stockage local pour le cache PWA (fonctionnement hors ligne)</li>
               </ul>
-              <p className="mt-2 font-semibold">Aucun cookie publicitaire ou de traçage tiers n'est utilisé.</p>
+              <p className="mt-2 font-semibold">Les statistiques d’audience optionnelles ne sont activées qu’après votre choix explicite, modifiable depuis le pied de page.</p>
             </div>
           </section>
 
@@ -207,7 +214,7 @@ export default function Confidentialite() {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-600 text-center">
-            Dernière mise à jour : Octobre 2025
+            Dernière mise à jour : 26 juillet 2026
           </p>
         </div>
       </div>

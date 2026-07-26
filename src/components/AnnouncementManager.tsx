@@ -29,6 +29,8 @@ import {
 import NotificationStats from './NotificationStats';
 import ScheduledNotifications from './ScheduledNotifications';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import InlineNotice from './InlineNotice';
+import ConfirmDialog from './ConfirmDialog';
 
 interface AnnouncementManagerProps {
   isOpen: boolean;
@@ -66,6 +68,9 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
   const [activeTab, setActiveTab] = useState<'announcements' | 'stats' | 'scheduled'>('announcements');
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [announcementPendingDeletion, setAnnouncementPendingDeletion] =
+    useState<Announcement | null>(null);
   const [formData, setFormData] = useState<CreateAnnouncementData>({
     title: '',
     message: '',
@@ -101,7 +106,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
       setAnnouncements(data);
     } catch (error) {
       console.error('Erreur chargement annonces:', error);
-      alert('Erreur lors du chargement des annonces');
+      setNotice("Les annonces n'ont pas pu être chargées.");
     } finally {
       setLoading(false);
     }
@@ -111,10 +116,11 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
     e.preventDefault();
 
     if (!formData.title.trim() || !formData.message.trim()) {
-      alert('Le titre et le message sont obligatoires');
+      setNotice('Indiquez le titre et le message de l’annonce.');
       return;
     }
 
+    setNotice(null);
     setLoading(true);
     try {
       if (editingAnnouncement) {
@@ -127,7 +133,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
       loadAnnouncements();
     } catch (error) {
       console.error('Erreur sauvegarde annonce:', error);
-      alert('Erreur lors de la sauvegarde');
+      setNotice("L'annonce n'a pas pu être enregistrée.");
     } finally {
       setLoading(false);
     }
@@ -149,17 +155,16 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
   };
 
   const handleDelete = async (announcement: Announcement) => {
-    if (confirm(`Supprimer l'annonce "${announcement.title}" ?`)) {
-      setLoading(true);
-      try {
-        await deleteAnnouncement(announcement.id);
-        loadAnnouncements();
-      } catch (error) {
-        console.error('Erreur suppression annonce:', error);
-        alert('Erreur lors de la suppression');
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      await deleteAnnouncement(announcement.id);
+      setAnnouncementPendingDeletion(null);
+      await loadAnnouncements();
+    } catch (error) {
+      console.error('Erreur suppression annonce:', error);
+      setNotice("L'annonce n'a pas pu être supprimée.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -170,7 +175,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
       loadAnnouncements();
     } catch (error) {
       console.error('Erreur changement statut:', error);
-      alert('Erreur lors du changement de statut');
+      setNotice("Le statut de l'annonce n'a pas pu être modifié.");
     } finally {
       setLoading(false);
     }
@@ -277,6 +282,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
         </div>
 
         <div className="p-6">
+          <InlineNotice message={notice} />
           {activeTab === 'announcements' && (
             <div role="tabpanel" id="announcements-panel" aria-labelledby="announcements-tab">
               {/* Header avec bouton créer */}
@@ -491,7 +497,7 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
                         <Pencil size={16} />
                       </button>
                       <button
-                        onClick={() => handleDelete(announcement)}
+                        onClick={() => setAnnouncementPendingDeletion(announcement)}
                         className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
                         title="Supprimer"
                         aria-label="Supprimer l'annonce"
@@ -547,6 +553,23 @@ export default function AnnouncementManager({ isOpen, onClose, currentUser }: An
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={announcementPendingDeletion !== null}
+        title="Supprimer cette annonce ?"
+        description={
+          announcementPendingDeletion
+            ? `L’annonce « ${announcementPendingDeletion.title} » sera définitivement supprimée.`
+            : ''
+        }
+        confirmLabel="Supprimer"
+        isPending={loading}
+        onCancel={() => setAnnouncementPendingDeletion(null)}
+        onConfirm={() => {
+          if (announcementPendingDeletion) {
+            return handleDelete(announcementPendingDeletion);
+          }
+        }}
+      />
     </div>
   );
 }

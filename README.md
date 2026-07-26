@@ -1,199 +1,103 @@
-# Kodeks - Gestionnaire de Bibliothèque
+# Kodeks
 
-Une application web moderne de gestion de bibliothèque personnelle avec scanner ISBN, développée en React + TypeScript et déployable en tant que PWA.
+Kodeks est une PWA React permettant de rechercher, scanner et organiser une
+bibliothèque personnelle. Les comptes, collections et couvertures sont stockés
+dans Firebase ; les métadonnées de livres viennent de Google Books et
+OpenLibrary.
 
-## Fonctionnalités Principales
+## Fonctionnalités
 
-### Gestion de Collection
-- **Scanner ISBN** : Utilisation de la caméra pour scanner les codes-barres des livres
-- **Ajout manuel** : Formulaire complet pour ajouter des livres sans ISBN
-- **Informations complètes** : Titre, auteur, éditeur, date de publication, description, nombre de pages
-- **Couvertures personnalisées** : Upload d'images via Firebase Storage
-- **Statuts de lecture** : Lu, Non lu, À lire, En cours, Abandonné
-- **Types de livres** : Physique, Numérique, Audio
+- recherche textuelle et ISBN avec classement et déduplication des éditions ;
+- scan unitaire ou en lot, avec saisie ISBN de secours ;
+- ajout et édition manuels, couvertures personnalisées et statuts de lecture ;
+- bibliothèques personnalisées, filtres et exports CSV/PDF ;
+- authentification email ou Google ;
+- PWA installable, cache applicatif et consultation Firestore hors ligne ;
+- annonces et notifications FCM administrées par des Cloud Functions.
 
-### Organisation Avancée
-- **Bibliothèques personnalisées** : Création et gestion de bibliothèques thématiques
-- **Filtres puissants** : Par statut, type, bibliothèque, auteur, éditeur
-- **Tags** : Système d'étiquetage libre pour catégoriser les livres
-- **Recherche** : Moteur de recherche intégré dans la collection
+## Stack
 
-### PWA & Offline
-- **Installation** : Application installable sur mobile et desktop
-- **Mode hors ligne** : Consultation de la collection sans connexion
-- **Synchronisation** : Données sauvegardées automatiquement dans Firebase
-- **Cache intelligent** : Couvertures OpenLibrary mises en cache pour un accès offline
+- React 19, TypeScript strict, Vite 7 et Tailwind CSS 4 ;
+- Firebase Auth, Firestore, Storage, Messaging et Cloud Functions ;
+- Vitest, Testing Library et Firebase Emulator Suite ;
+- déploiement frontend de référence : Vercel.
 
-## Installation et Configuration
+## Installation
 
-### Prérequis
-- Node.js (v18 ou supérieur)
-- npm ou yarn
-- Compte Firebase avec Firestore et Storage activés
+Prérequis : Node.js 22, npm, Java 21 pour les émulateurs Firebase et un projet
+Firebase.
 
-### 1. Installation
 ```bash
-# Cloner le repository
-git clone <url-du-repo>
-cd kodeks
-
-# Installer les dépendances
-npm install
+npm ci
+copy .env.example .env
 ```
 
-### 2. Configuration Firebase
-Créer un fichier `.env` à la racine du projet avec vos clés Firebase :
+Renseigner les variables de `.env`. Ce fichier est local et ne doit jamais être
+commité. Le build échoue volontairement si la configuration Firebase requise
+est incomplète.
 
-```env
-VITE_FIREBASE_API_KEY=votre_api_key
-VITE_FIREBASE_AUTH_DOMAIN=votre_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=votre_project_id
-VITE_FIREBASE_STORAGE_BUCKET=votre_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
-```
+Installer ensuite les dépendances serveur :
 
-### 3. Configuration Firestore
-Déployer les règles de sécurité dans la console Firebase :
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-  }
-}
-```
-
-### 4. Lancement
 ```bash
-# Développement
-npm run dev
-
-# Build de production
-npm run build
-
-# Prévisualisation du build
-npm run preview
+cd functions
+npm ci
+cd ..
 ```
 
-## Design System
+## Commandes
 
-### Icônes - Phosphor Icons
-Le projet utilise exclusivement [Phosphor Icons](https://phosphor-icons.com/) pour maintenir une cohérence visuelle :
-
-- **Style** : `weight="regular"` pour les icônes générales, `weight="bold"` pour les actions importantes
-- **Taille** : `size={16}` pour les icônes inline, `size={20-24}` pour les boutons
-- **Convention** : Toujours importer depuis `phosphor-react`
-
-```tsx
-import { Book, Check, Camera } from "phosphor-react";
-
-// Usage standard
-<Book size={16} weight="regular" />
-// Action importante
-<Check size={16} weight="bold" />
-```
-
-### Couleurs et Accessibilité
-- **Contrastes** : Respecte les standards WCAG AA
-- **Messages d'état** : Tous équipés d'`aria-live="polite"`
-- **Navigation** : Support complet du clavier et lecteurs d'écran
-
-## Architecture Technique
-
-### Stack Technologique
-- **Frontend** : React 18 + TypeScript + Vite
-- **Styling** : TailwindCSS pour un design responsive
-- **Base de données** : Firebase Firestore
-- **Authentification** : Firebase Auth (Email/Google)
-- **Stockage** : Firebase Storage pour les images
-- **PWA** : Service Worker avec cache intelligent
-
-### Structure du Projet
-```
-src/
-├── components/          # Composants React réutilisables
-│   ├── BookCard.tsx     # Affichage d'un livre
-│   ├── EditBookModal.tsx # Modal d'édition
-│   ├── ISBNScanner.tsx  # Scanner de codes-barres
-│   ├── LibraryManager.tsx # Gestion des bibliothèques
-│   └── FiltersPanel.tsx # Panneau de filtres
-├── hooks/               # Hooks personnalisés
-├── types/               # Types TypeScript
-├── firebase.ts          # Configuration Firebase
-└── App.tsx             # Composant principal
-```
-
-### Performance
-- **Lazy Loading** : Scanner ISBN chargé à la demande
-- **Error Boundary** : Gestion gracieuse des erreurs
-- **Runtime Caching** : Images OpenLibrary mises en cache automatiquement
-- **Bundle Optimization** : Code splitting automatique avec Vite
-
-## Utilisation
-
-### Premier lancement
-1. **Connexion** : Créer un compte ou se connecter avec Google
-2. **Scanner** : Utiliser le bouton "Scanner" pour ajouter un livre
-3. **Bibliothèques** : Créer des bibliothèques thématiques
-4. **Filtres** : Utiliser les filtres pour organiser sa collection
-
-### Fonctionnalités Avancées
-- **Installation PWA** : Utiliser le bouton d'installation pour ajouter l'app à l'écran d'accueil
-- **Mode Offline** : L'application fonctionne sans connexion après la première visite
-- **Export** : Données exportables au format JSON via la console développeur
-
-## Sécurité & Confidentialité
-
-- **Authentification** : Obligatoire pour accéder aux fonctionnalités
-- **Isolation** : Chaque utilisateur ne peut accéder qu'à ses propres données
-- **Chiffrement** : Communications sécurisées via HTTPS
-- **Variables d'environnement** : Clés sensibles protégées et non commitées
-
-## Déploiement
-
-### Build de Production
 ```bash
-npm run build
+npm run dev          # serveur local, à lancer explicitement
+npm run lint         # ESLint
+npm run typecheck    # TypeScript sans émission
+npm test             # tests unitaires et composants
+npm run test:rules   # règles Firestore et Storage avec émulateurs
+npm run build        # build de production et service worker
+npm run build:analyze
 ```
 
-### Déploiement Recommandé
-- **Vercel/Netlify** : Déploiement automatique depuis GitHub
-- **Firebase Hosting** : Intégration native avec Firebase
-- **Variables d'environnement** : Configurer les clés Firebase dans l'interface de déploiement
+## Firebase et déploiement
 
-## Contribution
+Le frontend seul ne suffit pas. Déployer ensemble les règles, index et fonctions :
 
-### Développement
-1. Fork du repository
-2. Création d'une branche feature
-3. Développement avec respect des conventions de code
-4. Tests et vérification du build
-5. Pull Request avec description détaillée
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage,functions
+```
 
-### Conventions
-- **Commits** : Messages descriptifs en français
-- **Code** : TypeScript strict, composants fonctionnels
-- **Style** : Prettier + ESLint, conventions React
-- **Icônes** : Exclusivement Phosphor Icons
+Les fonctions utilisent Node.js 22. La programmation de notifications nécessite
+un projet Firebase compatible avec les fonctions planifiées. Les droits
+administrateur sont des Custom Claims Firebase Auth et ne sont jamais lus dans
+un document modifiable par l’utilisateur. Voir
+[`docs/firebase-admin-setup.md`](docs/firebase-admin-setup.md).
 
-## Changelog
+## Sécurité et confidentialité
 
-### Version Actuelle
-- ✅ PWA complète avec installation et Service Worker
-- ✅ Scanner ISBN avec lazy loading
-- ✅ Gestion avancée des bibliothèques et filtres
-- ✅ Upload d'images vers Firebase Storage
-- ✅ Mode offline avec cache intelligent
-- ✅ Accessibilité niveau AA
-- ✅ Design system cohérent avec Phosphor Icons
+- les règles versionnées sont refusées par défaut ;
+- les données privées sont limitées à leur propriétaire ;
+- les opérations privilégiées et la suppression complète du compte sont côté serveur ;
+- Vercel Analytics n’est chargé qu’après consentement ;
+- les appels Google Books/OpenLibrary partent du navigateur et exposent les
+  informations techniques habituelles d’une requête web à ces fournisseurs.
+
+Consulter [`SECURITY.md`](SECURITY.md), la politique affichée dans l’application
+et [`docs/data-retention-policy.md`](docs/data-retention-policy.md).
+
+## Architecture et contribution
+
+L’architecture, les frontières de confiance et les décisions de découpage sont
+décrites dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Les règles de
+contribution et la checklist de validation se trouvent dans
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Limites connues
+
+- la collection est encore chargée intégralement côté client ; une pagination
+  Firestore sera nécessaire pour les très grandes bibliothèques ;
+- le composant historique `App.tsx` reste volumineux et doit continuer à être
+  extrait par cas d’usage ;
+- les assertions WCAG AA nécessitent encore une campagne formelle avec lecteurs
+  d’écran et tests automatisés étendus.
 
 ## Licence
 
-MIT License - Voir le fichier LICENSE pour plus de détails.
-
----
-
-**Développé avec passion pour les passionnés de lecture**
+MIT — voir [`LICENSE`](LICENSE).

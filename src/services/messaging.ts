@@ -2,6 +2,7 @@ import { getMessaging, getToken, onMessage, type Messaging } from 'firebase/mess
 import { app } from '../firebase';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { sendTestNotificationToUser } from './notificationSender';
 
 // VAPID Key depuis les variables d'environnement
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -151,11 +152,7 @@ export const sendTestPushNotification = async (userId: string): Promise<void> =>
       throw new Error('Token FCM non trouvé pour cet utilisateur');
     }
 
-    const token = userDoc.data().fcmToken;
-
-    // Utiliser notre service de notification pour envoyer un test
-    const { sendTestNotificationToUser } = await import('./notificationSender');
-    await sendTestNotificationToUser(token);
+    await sendTestNotificationToUser();
   } catch (error) {
     console.error('❌ Erreur envoi notification de test:', error);
     throw error;

@@ -9,15 +9,9 @@ import { DownloadSimple } from 'phosphor-react';
 export default function PWAInstallPrompt() {
   const { isInstallable, isInstalled, installPWA } = usePWA();
 
-  console.log('[PWA Debug] PWAInstallPrompt render:', { isInstallable, isInstalled });
-
-  // Ne rien afficher si pas installable ou déjà installé
   if (!isInstallable || isInstalled) {
-    console.log('[PWA Debug] Bouton caché car:', !isInstallable ? 'pas installable' : 'déjà installé');
     return null;
   }
-
-  console.log('[PWA Debug] ✅ Bouton affiché !');
 
 
   const handleInstall = async () => {
@@ -32,7 +26,7 @@ export default function PWAInstallPrompt() {
       aria-label="Installer l'application"
     >
       <DownloadSimple size={20} weight="bold" />
-      <span className="hidden sm:inline">Installer l'app</span>
+      <span>Installer l'app</span>
     </button>
   );
 }

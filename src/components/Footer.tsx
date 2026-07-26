@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { FileText, Shield, GithubLogo, LinkedinLogo, InstagramLogo, Globe } from 'phosphor-react';
+import { FileText, Shield, GithubLogo, InstagramLogo, Globe } from 'phosphor-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -10,12 +9,6 @@ export default function Footer() {
       url: "https://www.instagram.com/gregdevweb/",
       icon: InstagramLogo,
       color: "hover:text-pink-600",
-    },
-    {
-      name: "LinkedIn",
-      url: "https://www.linkedin.com/in/",
-      icon: LinkedinLogo,
-      color: "hover:text-blue-600",
     },
     {
       name: "GitHub",
@@ -68,21 +61,29 @@ export default function Footer() {
 
         {/* Liens légaux */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-sm text-gray-600 mb-4">
-          <Link
-            to="/mentions-legales"
+          <a
+            href="/mentions-legales"
             className="flex items-center gap-2 hover:text-blue-600 transition-colors"
           >
             <FileText size={16} weight="regular" />
             Mentions légales
-          </Link>
+          </a>
           <span className="hidden md:inline text-gray-400">|</span>
-          <Link
-            to="/confidentialite"
+          <a
+            href="/confidentialite"
             className="flex items-center gap-2 hover:text-blue-600 transition-colors"
           >
             <Shield size={16} weight="regular" />
             Politique de confidentialité
-          </Link>
+          </a>
+          <span className="hidden md:inline text-gray-400">|</span>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('kodeks-open-consent-settings'))}
+            className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+          >
+            Gérer mes choix
+          </button>
         </div>
 
         {/* Copyright + Version */}

@@ -17,6 +17,7 @@ import {
 } from "phosphor-react";
 import { fetchBookMetadata, getOpenLibraryCoverUrl } from "../utils/bookApi";
 import type { ScannedBook } from "../types/bulkAdd";
+import { cleanISBN } from '../utils/searchHelpers';
 
 type ScanMode = 'single' | 'batch';
 
@@ -110,6 +111,7 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
   const [cameraActive, setCameraActive] = useState(true);
   const [helpVisible, setHelpVisible] = useState(false);
   const [cameraInfo, setCameraInfo] = useState<string>("");
+  const [manualIsbn, setManualIsbn] = useState('');
 
   // États pour le mode batch
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([]);
@@ -307,6 +309,20 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
   const handleValidateBatch = () => {
     const isbns = scannedBooks.map(book => book.isbn);
     onBulkScanComplete?.(isbns);
+  };
+
+  const handleManualIsbn = (event: React.FormEvent) => {
+    event.preventDefault();
+    const isbn = cleanISBN(manualIsbn);
+    if (!isbn) {
+      setError('Saisissez un ISBN-10 ou ISBN-13 valide.');
+      return;
+    }
+
+    setError(null);
+    setManualIsbn('');
+    if (mode === 'single') onDetected?.(isbn);
+    else void handleBatchScan(isbn);
   };
 
   // Obtenir les infos de la caméra et détecter le support du flash
@@ -561,10 +577,33 @@ export default function ISBNScanner({ mode = 'single', onDetected, onBulkScanCom
             <p className="text-red-700 text-sm font-medium">{error}</p>
           </div>
           <div className="mt-2 text-red-600 text-xs">
-            Essayez d'améliorer l'éclairage ou utilisez le mode photo
+            Vérifiez la permission caméra ou utilisez la saisie ISBN ci-dessous.
           </div>
         </div>
       )}
+
+      <form
+        onSubmit={handleManualIsbn}
+        className="mt-4 flex w-full max-w-md flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 sm:flex-row"
+      >
+        <label htmlFor="scanner-manual-isbn" className="sr-only">
+          ISBN du livre
+        </label>
+        <input
+          id="scanner-manual-isbn"
+          value={manualIsbn}
+          onChange={(event) => setManualIsbn(event.target.value)}
+          inputMode="numeric"
+          placeholder="Saisir un ISBN-10 ou ISBN-13"
+          className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2"
+        />
+        <button
+          type="submit"
+          className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+        >
+          Utiliser cet ISBN
+        </button>
+      </form>
 
       {/* Barre de contrôle du lot + Pile temporaire (mode batch uniquement) */}
       {mode === 'batch' && scannedBooks.length > 0 && (
