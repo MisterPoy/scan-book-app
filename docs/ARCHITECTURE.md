@@ -1,58 +1,49 @@
-# Architecture de Kodeks
+# Architecture de Kodeks — édition Spark
 
-## Vue d’ensemble
-
-Le navigateur héberge l’interface React, l’authentification Firebase et les
-lectures/écritures privées autorisées par les règles. Les opérations globales
-ou destructrices passent par Cloud Functions.
+## Vue d'ensemble
 
 ```text
-React PWA
-  ├─ Firebase Auth ── jeton + Custom Claims
-  ├─ Firestore ───── données privées sous users/{uid}
-  ├─ Storage ─────── couvertures sous covers/{uid}
-  ├─ Google Books / OpenLibrary ── métadonnées publiques
-  └─ Callable Functions
-       ├─ suppression complète du compte
-       ├─ envoi et relance FCM
-       ├─ nettoyage d’historique
-       └─ traitement des notifications planifiées
+React PWA sur Vercel
+  ├─ Firebase Authentication
+  ├─ Cloud Firestore
+  │    ├─ livres et couvertures compressées
+  │    ├─ bibliothèques
+  │    ├─ profils et consentements
+  │    └─ annonces intégrées
+  └─ Google Books / OpenLibrary
 ```
+
+Il n'existe aucun backend applicatif déployé : toutes les opérations passent par
+le SDK Web Firebase et sont bornées par `firestore.rules`.
 
 ## Frontières de confiance
 
-- le client est considéré comme non fiable ;
-- le claim `admin` signé dans le jeton Auth est la seule source d’autorité
-  administrative ;
-- les documents `users/{uid}` sont privés mais ne peuvent accorder aucun droit ;
-- les historiques de livraison sont écrits uniquement par le backend ;
-- les consentements sont créés par leur propriétaire puis immuables.
+- le navigateur est non fiable ; les règles Firestore décident des accès ;
+- le claim Firebase Auth `admin` est la seule source d'autorité administrative ;
+- un document privé sous `users/{uid}` ne peut pas accorder de droit ;
+- les utilisateurs ne peuvent accéder qu'à leur propre arbre de données ;
+- la suppression de compte exige un jeton d'authentification récent avant tout
+  effacement.
 
-## Organisation du frontend
+## Données
 
-- `components/` : interface et dialogues réutilisables ;
-- `hooks/` : état transversal et comportements React ;
-- `services/` : Firebase et opérations distantes ;
-- `utils/` : fonctions métier pures, notamment classement et déduplication ;
-- `types/` : contrats de données ;
-- `sw.ts` : cache PWA et réception des notifications en arrière-plan.
+- `users/{uid}/collection/{bookId}` : livres et éventuelle couverture JPEG
+  compressée sous forme de Data URL ;
+- `users/{uid}/libraries/{libraryId}` : bibliothèques personnalisées ;
+- `user_profiles/{uid}` : profil d'administration ;
+- `user_consents/{id}` : registre de consentement ;
+- `announcements/{id}` : annonces affichées dans Kodeks ;
+- `notification_history/{id}` : données historiques uniquement, supprimables
+  par leur propriétaire mais plus alimentées.
 
-`App.tsx` contient encore plusieurs cas d’usage historiques. Toute nouvelle
-fonction importante doit être extraite plutôt que d’agrandir ce composant.
+## Couvertures
 
-## Données principales
-
-- `users/{uid}/collection/{bookId}` ;
-- `users/{uid}/libraries/{libraryId}` ;
-- `user_profiles/{uid}` pour l’administration en lecture ;
-- `user_consents/{id}` ;
-- `announcements/{id}` ;
-- `notification_history/{id}` ;
-- `scheduled_notifications/{id}` ;
-- Storage `covers/{uid}/{fileName}`.
+Les fichiers sont validés côté interface, redimensionnés sans agrandissement à
+480 pixels maximum et recompressés en JPEG. Une limite encodée protège la limite
+de document Firestore. Cette solution conserve la synchronisation entre
+appareils sans Firebase Storage, au prix d'une consommation Firestore supérieure.
 
 ## Déploiement
 
-Vercel est la cible frontend de référence. Firebase CLI déploie séparément les
-règles, index, Storage et Functions. Une livraison n’est complète que lorsque
-ces deux plans sont alignés et que la CI passe.
+Vercel publie le frontend. Firebase CLI ne publie que les règles et index
+Firestore. `admin-tools/` est un outil local ponctuel et n'est jamais déployé.

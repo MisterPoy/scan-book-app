@@ -36,7 +36,7 @@ import {
   Timer,
   Hourglass,
   Megaphone,
-  Bell,
+  Gear,
   DownloadSimple,
   FilePdf,
   UsersThree,
@@ -48,9 +48,6 @@ import {
 const ISBNScanner = lazy(() => import("./components/ISBNScanner"));
 const AnnouncementManager = lazy(
   () => import("./components/AnnouncementManager"),
-);
-const NotificationSettings = lazy(
-  () => import("./components/NotificationSettings"),
 );
 const UserManagement = lazy(() =>
   import("./components/UserManagement").then((module) => ({
@@ -77,14 +74,13 @@ import ScanModeSelector from "./components/ScanModeSelector";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
-import { auth, db, functions } from "./firebase";
+import { auth, db } from "./firebase";
 import {
   onAuthStateChanged,
   getRedirectResult,
   getIdTokenResult,
   type User,
 } from "firebase/auth";
-import { httpsCallable } from "firebase/functions";
 import {
   doc,
   setDoc,
@@ -105,6 +101,7 @@ import { renderLibraryIcon } from "./utils/iconRenderer";
 import { deduplicateAndRankBooks } from "./utils/searchRanking";
 import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
+import { deleteCurrentUserAccount } from "./services/accountDeletion";
 
 interface CollectionBook {
   isbn: string;
@@ -1065,8 +1062,7 @@ function App() {
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const [showNotificationSettings, setShowNotificationSettings] =
-    useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] =
     useState(false);
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
@@ -1082,7 +1078,7 @@ function App() {
   const collectionModalRef = useFocusTrap<HTMLDivElement>(showCollectionModal);
   const bulkDeleteModalRef = useFocusTrap<HTMLDivElement>(showBulkDeleteModal);
   const settingsModalRef = useFocusTrap<HTMLDivElement>(
-    showNotificationSettings,
+    showSettings,
   );
   const deleteAccountModalRef = useFocusTrap<HTMLDivElement>(
     showDeleteAccountConfirm,
@@ -1117,7 +1113,7 @@ function App() {
 
   const closeBulkDeleteModal = () => setShowBulkDeleteModal(false);
 
-  const closeSettingsModal = () => setShowNotificationSettings(false);
+  const closeSettingsModal = () => setShowSettings(false);
 
   const closeDeleteAccountModal = () => {
     if (isDeletingAccount) return;
@@ -1200,7 +1196,7 @@ function App() {
   );
   useModalCloseRequest(
     settingsModalRef,
-    showNotificationSettings,
+    showSettings,
     closeSettingsModal,
   );
   useModalCloseRequest(
@@ -2844,8 +2840,7 @@ function App() {
 
     try {
       setIsDeletingAccount(true);
-      const deleteOwnAccount = httpsCallable(functions, "deleteOwnAccount");
-      await deleteOwnAccount();
+      await deleteCurrentUserAccount(user);
 
       setAddMessage({
         text: "Votre compte a été supprimé avec succès",
@@ -2853,13 +2848,13 @@ function App() {
       });
       setShowDeleteAccountConfirm(false);
       setDeleteAccountConfirmation("");
-      setShowNotificationSettings(false);
+      setShowSettings(false);
     } catch (error) {
       console.error("Erreur lors de la suppression du compte:", error);
       const errorCode = (error as { code?: string }).code;
       setAddMessage({
         text:
-          errorCode === "functions/failed-precondition"
+          errorCode === "auth/requires-recent-login"
             ? "Pour votre sécurité, reconnectez-vous avant de supprimer votre compte."
             : "La suppression n'a pas abouti. Réessayez ou contactez le support.",
         type: "error",
@@ -3026,12 +3021,12 @@ function App() {
                       </div>
                     )}
                     <button
-                      onClick={() => setShowNotificationSettings(true)}
+                      onClick={() => setShowSettings(true)}
                       className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                     >
-                      <span className="hidden lg:inline">Notifications</span>
+                      <span className="hidden lg:inline">Paramètres</span>
                       <span className="lg:hidden">
-                        <Bell size={18} weight="bold" />
+                        <Gear size={18} weight="bold" />
                       </span>
                     </button>
                     <span className="text-gray-600 text-xs sm:text-sm hidden md:block truncate max-w-24 lg:max-w-none">
@@ -4350,7 +4345,7 @@ function App() {
                         </div>
                       )}
 
-                      <label className="inline-block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer transition-colors cursor-pointer">
+                      <label className="inline-block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer transition-colors">
                         {manualBook.customCoverUrl ? "Changer" : "Ajouter"} une
                         image
                         <input
@@ -4360,6 +4355,9 @@ function App() {
                           className="hidden"
                         />
                       </label>
+                      <p className="mt-3 text-xs text-gray-500">
+                        L'image est optimisée automatiquement puis synchronisée avec ce livre.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -4415,7 +4413,6 @@ function App() {
           <AnnouncementManager
             isOpen
             onClose={() => setShowAnnouncementManager(false)}
-            currentUser={user ? { uid: user.uid, role: "admin" } : undefined}
           />
         </Suspense>
       )}
@@ -4645,8 +4642,8 @@ function App() {
         </div>
       )}
 
-      {/* Settings Modal (Notifications + Gestion du compte) */}
-      {showNotificationSettings && (
+      {/* Settings Modal */}
+      {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
             ref={settingsModalRef}
@@ -4670,21 +4667,6 @@ function App() {
               >
                 <X size={20} weight="bold" aria-hidden="true" />
               </button>
-            </div>
-
-            {/* Notifications */}
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Bell size={20} weight="bold" />
-                Notifications
-              </h3>
-              <Suspense fallback={<p className="text-gray-600">Chargement…</p>}>
-                <NotificationSettings
-                  userId={user?.uid || null}
-                  userName={user?.displayName}
-                  isAdmin={isAdmin}
-                />
-              </Suspense>
             </div>
 
             {/* Gestion du compte */}
@@ -4728,8 +4710,8 @@ function App() {
               Supprimer définitivement votre compte ?
             </h2>
             <p className="mt-3 text-sm text-gray-700">
-              Vos livres, bibliothèques, couvertures, consentements,
-              notifications et données de compte seront supprimés. Cette action
+              Vos livres, bibliothèques, couvertures, consentements et données
+              de compte seront supprimés. Cette action
               est irréversible.
             </p>
             <label

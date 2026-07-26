@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { uploadImageToStorage, auth } from "../firebase";
+import { resizeImage } from "../firebase";
 import InlineNotice from './InlineNotice';
 import type { UserLibrary } from "../types/library";
 import { renderLibraryIcon } from "../utils/iconRenderer";
@@ -129,25 +129,14 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
       return;
     }
 
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setFormError("Une connexion est nécessaire pour envoyer une image.");
-      return;
-    }
-
     setFormError(null);
     setUploading(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error('Utilisateur non connecté');
-      }
-
-      // Uploader vers Firebase Storage
-      const imageUrl = await uploadImageToStorage(file, currentUser.uid);
+      const imageUrl = await resizeImage(file);
       setFormData(prev => ({ ...prev, customCoverUrl: imageUrl }));
     } catch (error) {
-      console.error('Erreur upload image:', error);
-      setFormError("L'image n'a pas pu être envoyée.");
+      console.error('Erreur traitement image:', error);
+      setFormError("L'image n'a pas pu être compressée.");
     } finally {
       setUploading(false);
     }
@@ -469,6 +458,9 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                       className="hidden"
                     />
                   </label>
+                  <p className="mt-3 text-xs text-gray-500">
+                    L'image est optimisée automatiquement puis synchronisée avec ce livre.
+                  </p>
                 </div>
               </div>
               

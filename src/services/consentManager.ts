@@ -135,7 +135,7 @@ export const updateAllConsents = async (
   saveConsentsToLocalStorage(consents);
 
   // Enregistrer chaque consentement dans Firestore
-  const consentTypes: ConsentType[] = ['analytics', 'notifications', 'storage', 'functional'];
+  const consentTypes: ConsentType[] = ['analytics', 'functional'];
 
   for (const type of consentTypes) {
     await recordConsent(type, consents[type], source);
@@ -148,8 +148,6 @@ export const updateAllConsents = async (
 export const acceptAllConsents = async (): Promise<void> => {
   const allAccepted: UserConsents = {
     analytics: true,
-    notifications: true,
-    storage: true,
     functional: true,
   };
 

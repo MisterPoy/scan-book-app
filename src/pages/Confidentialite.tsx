@@ -58,7 +58,6 @@ export default function Confidentialite() {
                   <li>Notes personnelles sur les livres</li>
                   <li>Statut de lecture (lu/non lu)</li>
                   <li>Choix de consentement et informations techniques du navigateur associées</li>
-                  <li>Jeton technique de notification, uniquement si vous activez les notifications</li>
                 </ul>
               </div>
 
@@ -159,7 +158,7 @@ export default function Confidentialite() {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Durée de conservation</h2>
             <div className="pl-8 space-y-2">
               <p>Vos données sont conservées tant que votre compte est actif.</p>
-              <p>Lorsque vous confirmez la suppression dans l’application, Kodeks demande immédiatement la suppression de votre compte, de ses sous-collections, couvertures, consentements et historiques associés.</p>
+              <p>Lorsque vous confirmez la suppression dans l’application, Kodeks demande immédiatement la suppression de votre compte, de ses livres, bibliothèques, couvertures, consentements et données historiques associées.</p>
               <p>Les sauvegardes techniques des sous-traitants peuvent suivre leurs propres délais de rotation documentés.</p>
             </div>
           </section>
@@ -172,7 +171,7 @@ export default function Confidentialite() {
               <p className="mt-2">Les seules données partagées sont :</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>Requêtes directes depuis votre navigateur vers Google Books et OpenLibrary pour rechercher les métadonnées et couvertures ; ces services reçoivent donc les informations techniques habituelles d’une requête web, notamment l’adresse IP.</li>
-                <li>Hébergement technique, authentification, stockage et notifications via Firebase, ainsi que l’hébergement frontend via Vercel.</li>
+                <li>Base de données et authentification via Firebase, ainsi que l’hébergement frontend via Vercel.</li>
               </ul>
             </div>
           </section>
@@ -206,7 +205,7 @@ export default function Confidentialite() {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">Modifications de cette politique</h2>
             <div className="pl-8 space-y-2">
               <p>Nous nous réservons le droit de modifier cette politique de confidentialité à tout moment.</p>
-              <p>En cas de modification importante, vous serez informé par email ou via une notification dans l'application.</p>
+              <p>En cas de modification importante, vous serez informé par email ou au moyen d'une annonce dans l'application.</p>
             </div>
           </section>
         </div>

@@ -4943,3 +4943,41 @@ Suite aux retours utilisateurs, plusieurs problèmes UX ont été identifiés :
 - les alertes restantes des fonctions sont transitives à Firebase Admin/Google
   Cloud ; la correction forcée proposée rétrograde Firebase Admin et n'a donc
   pas été appliquée.
+
+---
+
+## 2026-07-26 - Adaptation complète au forfait Firebase Spark
+
+Cette étape remplace les choix de l'entrée précédente qui exigeaient une
+facturation Firebase. L'application reste volontairement sur le forfait Spark.
+
+### Expérience conservée
+
+- les couvertures personnalisées restent disponibles : elles sont compressées
+  dans le navigateur puis synchronisées avec le document du livre ;
+- les annonces administrateur restent visibles directement dans Kodeks ;
+- l'ajout manuel, le scan, les bibliothèques, les exports et la synchronisation
+  multi-appareil sont inchangés ;
+- la suppression complète du compte reste accessible depuis les paramètres et
+  exige toujours le mot `SUPPRIMER` ainsi qu'une connexion récente.
+
+### Remplacements Spark
+
+- retrait de Cloud Storage, Cloud Functions, Cloud Scheduler et FCM ;
+- suppression des réglages de notification devenus inopérants ;
+- suppression des notifications programmées, statistiques de livraison et
+  tests push, sans laisser de commandes trompeuses dans l'interface ;
+- suppression du compte réalisée par le SDK web et autorisée précisément par
+  les règles Firestore ;
+- attribution du claim administrateur au moyen d'un outil local non déployé ;
+- configuration Firebase, CI, CSP, tests et documentation alignés sur Auth et
+  Firestore uniquement.
+
+### Validation
+
+- lint et typecheck : validés ;
+- 5 tests unitaires et composants : validés ;
+- tests d'autorisation Firestore : validés sur l'émulateur ;
+- build de production : validé, 35 ressources préchargées pour environ 3,5 Mo ;
+- recette navigateur : accueil, ajout manuel déconnecté, information de
+  compression et page de confidentialité validés sans erreur console.

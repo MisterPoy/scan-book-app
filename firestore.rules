@@ -35,7 +35,7 @@ service cloud.firestore {
         request.resource.data.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(allowedUserProfileFields());
-      allow delete: if isAdmin();
+      allow delete: if isProfileOwner(userId) || isAdmin();
     }
 
     match /announcements/{announcementId} {
@@ -43,23 +43,21 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Append-only consent ledger. Account deletion is handled by the backend.
+    // Append-only consent ledger. Its owner may remove it with their account.
     match /user_consents/{consentId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // Delivery history is written by trusted backend code only.
+    // Legacy delivery history: no new write is accepted, but owners may erase it.
     match /notification_history/{historyId} {
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow write: if false;
-    }
-
-    match /scheduled_notifications/{notificationId} {
-      allow read, create, update, delete: if isAdmin();
+      allow create, update: if false;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /{document=**} {

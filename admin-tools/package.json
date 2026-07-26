@@ -1,0 +1,10 @@
+{
+  "name": "kodeks-admin-tools",
+  "private": true,
+  "scripts": {
+    "admin:set": "node set-admin-claim.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.2.0"
+  }
+}

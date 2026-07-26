@@ -7,8 +7,16 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes } from 'firebase/storage';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 
 let environment: RulesTestEnvironment;
@@ -18,9 +26,6 @@ beforeAll(async () => {
     projectId: 'kodeks-test',
     firestore: {
       rules: readFileSync(resolve('firestore.rules'), 'utf8'),
-    },
-    storage: {
-      rules: readFileSync(resolve('storage.rules'), 'utf8'),
     },
   });
 });
@@ -58,11 +63,22 @@ describe('Firestore security rules', () => {
     );
   });
 
-  it('keeps consent records append-only and owned', async () => {
+  it('lets an owner erase their profile without exposing it to another user', async () => {
+    const ownerDb = environment.authenticatedContext('owner').firestore();
+    const intruderDb = environment.authenticatedContext('intruder').firestore();
+    const profile = doc(ownerDb, 'user_profiles/owner');
+
+    await assertSucceeds(setDoc(profile, { uid: 'owner', displayName: 'Owner' }));
+    await assertFails(deleteDoc(doc(intruderDb, 'user_profiles/owner')));
+    await assertSucceeds(deleteDoc(profile));
+  });
+
+  it('keeps consent records immutable but lets their owner erase them', async () => {
     const userDb = environment.authenticatedContext('user').firestore();
     const consent = doc(userDb, 'user_consents/consent-1');
     await assertSucceeds(setDoc(consent, { userId: 'user', granted: true }));
     await assertFails(updateDoc(consent, { granted: false }));
+    await assertSucceeds(deleteDoc(consent));
     await assertFails(
       setDoc(doc(userDb, 'user_consents/consent-2'), {
         userId: 'another-user',
@@ -70,23 +86,40 @@ describe('Firestore security rules', () => {
       }),
     );
   });
-});
 
-describe('Storage security rules', () => {
-  it('allows small images in the owner cover directory only', async () => {
-    const ownerStorage = environment.authenticatedContext('owner').storage();
-    const intruderStorage = environment.authenticatedContext('intruder').storage();
-    const image = new Uint8Array([1, 2, 3]);
+  it('allows the complete client-side account cleanup only for its owner', async () => {
+    const ownerDb = environment.authenticatedContext('eraser').firestore();
+    const intruderDb = environment.authenticatedContext('intruder').firestore();
 
+    await assertSucceeds(setDoc(doc(ownerDb, 'users/eraser'), { active: true }));
     await assertSucceeds(
-      uploadBytes(ref(ownerStorage, 'covers/owner/cover.jpg'), image, {
-        contentType: 'image/jpeg',
-      }),
+      setDoc(doc(ownerDb, 'users/eraser/collection/book-1'), { title: 'Dune' }),
+    );
+    await assertSucceeds(
+      setDoc(doc(ownerDb, 'users/eraser/libraries/library-1'), { name: 'SF' }),
+    );
+
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'notification_history/legacy-1'), {
+        userId: 'eraser',
+      });
+    });
+
+    const legacyQuery = query(
+      collection(ownerDb, 'notification_history'),
+      where('userId', '==', 'eraser'),
+    );
+
+    await assertSucceeds(getDocs(legacyQuery));
+    await assertFails(
+      deleteDoc(doc(intruderDb, 'users/eraser/collection/book-1')),
     );
     await assertFails(
-      uploadBytes(ref(intruderStorage, 'covers/owner/other.jpg'), image, {
-        contentType: 'image/jpeg',
-      }),
+      deleteDoc(doc(intruderDb, 'notification_history/legacy-1')),
     );
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'users/eraser/collection/book-1')));
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'users/eraser/libraries/library-1')));
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'notification_history/legacy-1')));
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'users/eraser')));
   });
 });

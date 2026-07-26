@@ -14,7 +14,7 @@ const result = spawnSync(
     '--project',
     'kodeks-test',
     '--only',
-    'firestore,storage',
+    'firestore',
     'vitest run tests/rules',
   ],
   {

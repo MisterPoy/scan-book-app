@@ -1,130 +1,97 @@
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
+import {
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  getAuth,
+  GoogleAuthProvider,
   sendPasswordResetEmail,
-  updateProfile,
   setPersistence,
-  browserLocalPersistence
+  signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
-import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
-
-
+import { enableMultiTabIndexedDbPersistence, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const app = initializeApp(firebaseConfig);
-
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const provider = new GoogleAuthProvider();
 
-// Force la persistance locale (important pour Chrome mobile)
 setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error('Erreur persistance Firebase:', error);
 });
 
-export const provider = new GoogleAuthProvider();
-
-// Configuration pour mobile
-provider.setCustomParameters({
-  prompt: 'select_account'
-});
-
-export const db = getFirestore(app);
+provider.setCustomParameters({ prompt: 'select_account' });
 
 if (typeof window !== 'undefined') {
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    const error = err as { code?: string };
+  enableMultiTabIndexedDbPersistence(db).catch((error: { code?: string }) => {
     if (error.code === 'failed-precondition') {
-      console.warn('Firestore persistence disabled: multiple tabs open');
+      console.warn('Persistance Firestore désactivée : plusieurs onglets sont ouverts.');
     } else if (error.code === 'unimplemented') {
-      console.warn('Firestore persistence not supported by this browser');
+      console.warn("La persistance Firestore n'est pas prise en charge par ce navigateur.");
     } else {
-      console.error('Firestore persistence error:', err);
+      console.error('Erreur de persistance Firestore:', error);
     }
   });
 }
-export const storage = getStorage(app);
-export const functions = getFunctions(app, 'us-central1');
 
-// Fonctions d'authentification
-export const registerWithEmail = async (email: string, password: string, displayName: string) => {
+export const registerWithEmail = async (
+  email: string,
+  password: string,
+  displayName: string,
+) => {
   const result = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(result.user, { displayName });
   return result;
 };
 
-export const loginWithEmail = (email: string, password: string) => 
+export const loginWithEmail = (email: string, password: string) =>
   signInWithEmailAndPassword(auth, email, password);
 
-export const resetPassword = (email: string) => 
-  sendPasswordResetEmail(auth, email);
+export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);
 
-// Fonctions de gestion des images personnalisées (base64 - gratuit!)
-export const convertImageToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
-export const resizeImage = (file: File, maxWidth: number = 400, quality: number = 0.8): Promise<string> => {
-  return new Promise((resolve, reject) => {
+export const resizeImage = (
+  file: File,
+  maxDimension = 480,
+  initialQuality = 0.82,
+): Promise<string> =>
+  new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+    const context = canvas.getContext('2d');
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
 
-    img.onload = () => {
-      // Calculer les nouvelles dimensions en gardant le ratio
-      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
+    image.onload = () => {
+      const ratio = Math.min(1, maxDimension / image.width, maxDimension / image.height);
+      canvas.width = Math.max(1, Math.round(image.width * ratio));
+      canvas.height = Math.max(1, Math.round(image.height * ratio));
+      context?.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-      // Dessiner l'image redimensionnée
-      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let quality = initialQuality;
+      let encodedImage = canvas.toDataURL('image/jpeg', quality);
+      while (encodedImage.length > 600_000 && quality > 0.45) {
+        quality -= 0.08;
+        encodedImage = canvas.toDataURL('image/jpeg', quality);
+      }
 
-      // Convertir en base64 avec compression
-      const base64 = canvas.toDataURL('image/jpeg', quality);
-      resolve(base64);
+      URL.revokeObjectURL(objectUrl);
+      if (encodedImage.length > 700_000) {
+        reject(new Error("L'image reste trop volumineuse après compression."));
+        return;
+      }
+      resolve(encodedImage);
     };
 
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("L'image n'a pas pu être lue."));
+    };
+    image.src = objectUrl;
   });
-};
-
-// Nouvelle fonction pour uploader vers Firebase Storage
-export const uploadImageToStorage = async (file: File, userId: string): Promise<string> => {
-  // Redimensionner d'abord l'image
-  const resizedBase64 = await resizeImage(file, 400, 0.8);
-
-  // Convertir base64 en blob
-  const response = await fetch(resizedBase64);
-  const blob = await response.blob();
-
-  // Créer une référence unique dans Firebase Storage
-  const timestamp = Date.now();
-  const storageRef = ref(storage, `covers/${userId}/${timestamp}.jpg`);
-
-  // Uploader le fichier
-  await uploadBytes(storageRef, blob);
-
-  // Récupérer l'URL de téléchargement
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
-};

@@ -9,7 +9,6 @@ const firebaseEnvironmentKeys = [
   'VITE_FIREBASE_API_KEY',
   'VITE_FIREBASE_AUTH_DOMAIN',
   'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
   'VITE_FIREBASE_MESSAGING_SENDER_ID',
   'VITE_FIREBASE_APP_ID',
 ] as const;
@@ -30,7 +29,7 @@ export default defineConfig(({ mode }) => {
       output: {
         manualChunks: {
           // Vendor chunks pour meilleur caching
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/messaging'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'icons-vendor': ['phosphor-react'],
           'charts-vendor': ['recharts'],
         }
@@ -44,14 +43,6 @@ export default defineConfig(({ mode }) => {
         drop_debugger: true
       }
     }
-  },
-  define: {
-    __VITE_FIREBASE_API_KEY__: JSON.stringify(env.VITE_FIREBASE_API_KEY),
-    __VITE_FIREBASE_AUTH_DOMAIN__: JSON.stringify(env.VITE_FIREBASE_AUTH_DOMAIN),
-    __VITE_FIREBASE_PROJECT_ID__: JSON.stringify(env.VITE_FIREBASE_PROJECT_ID),
-    __VITE_FIREBASE_STORAGE_BUCKET__: JSON.stringify(env.VITE_FIREBASE_STORAGE_BUCKET),
-    __VITE_FIREBASE_MESSAGING_SENDER_ID__: JSON.stringify(env.VITE_FIREBASE_MESSAGING_SENDER_ID),
-    __VITE_FIREBASE_APP_ID__: JSON.stringify(env.VITE_FIREBASE_APP_ID),
   },
   plugins: [
     react(),

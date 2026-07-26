@@ -1,51 +1,29 @@
-# Gestion des utilisateurs et administrateurs
+# Gestion des utilisateurs — édition Spark
 
-La source d'identité est Firebase Authentication. `user_profiles/{uid}` ne
-contient que les informations d'affichage et de suivi utiles à l'application ;
-un champ écrit dans Firestore ne peut jamais accorder un privilège.
+Firebase Authentication est la source d'identité. `user_profiles/{uid}` ne
+contient que les informations d'affichage autorisées par les règles.
 
-## Droits administrateur
+## Administration
 
-Les droits reposent exclusivement sur le Custom Claim Firebase Auth `admin`.
-Pour accorder le rôle depuis un environnement autorisé :
+Le Custom Claim signé `admin` protège la lecture globale des profils et la
+gestion des annonces. Utiliser l'outil local documenté dans
+`docs/firebase-admin-setup.md`; un champ Firestore ne confère jamais de droit.
 
-```bash
-cd functions
-npm ci
-npm run admin:set -- <UID_FIREBASE> true
-```
+## Accès
 
-Pour le retirer :
+- chaque utilisateur contrôle ses livres et bibliothèques ;
+- chaque utilisateur peut effacer son profil et ses consentements lors de la
+  suppression du compte ;
+- seuls les administrateurs peuvent gérer les annonces intégrées ;
+- aucun historique de notification ou planification n'est créé.
 
-```bash
-npm run admin:set -- <UID_FIREBASE> false
-```
+## Suppression du compte
 
-L'utilisateur doit renouveler son jeton, généralement en se déconnectant puis
-en se reconnectant. Ne jamais réintroduire de liste d'UID dans le frontend, dans
-les règles ou dans un fichier `.env`.
-
-## Frontières d'accès
-
-- un utilisateur peut lire et modifier ses livres, bibliothèques et préférences ;
-- son profil ne peut contenir que les champs autorisés par `firestore.rules` ;
-- les consentements sont ajoutés par leur propriétaire et restent traçables ;
-- la lecture globale des profils, annonces, statistiques et planifications est
-  réservée au Custom Claim `admin` ;
-- les envois FCM et la suppression complète d'un compte sont exécutés par des
-  Cloud Functions, jamais directement depuis le navigateur.
-
-## Suppression de compte
-
-Le frontend exige une confirmation explicite, puis appelle
-`deleteOwnAccount`. La fonction refuse un jeton dont l'authentification date de
-plus de cinq minutes et supprime les données Firestore, les couvertures Storage
-et enfin le compte Auth. En cas de refus `requires-recent-login`, l'utilisateur
-doit se reconnecter avant de recommencer.
+Le client exige la saisie de `SUPPRIMER` et une authentification récente. Il
+efface par lots les livres, bibliothèques, consentements et anciens historiques,
+puis le profil et enfin l'identité Firebase Auth.
 
 ## Validation
-
-Avant un déploiement :
 
 ```bash
 npm run test:rules
@@ -54,8 +32,3 @@ npm run typecheck
 npm test
 npm run build
 ```
-
-Créer ensuite deux comptes de test, dont un seul possède le Custom Claim, et
-vérifier que les interfaces et opérations d'administration sont inaccessibles à
-l'autre compte. Voir également `docs/firebase-admin-setup.md` et
-`docs/ACTIONS_FIREBASE_CONSOLE.md`.

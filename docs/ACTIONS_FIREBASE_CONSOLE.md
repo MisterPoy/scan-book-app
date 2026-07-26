@@ -1,70 +1,77 @@
-# Mise en production Firebase
+# Mise en ligne gratuite avec Firebase Spark
 
-Ce document recense les actions externes qui ne peuvent pas être effectuées par
-un simple commit. Le projet cible actuellement `scanbook-27440`.
+Projet cible : `scanbook-27440`. Ne pas activer Blaze et ne pas associer de
+compte de facturation.
 
-## 1. Sécuriser la configuration
+## 1. Firebase Authentication
 
-1. Retirer `.env` du suivi Git et vérifier qu'aucune clé privée ou clé de compte
-   de service n'est présente dans l'historique.
-2. Si le dépôt a déjà été partagé, renouveler toute valeur considérée comme
-   sensible avant le prochain déploiement.
-3. Configurer les variables `VITE_FIREBASE_*` dans l'hébergeur du frontend.
+Dans Authentication → Méthode de connexion :
 
-Les clés publiques Firebase du frontend ne remplacent pas les règles de
-sécurité : `firestore.rules` et `storage.rules` constituent la frontière
-d'autorisation effective.
+- activer Adresse e-mail/Mot de passe ;
+- activer Google et renseigner l'adresse de support ;
+- ne pas activer Identity Platform ou le MFA pour cette livraison.
 
-## 2. Attribuer le premier administrateur
+Dans Authentication → Paramètres → Domaines autorisés, ajouter le domaine
+Vercel de production puis le domaine personnalisé éventuel.
 
-Depuis `functions/`, avec des identifiants Firebase Admin valides :
+## 2. Firestore
+
+Vérifier que la base existe et que les données sont visibles. Déployer depuis la
+racine :
 
 ```bash
+npx firebase login
+npx firebase deploy --project scanbook-27440 --only firestore:rules,firestore:indexes
+```
+
+Attendre que les trois index passent à l'état activé. Ne pas ajouter `storage`
+ou `functions` à la commande.
+
+## 3. Premier administrateur
+
+Copier l'UID dans Authentication → Utilisateurs. Configurer les Application
+Default Credentials, puis :
+
+```bash
+cd admin-tools
 npm ci
-npm run admin:set -- <UID_FIREBASE> true
+npm run admin:set -- UID true
 ```
 
-L'utilisateur concerné doit ensuite se déconnecter puis se reconnecter pour
-recevoir son nouveau Custom Claim. La procédure détaillée et la révocation sont
-décrites dans `docs/firebase-admin-setup.md`.
+Déconnecter puis reconnecter le compte. Ne jamais créer un champ Firestore
+`isAdmin` pour accorder des droits.
 
-## 3. Déployer le backend Firebase
+## 4. Vercel
 
-Après validation sur le bon projet Firebase :
+Renseigner en Production :
 
-```bash
-firebase use scanbook-27440
-firebase deploy --only firestore:rules,firestore:indexes,storage,functions
+```text
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
 ```
 
-Cette commande publie :
+Déployer la branche `main`, puis ajouter le domaine obtenu aux domaines
+autorisés Firebase Auth.
 
-- les règles Firestore refusées par défaut ;
-- les index nécessaires aux historiques et notifications planifiées ;
-- les règles Storage limitées aux couvertures du propriétaire ;
-- les fonctions de suppression de compte, d'envoi FCM, de relance, de
-  nettoyage et de planification.
+## 5. Recette
 
-Les fonctions utilisent Node.js 22 et les tâches planifiées peuvent nécessiter
-le plan de facturation Firebase approprié.
+- inscription, connexion Email et Google, déconnexion et mot de passe oublié ;
+- recherche, scan, ajout manuel et couvertures personnalisées ;
+- synchronisation de la couverture sur un second navigateur ;
+- bibliothèques, filtres et exports ;
+- annonce intégrée avec un compte administrateur ;
+- suppression d'un compte de test ;
+- contrôle des quotas Firestore dans Firebase Console.
 
-## 4. Vérifications après déploiement
+## Services volontairement absents
 
-- vérifier qu'un utilisateur ordinaire ne voit ni l'administration ni les
-  données d'un autre compte ;
-- vérifier qu'un administrateur avec Custom Claim voit les écrans attendus ;
-- envoyer une notification de test à son propre appareil ;
-- programmer une notification à quelques minutes et contrôler son historique ;
-- créer puis supprimer un compte de test et confirmer la disparition de son
-  profil, de ses sous-collections et de ses couvertures ;
-- consulter les journaux Cloud Functions et les quotas Firestore/Storage/FCM.
+- Firebase Storage ;
+- Cloud Functions ;
+- Cloud Scheduler ;
+- notifications push serveur.
 
-## 5. Déployer le frontend
-
-Vercel est la cible documentée. Configurer les variables d'environnement, puis
-déployer le résultat de `npm run build`. Vérifier ensuite les en-têtes CSP, le
-manifeste, l'installation PWA, le mode hors ligne et les routes
-`/mentions-legales` et `/confidentialite`.
-
-Ne pas considérer le commit comme un déploiement : ces étapes doivent être
-exécutées et vérifiées explicitement dans les consoles Firebase et Vercel.
+Les annonces internes, les couvertures synchronisées et la suppression de compte
+restent disponibles grâce à Firestore et Authentication.

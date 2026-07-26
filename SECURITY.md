@@ -13,10 +13,10 @@ croisé aux données ou une élévation de privilèges sont traités en priorit�
 ## Règles du projet
 
 - aucun secret, compte de service ou fichier `.env` ne doit être commité ;
-- les autorisations sont décidées par Firebase Rules ou le backend, jamais par
-  un simple état d’interface ;
-- toute évolution des chemins Firestore/Storage doit inclure un test de règles ;
-- les actions destructrices exigent une confirmation accessible et un contrôle
-  serveur ;
+- les autorisations sont décidées par Firebase Rules et les claims signés,
+  jamais par un simple état d’interface ;
+- toute évolution des chemins Firestore doit inclure un test de règles ;
+- les actions destructrices exigent une confirmation accessible, une
+  authentification récente et des règles Firestore restrictives ;
 - les dépendances sont vérifiées dans la CI et les alertes de production sont
   traitées avant publication.

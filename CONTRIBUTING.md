@@ -2,7 +2,7 @@
 
 ## Préparer une modification
 
-1. Installer avec `npm ci` et `npm ci` dans `functions/`.
+1. Installer l'application avec `npm ci`.
 2. Copier `.env.example` vers `.env` sans ajouter ce dernier à Git.
 3. Créer une branche courte et centrée sur un seul objectif.
 4. Préserver les changements locaux sans rapport avec le ticket.
@@ -24,7 +24,7 @@ npm run typecheck
 npm test
 npm run test:rules
 npm run build
-node --check functions/index.js
+npm run test:rules
 ```
 
 Le serveur de développement et les déploiements Firebase ne doivent pas être
