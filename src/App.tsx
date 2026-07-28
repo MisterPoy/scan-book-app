@@ -71,6 +71,7 @@ import Toast from "./components/Toast";
 import Footer from "./components/Footer";
 import UnifiedSearchBar from "./components/UnifiedSearchBar";
 import ScanModeSelector from "./components/ScanModeSelector";
+import ThemeSelector from "./components/ThemeSelector";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
@@ -2942,7 +2943,7 @@ function App() {
               <img
                 src="/KodeksLogo.png"
                 alt="Kodeks"
-                className="h-8 w-8 sm:h-10 sm:w-10"
+                className="kodeks-logo h-8 w-8 sm:h-10 sm:w-10"
               />
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                 <span>Kodeks</span>
@@ -3055,13 +3056,23 @@ function App() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setShowAuthModal(true)}
-                    className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
-                  >
-                    <span className="hidden sm:inline">Se connecter</span>
-                    <span className="sm:hidden">Connexion</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowSettings(true)}
+                      className="flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-50 p-2 text-gray-700 transition-colors hover:bg-gray-100"
+                      aria-label="Ouvrir les paramètres d’apparence"
+                      title="Apparence"
+                    >
+                      <Gear size={19} weight="bold" aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setShowAuthModal(true)}
+                      className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                    >
+                      <span className="hidden sm:inline">Se connecter</span>
+                      <span className="sm:hidden">Connexion</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </nav>
@@ -3492,7 +3503,7 @@ function App() {
                   <img
                     src="/KodeksLogo.png"
                     alt="Kodeks"
-                    className="h-7 w-7 shrink-0 sm:h-10 sm:w-10"
+                    className="kodeks-logo h-7 w-7 shrink-0 sm:h-10 sm:w-10"
                   />
                   <h2
                     id="collection-modal-title"
@@ -4532,7 +4543,7 @@ function App() {
 
       {/* Bulk Delete Confirmation Modal */}
       {showBulkDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
           <div
             ref={bulkDeleteModalRef}
             className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
@@ -4692,7 +4703,7 @@ function App() {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
           <div
             ref={settingsModalRef}
             className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
@@ -4717,30 +4728,36 @@ function App() {
               </button>
             </div>
 
-            {/* Gestion du compte */}
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Warning size={20} weight="bold" className="text-red-600" />
-                Gestion du compte
-              </h3>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="font-semibold text-red-900 mb-2">
-                  Supprimer mon compte
-                </h4>
-                <p className="text-sm text-red-700 mb-4">
-                  Cette action est irréversible. Toutes vos données (livres,
-                  bibliothèques, notes) seront définitivement supprimées.
-                </p>
-                <button
-                  onClick={() => setShowDeleteAccountConfirm(true)}
-                  className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
-                >
-                  <Trash size={18} weight="bold" />
-                  Supprimer définitivement mon compte
-                </button>
-              </div>
+            <div className="border-b p-6">
+              <ThemeSelector />
             </div>
+
+            {/* Gestion du compte */}
+            {user && (
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Warning size={20} weight="bold" className="text-red-600" />
+                  Gestion du compte
+                </h3>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-900 mb-2">
+                    Supprimer mon compte
+                  </h4>
+                  <p className="text-sm text-red-700 mb-4">
+                    Cette action est irréversible. Toutes vos données (livres,
+                    bibliothèques, notes) seront définitivement supprimées.
+                  </p>
+                  <button
+                    onClick={() => setShowDeleteAccountConfirm(true)}
+                    className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
+                  >
+                    <Trash size={18} weight="bold" />
+                    Supprimer définitivement mon compte
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

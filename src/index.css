@@ -1,5 +1,237 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+  --kodeks-page: #f8fafc;
+  --kodeks-surface: #ffffff;
+  --kodeks-surface-raised: #ffffff;
+  --kodeks-surface-muted: #f1f5f9;
+  --kodeks-surface-hover: #e2e8f0;
+  --kodeks-border: #d1d5db;
+  --kodeks-border-subtle: #e5e7eb;
+  --kodeks-text: #111827;
+  --kodeks-text-secondary: #475569;
+  --kodeks-text-muted: #64748b;
+  --kodeks-primary: #2563eb;
+  --kodeks-focus: #3b82f6;
+  --kodeks-overlay: rgb(15 23 42 / 55%);
+  --kodeks-shadow: rgb(15 23 42 / 12%);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --kodeks-page: #0b1120;
+  --kodeks-surface: #111827;
+  --kodeks-surface-raised: #182235;
+  --kodeks-surface-muted: #172033;
+  --kodeks-surface-hover: #202d43;
+  --kodeks-border: #334155;
+  --kodeks-border-subtle: #263247;
+  --kodeks-text: #f3f6fa;
+  --kodeks-text-secondary: #bdc8d8;
+  --kodeks-text-muted: #93a1b5;
+  --kodeks-primary: #60a5fa;
+  --kodeks-focus: #93c5fd;
+  --kodeks-overlay: rgb(2 6 23 / 78%);
+  --kodeks-shadow: rgb(0 0 0 / 38%);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--kodeks-page);
+}
+
+body {
+  margin: 0;
+  color: var(--kodeks-text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+:where(.fixed.inset-0.bg-black, .fixed.inset-0.bg-black\/50) {
+  background-color: var(--kodeks-overlay) !important;
+}
+
+/*
+ * Pont de compatibilité pour les composants existants. Les couleurs restent
+ * centralisées ici pendant que les écrans utilisent encore les utilitaires
+ * Tailwind historiques.
+ */
+html[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--kodeks-page) !important;
+}
+
+html[data-theme="dark"] .bg-white {
+  background-color: var(--kodeks-surface) !important;
+}
+
+html[data-theme="dark"] .kodeks-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] [role="dialog"].bg-white {
+  background-color: var(--kodeks-surface-raised) !important;
+}
+
+html[data-theme="dark"] :where(.bg-gray-50, .bg-gray-100) {
+  background-color: var(--kodeks-surface-muted) !important;
+}
+
+html[data-theme="dark"] :where(.bg-gray-200, .bg-gray-300) {
+  background-color: var(--kodeks-surface-hover) !important;
+}
+
+html[data-theme="dark"] :where(.text-gray-900, .text-gray-800) {
+  color: var(--kodeks-text) !important;
+}
+
+html[data-theme="dark"] :where(.text-gray-700, .text-gray-600) {
+  color: var(--kodeks-text-secondary) !important;
+}
+
+html[data-theme="dark"] :where(.text-gray-500, .text-gray-400) {
+  color: var(--kodeks-text-muted) !important;
+}
+
+html[data-theme="dark"] :where(.border, .border-gray-100, .border-gray-200, .border-gray-300, .divide-gray-200) {
+  border-color: var(--kodeks-border) !important;
+}
+
+html[data-theme="dark"] :where(.bg-blue-50, .bg-blue-100) {
+  background-color: rgb(30 64 175 / 24%) !important;
+}
+
+html[data-theme="dark"] :where(.border-blue-100, .border-blue-200, .border-blue-300) {
+  border-color: rgb(96 165 250 / 48%) !important;
+}
+
+html[data-theme="dark"] :where(.text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900) {
+  color: #93c5fd !important;
+}
+
+html[data-theme="dark"] :where(.bg-red-50, .bg-red-100) {
+  background-color: rgb(127 29 29 / 30%) !important;
+}
+
+html[data-theme="dark"] :where(.border-red-100, .border-red-200, .border-red-300) {
+  border-color: rgb(248 113 113 / 45%) !important;
+}
+
+html[data-theme="dark"] :where(.text-red-600, .text-red-700, .text-red-800, .text-red-900) {
+  color: #fca5a5 !important;
+}
+
+html[data-theme="dark"] :where(.bg-green-50, .bg-green-100) {
+  background-color: rgb(6 78 59 / 34%) !important;
+}
+
+html[data-theme="dark"] :where(.border-green-100, .border-green-200, .border-green-300) {
+  border-color: rgb(52 211 153 / 42%) !important;
+}
+
+html[data-theme="dark"] :where(.text-green-600, .text-green-700, .text-green-800, .text-green-900) {
+  color: #6ee7b7 !important;
+}
+
+html[data-theme="dark"] :where(.bg-yellow-50, .bg-yellow-100, .bg-amber-50, .bg-amber-100, .bg-orange-50, .bg-orange-100) {
+  background-color: rgb(120 53 15 / 34%) !important;
+}
+
+html[data-theme="dark"] :where(.border-yellow-200, .border-amber-200, .border-orange-200) {
+  border-color: rgb(251 191 36 / 46%) !important;
+}
+
+html[data-theme="dark"] :where(.text-yellow-600, .text-yellow-700, .text-yellow-800, .text-yellow-900, .text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-orange-600, .text-orange-700, .text-orange-800, .text-orange-900) {
+  color: #fcd34d !important;
+}
+
+html[data-theme="dark"] :where(.bg-purple-50, .bg-purple-100) {
+  background-color: rgb(88 28 135 / 32%) !important;
+}
+
+html[data-theme="dark"] :where(.text-purple-600, .text-purple-700, .text-purple-800, .text-purple-900) {
+  color: #d8b4fe !important;
+}
+
+html[data-theme="dark"] :where(.bg-indigo-50, .bg-indigo-100) {
+  background-color: rgb(49 46 129 / 34%) !important;
+}
+
+html[data-theme="dark"] :where(.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900) {
+  color: #a5b4fc !important;
+}
+
+html[data-theme="dark"] :where(.text-pink-600, .text-pink-700, .text-pink-800, .text-pink-900) {
+  color: #f9a8d4 !important;
+}
+
+html[data-theme="dark"] :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  background-color: var(--kodeks-surface-muted);
+  border-color: var(--kodeks-border);
+  color: var(--kodeks-text);
+}
+
+html[data-theme="dark"] :where(input, textarea)::placeholder {
+  color: var(--kodeks-text-muted);
+  opacity: 1;
+}
+
+html[data-theme="dark"] :where(input, textarea, select):disabled {
+  background-color: #111827;
+  color: #718096;
+}
+
+html[data-theme="dark"] input:-webkit-autofill,
+html[data-theme="dark"] input:-webkit-autofill:hover,
+html[data-theme="dark"] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--kodeks-text);
+  box-shadow: 0 0 0 1000px var(--kodeks-surface-muted) inset;
+  caret-color: var(--kodeks-text);
+}
+
+html[data-theme="dark"] :where(.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) {
+  --tw-shadow-color: var(--kodeks-shadow);
+}
+
+html[data-theme="dark"] :where(.hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover, .hover\:bg-gray-200:hover) {
+  background-color: var(--kodeks-surface-hover) !important;
+}
+
+html[data-theme="dark"] .bg-white\/95 {
+  background-color: rgb(17 24 39 / 95%) !important;
+}
+
+html[data-theme="dark"] .from-white {
+  --tw-gradient-from: var(--kodeks-surface) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(17 24 39 / 0%) var(--tw-gradient-to-position) !important;
+}
+
+html[data-theme="dark"] .to-gray-50 {
+  --tw-gradient-to: var(--kodeks-page) var(--tw-gradient-to-position) !important;
+}
+
+html[data-theme="dark"] .theme-choice:not(:has(input:checked)) {
+  background-color: var(--kodeks-surface-muted) !important;
+  border-color: var(--kodeks-border) !important;
+}
+
+html[data-theme="dark"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .recharts-text {
+  fill: var(--kodeks-text-secondary);
+}
+
+html[data-theme="dark"] .recharts-cartesian-grid line {
+  stroke: var(--kodeks-border);
+}
+
+html[data-theme="dark"] .recharts-default-tooltip {
+  background-color: var(--kodeks-surface-raised) !important;
+  border-color: var(--kodeks-border) !important;
+  color: var(--kodeks-text) !important;
+}
+
 /*
  * Socle d'interaction commun.
  *

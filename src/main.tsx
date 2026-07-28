@@ -7,6 +7,7 @@ import MentionsLegales from './pages/MentionsLegales.tsx'
 import Confidentialite from './pages/Confidentialite.tsx'
 import ConsentBanner from './components/ConsentBanner.tsx'
 import ConsentAwareAnalytics from './components/ConsentAwareAnalytics.tsx'
+import { ThemeProvider } from './theme/ThemeProvider.tsx'
 
 const pathname = window.location.pathname.replace(/\/$/, '') || '/'
 const currentPage = pathname === '/mentions-legales'
@@ -17,10 +18,12 @@ const currentPage = pathname === '/mentions-legales'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>
-      {currentPage}
-      <ConsentAwareAnalytics />
-      <ConsentBanner />
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        {currentPage}
+        <ConsentAwareAnalytics />
+        <ConsentBanner />
+      </ErrorBoundary>
+    </ThemeProvider>
   </StrictMode>,
 )
