@@ -53,6 +53,7 @@ describe("ThemeProvider", () => {
       </ThemeProvider>,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: /Apparence : Automatique/i }));
     expect(screen.getByRole("radio", { name: /Automatique/i })).toBeChecked();
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
   });
@@ -65,6 +66,7 @@ describe("ThemeProvider", () => {
       </ThemeProvider>,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: /Apparence : Automatique/i }));
     fireEvent.click(screen.getByRole("radio", { name: /Sombre/i }));
 
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
@@ -86,6 +88,7 @@ describe("ThemeProvider", () => {
     act(() => changeSystemTheme(true));
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
 
+    fireEvent.click(screen.getByRole("button", { name: /Apparence : Automatique/i }));
     fireEvent.click(screen.getByRole("radio", { name: /Clair/i }));
     act(() => changeSystemTheme(false));
     act(() => changeSystemTheme(true));

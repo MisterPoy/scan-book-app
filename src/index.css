@@ -212,11 +212,6 @@ html[data-theme="dark"] .to-gray-50 {
   --tw-gradient-to: var(--kodeks-page) var(--tw-gradient-to-position) !important;
 }
 
-html[data-theme="dark"] .theme-choice:not(:has(input:checked)) {
-  background-color: var(--kodeks-surface-muted) !important;
-  border-color: var(--kodeks-border) !important;
-}
-
 html[data-theme="dark"] .recharts-cartesian-axis-tick-value,
 html[data-theme="dark"] .recharts-text {
   fill: var(--kodeks-text-secondary);

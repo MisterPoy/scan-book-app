@@ -2946,7 +2946,7 @@ function App() {
                 className="kodeks-logo h-8 w-8 sm:h-10 sm:w-10"
               />
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
-                <span>Kodeks</span>
+                <span className="hidden sm:inline">Kodeks</span>
               </h1>
             </button>
             <nav className="flex-shrink-0">
@@ -3032,6 +3032,7 @@ function App() {
                         )}
                       </div>
                     )}
+                    <ThemeSelector />
                     <button
                       onClick={() => setShowSettings(true)}
                       className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
@@ -3057,14 +3058,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowSettings(true)}
-                      className="flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-50 p-2 text-gray-700 transition-colors hover:bg-gray-100"
-                      aria-label="Ouvrir les paramètres d’apparence"
-                      title="Apparence"
-                    >
-                      <Gear size={19} weight="bold" aria-hidden="true" />
-                    </button>
+                    <ThemeSelector />
                     <button
                       onClick={() => setShowAuthModal(true)}
                       className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
@@ -4726,10 +4720,6 @@ function App() {
               >
                 <X size={20} weight="bold" aria-hidden="true" />
               </button>
-            </div>
-
-            <div className="border-b p-6">
-              <ThemeSelector />
             </div>
 
             {/* Gestion du compte */}
