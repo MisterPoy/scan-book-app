@@ -361,10 +361,10 @@ export default function LibraryManager({
                           onClick={() =>
                             setNewLibrary((prev) => ({ ...prev, icon }))
                           }
-                          className={`flex items-center justify-center p-2 text-lg rounded-md border-2 transition-colors ${
+                          className={`flex cursor-pointer items-center justify-center rounded-md border-2 p-2 text-lg transition-all hover:scale-105 hover:bg-blue-50 hover:shadow-sm ${
                             newLibrary.icon === icon
                               ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 hover:border-gray-300"
+                              : "border-gray-200 hover:border-blue-400"
                           }`}
                           aria-label={`Icône ${icon}`}
                           aria-pressed={newLibrary.icon === icon}
@@ -390,10 +390,10 @@ export default function LibraryManager({
                           onClick={() =>
                             setNewLibrary((prev) => ({ ...prev, color }))
                           }
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                          className={`h-8 w-8 cursor-pointer rounded-full border-2 transition-all hover:scale-110 hover:shadow-md ${
                             newLibrary.color === color
                               ? "border-gray-800 scale-110"
-                              : "border-gray-300 hover:border-gray-400"
+                              : "border-gray-300 hover:border-gray-700"
                           }`}
                           style={{ backgroundColor: color }}
                           aria-label={`Couleur ${color}`}
@@ -515,7 +515,7 @@ export default function LibraryManager({
                       {onUpdateLibrary && (
                         <button
                           onClick={() => handleEditLibrary(library)}
-                          className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
+                          className="cursor-pointer rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
                         title="Modifier cette bibliothèque"
                         aria-label="Modifier cette bibliothèque"
                         >
@@ -524,7 +524,7 @@ export default function LibraryManager({
                       )}
                       <button
                         onClick={() => setLibraryPendingDeletion(library)}
-                        className="text-red-600 hover:text-red-700 p-1 cursor-pointer"
+                        className="cursor-pointer rounded-md p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
                         title="Supprimer cette bibliothèque"
                         aria-label="Supprimer cette bibliothèque"
                       >

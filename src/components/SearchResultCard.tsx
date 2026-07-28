@@ -93,7 +93,7 @@ export default function SearchResultCard({
       {/* Checkbox toujours visible */}
       <button
         onClick={handleCheckboxClick}
-        className="absolute top-2 left-2 z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+        className="absolute left-2 top-2 z-10 cursor-pointer rounded transition-all hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         type="button"
         role="checkbox"
         aria-checked={isSelected}

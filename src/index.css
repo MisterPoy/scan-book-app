@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * Socle d'interaction commun.
+ *
+ * Les composants peuvent conserver leurs couleurs de survol propres, tandis
+ * que ces règles garantissent qu'un contrôle cliquable réagit toujours à la
+ * souris et reste clairement repérable au clavier. `:where()` garde une
+ * spécificité nulle afin de ne pas lutter contre les variantes Tailwind.
+ */
+:where(button:not(:disabled), [role="button"]:not([aria-disabled="true"]), a[href]) {
+  cursor: pointer;
+}
+
+:where(button, [role="button"], a[href], input, select, textarea):focus-visible {
+  outline: 3px solid rgb(59 130 246 / 45%);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):hover {
+    filter: brightness(0.96);
+    box-shadow: 0 4px 12px rgb(15 23 42 / 14%);
+    transform: translateY(-1px);
+  }
+
+  :where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):active {
+    filter: brightness(0.92);
+    transform: translateY(0) scale(0.98);
+  }
+
+  :where(a[href]):hover {
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+
+  :where(label:has(input[type="checkbox"]:not(:disabled)), label:has(input[type="radio"]:not(:disabled))):hover {
+    color: rgb(29 78 216);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role="button"], a[href]) {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Animation pour les livres scannés */
 @keyframes fadeIn {
   from {

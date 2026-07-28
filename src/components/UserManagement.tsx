@@ -130,7 +130,7 @@ export function UserManagement() {
           <p className="text-xl mb-4">❌ {error}</p>
           <button
             onClick={refresh}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+            className="mx-auto flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-all hover:bg-blue-700 hover:shadow-md"
           >
             <ArrowsClockwise size={16} />
             Réessayer
@@ -155,7 +155,7 @@ export function UserManagement() {
           </div>
           <button
             onClick={refresh}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-all hover:bg-blue-700 hover:shadow-md"
             aria-label="Rafraîchir les données"
           >
             <ArrowsClockwise size={16} />
@@ -432,7 +432,7 @@ export function UserManagement() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
                             onClick={() => setSelectedUser(user)}
-                            className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                            className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-900"
                           >
                             <Info size={16} />
                             Détails
@@ -489,7 +489,7 @@ export function UserManagement() {
                   </div>
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     aria-label="Fermer"
                   >
                     <X size={24} />
