@@ -9,6 +9,7 @@ export interface ScannedBook {
   publishedDate?: string;
   description?: string;
   pageCount?: number;
+  categories?: string[];
   isLoading?: boolean;
   error?: string;
 }
@@ -39,4 +40,5 @@ export interface BookMetadata {
   description?: string;
   pageCount?: number;
   thumbnail?: string;
+  categories?: string[];
 }

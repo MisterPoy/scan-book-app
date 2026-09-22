@@ -32,6 +32,7 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
         description: volumeInfo.description,
         pageCount: volumeInfo.pageCount,
         thumbnail: forceHttps(volumeInfo.imageLinks?.thumbnail),
+        categories: volumeInfo.categories,
       };
     }
 
@@ -51,6 +52,11 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
         description: bookData.notes || bookData.subtitle,
         pageCount: bookData.number_of_pages,
         thumbnail: forceHttps(bookData.cover?.medium || bookData.cover?.small),
+        categories: bookData.subjects
+          ?.map((subject: { name?: string } | string) =>
+            typeof subject === "string" ? subject : subject.name,
+          )
+          .filter((subject: string | undefined): subject is string => Boolean(subject)),
       };
     }
 
@@ -80,6 +86,7 @@ export async function fetchMultipleBooks(isbns: string[]): Promise<ScannedBook[]
           publishedDate: metadata.publishedDate,
           description: metadata.description,
           pageCount: metadata.pageCount,
+          categories: metadata.categories,
           isLoading: false,
         };
       } else {
@@ -166,6 +173,9 @@ export async function bulkAddBooks(
       if (metadata.publishedDate) bookData.publishedDate = metadata.publishedDate;
       if (metadata.description) bookData.description = metadata.description;
       if (metadata.pageCount) bookData.pageCount = metadata.pageCount;
+      if (metadata.categories && metadata.categories.length > 0) {
+        bookData.categories = metadata.categories;
+      }
       if (personalNotes?.[isbn]) bookData.notes = personalNotes[isbn];
       if (selectedLibraries && selectedLibraries.length > 0) bookData.libraries = selectedLibraries;
 

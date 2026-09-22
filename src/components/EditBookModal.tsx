@@ -40,6 +40,9 @@ interface CollectionBook {
   genre?: string;
   tags?: string[];
   libraries?: string[];
+  categories?: string[];
+  personalNote?: string;
+  notes?: string;
 }
 
 interface EditBookModalProps {

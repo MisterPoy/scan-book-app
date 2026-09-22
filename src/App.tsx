@@ -100,6 +100,7 @@ import { deduplicateAndRankBooks } from "./utils/searchRanking";
 import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { deleteCurrentUserAccount } from "./services/accountDeletion";
+import { hasBookDetails, mergeBookDetails } from "./utils/bookDetails";
 import {
   BookTypeBadge,
   BookTypeField,
@@ -132,6 +133,7 @@ interface CollectionBook {
   libraries?: string[]; // IDs des bibliothèques
   categories?: string[]; // Catégories Google Books
   personalNote?: string; // Note personnelle de l'utilisateur
+  notes?: string; // Ancien champ utilisé par l'ajout par lot
 }
 
 const getIsOnline = () =>
@@ -392,10 +394,18 @@ function CollectionBookCard({
   const [coverSrc, setCoverSrc] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [bookDetails, setBookDetails] = useState<CollectionBook | null>(null);
+  const [detailsRequested, setDetailsRequested] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBookDetails(null);
+    setDetailsRequested(false);
+    setExpanded(false);
+    setShowFullDescription(false);
+  }, [book.isbn]);
 
   useEffect(() => {
     // Si image personnalisée, l'utiliser en priorité
@@ -420,19 +430,25 @@ function CollectionBookCard({
   }, [book.isbn, book.customCoverUrl]);
 
   const fetchBookDetails = async () => {
-    if (bookDetails || loadingDetails) return;
+    if (detailsRequested || loadingDetails) return;
 
     setLoadingDetails(true);
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}`,
-      );
-      const data = await res.json();
-      const volumeInfo = data.items?.[0]?.volumeInfo;
-      setBookDetails(volumeInfo);
+      const metadata = await fetchBookMetadata(book.isbn);
+      if (metadata) {
+        setBookDetails({
+          ...book,
+          description: metadata.description,
+          publisher: metadata.publisher,
+          publishedDate: metadata.publishedDate,
+          pageCount: metadata.pageCount,
+          categories: metadata.categories,
+        });
+      }
     } catch (err) {
       console.error("Erreur lors de la récupération des détails:", err);
     } finally {
+      setDetailsRequested(true);
       setLoadingDetails(false);
     }
   };
@@ -480,6 +496,9 @@ function CollectionBookCard({
     // Simplement remettre à null pour utiliser l'image d'origine
     onUpdateCover(null);
   };
+
+  const displayedDetails = mergeBookDetails(book, bookDetails);
+  const detailsAvailable = hasBookDetails(displayedDetails);
 
   return (
     <article className="kodeks-panel group overflow-hidden md:grid md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.4fr)]">
@@ -684,20 +703,21 @@ function CollectionBookCard({
         {/* Collapse Details */}
         <div
           className={`overflow-hidden transition-all duration-300 ${
-            expanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+            expanded ? "max-h-[64rem] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div className="border-t pt-3 mt-2">
-            {loadingDetails ? (
+            {loadingDetails && (
               <div className="text-center py-4">
                 <div className="text-blue-600">
                   <Hourglass size={16} className="inline mr-2" />
-                  Chargement des détails...
+                  Recherche d'informations complémentaires...
                 </div>
               </div>
-            ) : bookDetails ? (
+            )}
+            {detailsAvailable ? (
               <div className="space-y-3">
-                {bookDetails.description && (
+                {displayedDetails.description && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
                       <Book
@@ -719,10 +739,10 @@ function CollectionBookCard({
                           showFullDescription ? "" : "line-clamp-4"
                         }`}
                       >
-                        {bookDetails.description.replace(/<[^>]*>/g, "")}
+                        {displayedDetails.description.replace(/<[^>]*>/g, "")}
                       </p>
                     </div>
-                    {bookDetails.description.length > 200 && (
+                    {displayedDetails.description.length > 200 && (
                       <button
                         onClick={() =>
                           setShowFullDescription(!showFullDescription)
@@ -735,7 +755,7 @@ function CollectionBookCard({
                   </div>
                 )}
 
-                {bookDetails.publishedDate && (
+                {displayedDetails.publishedDate && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
                       <CalendarBlank
@@ -746,12 +766,12 @@ function CollectionBookCard({
                       Publication
                     </h4>
                     <p className="text-xs text-gray-600">
-                      {bookDetails.publishedDate}
+                      {displayedDetails.publishedDate}
                     </p>
                   </div>
                 )}
 
-                {bookDetails.publisher && (
+                {displayedDetails.publisher && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
                       <Buildings
@@ -762,12 +782,12 @@ function CollectionBookCard({
                       Éditeur
                     </h4>
                     <p className="text-xs text-gray-600">
-                      {bookDetails.publisher}
+                      {displayedDetails.publisher}
                     </p>
                   </div>
                 )}
 
-                {bookDetails.pageCount && (
+                {displayedDetails.pageCount && (
                   <div>
                     <h4 className="font-medium text-gray-900 text-xs mb-1">
                       <FileText
@@ -778,13 +798,55 @@ function CollectionBookCard({
                       Pages
                     </h4>
                     <p className="text-xs text-gray-600">
-                      {bookDetails.pageCount} pages
+                      {displayedDetails.pageCount} pages
                     </p>
                   </div>
                 )}
 
-                {bookDetails.categories &&
-                  bookDetails.categories.length > 0 && (
+                {displayedDetails.genre && (
+                  <div>
+                    <h4 className="mb-1 text-xs font-medium text-gray-900">
+                      <Tag size={16} weight="regular" className="mr-2 inline" />
+                      Genre
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {displayedDetails.genre}
+                    </p>
+                  </div>
+                )}
+
+                {displayedDetails.tags && displayedDetails.tags.length > 0 && (
+                  <div>
+                    <h4 className="mb-1 text-xs font-medium text-gray-900">
+                      <Tag size={16} weight="regular" className="mr-2 inline" />
+                      Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {displayedDetails.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {displayedDetails.personalNote && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <h4 className="mb-1 text-xs font-semibold text-amber-900">
+                      Note personnelle
+                    </h4>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-900">
+                      {displayedDetails.personalNote}
+                    </p>
+                  </div>
+                )}
+
+                {displayedDetails.categories &&
+                  displayedDetails.categories.length > 0 && (
                     <div>
                       <h4 className="font-medium text-gray-900 text-xs mb-1">
                         <Tag
@@ -795,7 +857,7 @@ function CollectionBookCard({
                         Catégories
                       </h4>
                       <div className="flex flex-wrap gap-1">
-                        {bookDetails.categories
+                        {displayedDetails.categories
                           .slice(0, 3)
                           .map((category: string, index: number) => (
                             <span
@@ -809,11 +871,11 @@ function CollectionBookCard({
                     </div>
                   )}
               </div>
-            ) : (
+            ) : !loadingDetails ? (
               <div className="text-center py-2">
                 <p className="text-xs text-gray-500">Aucun détail disponible</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -1930,6 +1992,9 @@ function App() {
         genre: updatedBook.genre,
         tags: updatedBook.tags,
         libraries: updatedBook.libraries,
+        categories: updatedBook.categories,
+        personalNote: updatedBook.personalNote,
+        notes: updatedBook.notes,
       });
 
       await setDoc(ref, cleanedBook);
