@@ -22,6 +22,7 @@ import {
   type BookType,
   type ReadingStatus,
 } from "./BookMetadata";
+import GenreSelector from "./GenreSelector";
 
 interface CollectionBook {
   isbn: string;
@@ -51,10 +52,11 @@ interface EditBookModalProps {
   onClose: () => void;
   onSave: (updatedBook: CollectionBook) => void;
   userLibraries?: UserLibrary[];
+  availableGenres?: string[];
   onCreateLibrary?: (library: Omit<UserLibrary, 'id' | 'createdAt'>) => Promise<string | undefined>;
 }
 
-export default function EditBookModal({ book, isOpen, onClose, onSave, userLibraries = [] }: EditBookModalProps) {
+export default function EditBookModal({ book, isOpen, onClose, onSave, userLibraries = [], availableGenres = [] }: EditBookModalProps) {
   const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   const [formData, setFormData] = useState({
@@ -328,15 +330,16 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
               <div>
                 <label htmlFor="edit-genre" className="block text-sm font-medium text-gray-700 mb-2">
                   <Tag size={16} weight="regular" className="inline mr-2" />
-                  Genre / Catégorie
+                  Genre principal
                 </label>
-                <input
+                <GenreSelector
                   id="edit-genre"
-                  type="text"
                   value={formData.genre}
-                  onChange={(e) => setFormData(prev => ({ ...prev, genre: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Science-fiction, Romance, Thriller..."
+                  onChange={(genre) =>
+                    setFormData((previous) => ({ ...previous, genre }))
+                  }
+                  usedGenres={availableGenres}
+                  suggestedCategories={book.categories}
                 />
               </div>
               

@@ -67,6 +67,7 @@ import UnifiedSearchBar from "./components/UnifiedSearchBar";
 import ScanModeSelector from "./components/ScanModeSelector";
 import ThemeSelector from "./components/ThemeSelector";
 import LibraryBadge from "./components/LibraryBadge";
+import GenreSelector from "./components/GenreSelector";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
@@ -885,6 +886,7 @@ const EMPTY_MANUAL_BOOK = {
   customCoverUrl: "",
   readingStatus: "a_lire" as ReadingStatus,
   bookType: "physique" as BookType,
+  genre: "",
 };
 
 function App() {
@@ -1498,6 +1500,7 @@ function App() {
       customCoverUrl: manualBook.customCoverUrl || undefined,
       readingStatus: manualBook.readingStatus,
       bookType: manualBook.bookType,
+      genre: manualBook.genre.trim() || undefined,
     };
 
     setBook(book);
@@ -4243,6 +4246,24 @@ function App() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label
+                      htmlFor="manual-genre"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      <Tag size={16} weight="regular" className="mr-2 inline" />
+                      Genre principal
+                    </label>
+                    <GenreSelector
+                      id="manual-genre"
+                      value={manualBook.genre}
+                      onChange={(genre) =>
+                        setManualBook((previous) => ({ ...previous, genre }))
+                      }
+                      usedGenres={availableGenres}
+                    />
+                  </div>
                 </div>
 
                 {/* Colonne droite - Couverture */}
@@ -4331,6 +4352,7 @@ function App() {
           }}
           onSave={handleSaveEditedBook}
           userLibraries={userLibraries}
+          availableGenres={availableGenres}
           onCreateLibrary={createUserLibrary}
         />
       )}
