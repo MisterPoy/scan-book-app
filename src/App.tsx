@@ -2792,7 +2792,7 @@ function App() {
           <div className="flex justify-between items-center h-16">
             <button
               onClick={() => window.location.reload()}
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex shrink-0 items-center gap-0 transition-opacity hover:opacity-80 sm:gap-3 cursor-pointer"
               title="Retour à l'accueil"
             >
               <img
@@ -2800,11 +2800,11 @@ function App() {
                 alt="Kodeks"
                 className="kodeks-logo h-8 w-8 sm:h-10 sm:w-10"
               />
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
-                <span className="hidden sm:inline">Kodeks</span>
+              <h1 className="hidden items-center gap-2 truncate text-lg font-bold text-gray-900 sm:flex sm:text-2xl">
+                <span>Kodeks</span>
               </h1>
             </button>
-            <nav className="flex-shrink-0">
+            <nav className="min-w-0 flex-shrink-0">
               <div className="flex items-center gap-2">
                 {isOffline && (
                   <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
@@ -2815,28 +2815,28 @@ function App() {
                   <div className="flex items-center gap-1 sm:gap-4">
                     <button
                       onClick={() => setShowCollectionModal(true)}
-                      className="flex items-center gap-2 whitespace-nowrap rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 sm:px-3 sm:text-sm cursor-pointer"
+                      className="relative flex h-11 w-10 flex-col items-center justify-center overflow-hidden whitespace-nowrap rounded-md border border-blue-200 bg-blue-50 px-0 pb-2 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 lg:h-auto lg:w-auto lg:flex-row lg:gap-2 lg:overflow-visible lg:px-3 lg:py-2 lg:pb-2 lg:text-sm cursor-pointer"
                     >
                       <span className="hidden lg:inline">Ma Collection</span>
                       <span className="lg:hidden">
                         <Books size={18} weight="bold" />
                       </span>
                       {collectionBooks.length > 0 && (
-                        <span className="ml-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-bold tabular-nums text-white">
+                        <span className="absolute inset-x-0 bottom-0 flex h-3 items-center justify-center bg-blue-600/85 text-[9px] font-bold leading-none tabular-nums text-white lg:static lg:ml-0.5 lg:inline-flex lg:h-6 lg:min-w-6 lg:rounded-full lg:bg-blue-600 lg:px-1.5 lg:text-xs">
                           {collectionBooks.length}
                         </span>
                       )}
                     </button>
                     <button
                       onClick={() => setShowLibraryManager(true)}
-                      className="flex items-center gap-2 whitespace-nowrap rounded-md border border-green-200 bg-green-50 px-2 py-2 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:px-3 sm:text-sm cursor-pointer"
+                      className="relative flex h-11 w-10 flex-col items-center justify-center overflow-hidden whitespace-nowrap rounded-md border border-green-200 bg-green-50 px-0 pb-2 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 lg:h-auto lg:w-auto lg:flex-row lg:gap-2 lg:overflow-visible lg:px-3 lg:py-2 lg:pb-2 lg:text-sm cursor-pointer"
                     >
                       <span className="hidden lg:inline">Bibliothèques</span>
                       <span className="lg:hidden">
                         <FolderOpen size={18} weight="bold" />
                       </span>
                       {userLibraries.length > 0 && (
-                        <span className="ml-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-green-600 px-1.5 text-xs font-bold tabular-nums text-white">
+                        <span className="absolute inset-x-0 bottom-0 flex h-3 items-center justify-center bg-green-600/85 text-[9px] font-bold leading-none tabular-nums text-white lg:static lg:ml-0.5 lg:inline-flex lg:h-6 lg:min-w-6 lg:rounded-full lg:bg-green-600 lg:px-1.5 lg:text-xs">
                           {userLibraries.length}
                         </span>
                       )}
