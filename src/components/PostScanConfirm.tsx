@@ -9,6 +9,9 @@ interface PostScanConfirmProps {
   title?: string;
   authors?: string[];
   publisher?: string;
+  publishedDate?: string;
+  description?: string;
+  pageCount?: number;
   coverUrl?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -22,6 +25,9 @@ export default function PostScanConfirm({
   title,
   authors,
   publisher,
+  publishedDate,
+  description,
+  pageCount,
   coverUrl,
   onConfirm,
   onCancel,
@@ -89,11 +95,27 @@ export default function PostScanConfirm({
                 <strong>Éditeur :</strong> {publisher}
               </p>
             )}
+            {(publishedDate || pageCount) && (
+              <p className="text-sm text-gray-600 mb-1">
+                {publishedDate && <span>{publishedDate}</span>}
+                {publishedDate && pageCount && <span> · </span>}
+                {pageCount && <span>{pageCount} pages</span>}
+              </p>
+            )}
             <p className="text-sm text-gray-500 mt-2">
               <strong>ISBN :</strong> {isbn}
             </p>
           </div>
         </div>
+
+        {description && (
+          <div className="mb-6 rounded-lg bg-gray-50 p-3">
+            <h3 className="mb-1 text-sm font-semibold text-gray-900">Résumé</h3>
+            <p className="line-clamp-4 text-sm leading-relaxed text-gray-600">
+              {description.replace(/<[^>]*>/g, "")}
+            </p>
+          </div>
+        )}
 
         {/* Sélecteur de bibliothèques */}
         {userLibraries.length > 0 && onLibrarySelectionChange && (

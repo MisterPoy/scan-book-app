@@ -69,6 +69,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     bookType: "physique" as BookType,
     genre: "",
     tags: "",
+    personalNote: "",
     libraries: [] as string[]
   });
   const [uploading, setUploading] = useState(false);
@@ -89,6 +90,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
         bookType: book.bookType || "physique",
         genre: book.genre || "",
         tags: book.tags?.join(", ") || "",
+        personalNote: book.personalNote || book.notes || "",
         libraries: book.libraries || []
       });
     }
@@ -118,6 +120,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
       bookType: formData.bookType,
       genre: formData.genre.trim() || undefined,
       tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : undefined,
+      personalNote: formData.personalNote.trim() || undefined,
       libraries: formData.libraries.length > 0 ? formData.libraries : undefined
     };
 
@@ -349,6 +352,25 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                   onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="fantasy, magie, épique..."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-personal-note" className="block text-sm font-medium text-gray-700 mb-2">
+                  Note personnelle
+                </label>
+                <textarea
+                  id="edit-personal-note"
+                  value={formData.personalNote}
+                  onChange={(event) =>
+                    setFormData((previous) => ({
+                      ...previous,
+                      personalNote: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Votre avis, un rappel, une citation..."
                 />
               </div>
               

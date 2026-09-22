@@ -22,9 +22,6 @@ import {
   Trash,
   Warning,
   FolderOpen,
-  CalendarBlank,
-  Buildings,
-  FileText,
   Tag,
   Door,
   Download,
@@ -101,6 +98,7 @@ import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { deleteCurrentUserAccount } from "./services/accountDeletion";
 import { hasBookDetails, mergeBookDetails } from "./utils/bookDetails";
+import { createCollectionBookDocument } from "./utils/collectionBookDocument";
 import {
   BookTypeBadge,
   BookTypeField,
@@ -499,9 +497,15 @@ function CollectionBookCard({
 
   const displayedDetails = mergeBookDetails(book, bookDetails);
   const detailsAvailable = hasBookDetails(displayedDetails);
+  const supplementaryDetailsAvailable = Boolean(
+    displayedDetails.genre ||
+      displayedDetails.tags?.length ||
+      displayedDetails.categories?.length ||
+      displayedDetails.personalNote,
+  );
 
   return (
-    <article className="kodeks-panel group overflow-hidden md:grid md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.4fr)]">
+    <article className="kodeks-panel group w-full overflow-hidden max-md:rounded-none max-md:border-x-0 md:grid md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.4fr)]">
       {coverError && (
         <div className="p-3 md:col-span-2">
           <InlineNotice message={coverError} />
@@ -573,6 +577,71 @@ function CollectionBookCard({
           {book.authors?.join(", ") || "Auteur inconnu"}
         </p>
 
+        {displayedDetails.description && (
+          <section className="mb-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+            <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-gray-900">
+              <Book size={18} weight="regular" />
+              Résumé
+            </h4>
+            <p
+              className={`text-sm leading-relaxed text-gray-700 ${
+                showFullDescription ? "" : "line-clamp-4"
+              }`}
+            >
+              {displayedDetails.description.replace(/<[^>]*>/g, "")}
+            </p>
+            {displayedDetails.description.length > 200 && (
+              <button
+                type="button"
+                onClick={() => setShowFullDescription((isVisible) => !isVisible)}
+                className="mt-2 inline-flex min-h-9 cursor-pointer items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
+              >
+                {showFullDescription ? "Lire moins" : "Lire la suite"}
+              </button>
+            )}
+          </section>
+        )}
+
+        {(displayedDetails.publisher ||
+          displayedDetails.publishedDate ||
+          displayedDetails.pageCount ||
+          displayedDetails.genre) && (
+          <dl className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {displayedDetails.publisher && (
+              <div className="rounded-xl bg-gray-50 p-3">
+                <dt className="text-xs font-semibold text-gray-500">Éditeur</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {displayedDetails.publisher}
+                </dd>
+              </div>
+            )}
+            {displayedDetails.publishedDate && (
+              <div className="rounded-xl bg-gray-50 p-3">
+                <dt className="text-xs font-semibold text-gray-500">Publication</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {displayedDetails.publishedDate}
+                </dd>
+              </div>
+            )}
+            {displayedDetails.pageCount && (
+              <div className="rounded-xl bg-gray-50 p-3">
+                <dt className="text-xs font-semibold text-gray-500">Pages</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {displayedDetails.pageCount}
+                </dd>
+              </div>
+            )}
+            {displayedDetails.genre && (
+              <div className="rounded-xl bg-gray-50 p-3">
+                <dt className="text-xs font-semibold text-gray-500">Genre</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {displayedDetails.genre}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4">
           <span className="text-xs text-gray-400">
             Ajouté le {new Date(book.addedAt).toLocaleDateString("fr-FR")}
@@ -581,7 +650,7 @@ function CollectionBookCard({
             <button
               onClick={handleExpandToggle}
               className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-              title={expanded ? "Masquer les détails" : "Voir les détails"}
+              title={expanded ? "Masquer les compléments" : "Rechercher des informations complémentaires"}
             >
               {expanded ? (
                 <>
@@ -591,7 +660,7 @@ function CollectionBookCard({
               ) : (
                 <>
                   <CaretDown size={18} weight="bold" />
-                  Informations
+                  Plus d'infos
                 </>
               )}
             </button>
@@ -715,106 +784,8 @@ function CollectionBookCard({
                 </div>
               </div>
             )}
-            {detailsAvailable ? (
+            {supplementaryDetailsAvailable ? (
               <div className="space-y-3">
-                {displayedDetails.description && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <Book
-                        size={16}
-                        weight="regular"
-                        className="inline mr-2"
-                      />
-                      Résumé
-                    </h4>
-                    <div
-                      className={`${
-                        showFullDescription
-                          ? "max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
-                          : "max-h-none"
-                      }`}
-                    >
-                      <p
-                        className={`text-xs text-gray-600 leading-relaxed ${
-                          showFullDescription ? "" : "line-clamp-4"
-                        }`}
-                      >
-                        {displayedDetails.description.replace(/<[^>]*>/g, "")}
-                      </p>
-                    </div>
-                    {displayedDetails.description.length > 200 && (
-                      <button
-                        onClick={() =>
-                          setShowFullDescription(!showFullDescription)
-                        }
-                        className="text-blue-600 hover:text-blue-700 text-xs mt-2 font-medium inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        {showFullDescription ? <>Lire moins</> : <>Lire plus</>}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {displayedDetails.publishedDate && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <CalendarBlank
-                        size={16}
-                        weight="regular"
-                        className="inline mr-2"
-                      />
-                      Publication
-                    </h4>
-                    <p className="text-xs text-gray-600">
-                      {displayedDetails.publishedDate}
-                    </p>
-                  </div>
-                )}
-
-                {displayedDetails.publisher && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <Buildings
-                        size={16}
-                        weight="regular"
-                        className="inline mr-2"
-                      />
-                      Éditeur
-                    </h4>
-                    <p className="text-xs text-gray-600">
-                      {displayedDetails.publisher}
-                    </p>
-                  </div>
-                )}
-
-                {displayedDetails.pageCount && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 text-xs mb-1">
-                      <FileText
-                        size={16}
-                        weight="regular"
-                        className="inline mr-2"
-                      />
-                      Pages
-                    </h4>
-                    <p className="text-xs text-gray-600">
-                      {displayedDetails.pageCount} pages
-                    </p>
-                  </div>
-                )}
-
-                {displayedDetails.genre && (
-                  <div>
-                    <h4 className="mb-1 text-xs font-medium text-gray-900">
-                      <Tag size={16} weight="regular" className="mr-2 inline" />
-                      Genre
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {displayedDetails.genre}
-                    </p>
-                  </div>
-                )}
-
                 {displayedDetails.tags && displayedDetails.tags.length > 0 && (
                   <div>
                     <h4 className="mb-1 text-xs font-medium text-gray-900">
@@ -871,10 +842,14 @@ function CollectionBookCard({
                     </div>
                   )}
               </div>
-            ) : !loadingDetails ? (
+            ) : !loadingDetails && !detailsAvailable ? (
               <div className="text-center py-2">
                 <p className="text-xs text-gray-500">Aucun détail disponible</p>
               </div>
+            ) : !loadingDetails && detailsRequested ? (
+              <p className="py-2 text-center text-xs text-gray-500">
+                Aucune information complémentaire disponible
+              </p>
             ) : null}
           </div>
         </div>
@@ -1209,6 +1184,10 @@ function App() {
     title?: string;
     authors?: string[];
     publisher?: string;
+    publishedDate?: string;
+    description?: string;
+    pageCount?: number;
+    categories?: string[];
     coverUrl?: string;
   } | null>(null);
 
@@ -1249,6 +1228,10 @@ function App() {
           title: metadata.title,
           authors: metadata.authors,
           publisher: metadata.publisher,
+          publishedDate: metadata.publishedDate,
+          description: metadata.description,
+          pageCount: metadata.pageCount,
+          categories: metadata.categories,
           coverUrl: metadata.thumbnail,
         });
         setShowPostScanConfirm(true);
@@ -1277,18 +1260,18 @@ function App() {
     }
 
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${code}`,
+      const metadata = await fetchBookMetadata(code);
+      setBook(
+        metadata
+          ? {
+              ...metadata,
+              isbn: code,
+              imageLinks: metadata.thumbnail
+                ? { thumbnail: metadata.thumbnail }
+                : undefined,
+            }
+          : null,
       );
-      const data = await res.json();
-      const volumeInfo = data.items?.[0]?.volumeInfo || null;
-      if (volumeInfo) {
-        // Forcer HTTPS pour éviter Mixed Content warnings
-        if (volumeInfo.imageLinks?.thumbnail) {
-          volumeInfo.imageLinks.thumbnail = volumeInfo.imageLinks.thumbnail.replace(/^http:\/\//i, 'https://');
-        }
-      }
-      setBook({ ...volumeInfo, isbn: code });
     } catch (err) {
       console.error("Erreur lors de la recherche Google Books :", err);
       setBook(null);
@@ -1436,31 +1419,16 @@ function App() {
     setAddingToCollection(true);
     try {
       // Normaliser les données comme dans bulkAddBooks
-      const bookData: Record<string, unknown> = {
-        isbn: scannedBookData.isbn,
-        title: scannedBookData.title || "Titre inconnu",
-        addedAt: new Date().toISOString(),
-        isRead: false,
-        readingStatus: "non_lu",
-        bookType: "physique",
-        isManualEntry: false,
-      };
-
-      // Ajouter uniquement les champs définis pour éviter les erreurs Firebase
-      if (scannedBookData.authors && scannedBookData.authors.length > 0) {
-        bookData.authors = scannedBookData.authors;
-      }
-      if (scannedBookData.publisher) {
-        bookData.publisher = scannedBookData.publisher;
-      }
-      if (scannedBookData.coverUrl) {
-        bookData.customCoverUrl = scannedBookData.coverUrl;
-      }
-
-      // Ajouter les bibliothèques sélectionnées
-      if (selectedLibrariesForAdd.length > 0) {
-        bookData.libraries = selectedLibrariesForAdd;
-      }
+      const bookData = createCollectionBookDocument(
+        {
+          ...scannedBookData,
+          thumbnail: scannedBookData.coverUrl,
+        },
+        {
+          readingStatus: "non_lu",
+          libraries: selectedLibrariesForAdd,
+        },
+      );
 
       const bookRef = doc(
         db,
@@ -1574,40 +1542,12 @@ function App() {
 
     try {
       const ref = doc(db, `users/${user.uid}/collection`, book.isbn || "");
-      const docData: Record<string, unknown> = {
-        title: book.title,
-        authors: book.authors || [],
-        isbn: book.isbn,
-        addedAt: new Date().toISOString(),
-        isRead: false,
-      };
-
-      // Sauvegarder l'image de couverture (priorité : customCoverUrl > imageLinks.thumbnail)
-      if (book.customCoverUrl) {
-        docData.customCoverUrl = book.customCoverUrl;
-      } else if (book.imageLinks?.thumbnail) {
-        docData.customCoverUrl = book.imageLinks.thumbnail;
-      }
-
-      // Marquer comme livre manuel si créé manuellement
-      if (book.isbn?.startsWith("manual_")) {
-        docData.isManualEntry = true;
-        docData.publisher = book.publisher;
-        docData.publishedDate = book.publishedDate;
-        docData.description = book.description;
-        docData.pageCount = book.pageCount;
-      }
-
-      // Valeurs par défaut pour les nouveaux champs de filtre
-      docData.readingStatus = book.readingStatus || "a_lire";
-      docData.bookType = book.bookType || "physique";
-      if (book.genre) docData.genre = book.genre;
-      if (book.tags && book.tags.length > 0) docData.tags = book.tags;
-
-      // Ajouter les bibliothèques sélectionnées
-      if (selectedLibraries && selectedLibraries.length > 0) {
-        docData.libraries = selectedLibraries;
-      }
+      const docData = createCollectionBookDocument(book, {
+        readingStatus: book.readingStatus || "a_lire",
+        bookType: book.bookType || "physique",
+        isManualEntry: book.isbn?.startsWith("manual_") || false,
+        libraries: selectedLibraries,
+      });
 
       await setDoc(ref, docData);
 
@@ -1638,11 +1578,7 @@ function App() {
     try {
       const snapshot = await getDocs(collection(db, `users/${uid}/collection`));
       const list = snapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as CollectionBook & { id: string },
+        (bookDocument) => bookDocument.data() as CollectionBook,
       );
       setCollectionBooks(list);
       const lastActivity =
@@ -1899,13 +1835,20 @@ function App() {
       const bookToUpdate = collectionBooks.find((book) => book.isbn === isbn);
       if (!bookToUpdate) return;
 
-      const ref = doc(db, `users/${user.uid}/collection`, isbn);
-      await setDoc(ref, {
+      const isRead = !bookToUpdate.isRead;
+      const updatedBook: CollectionBook = {
         ...bookToUpdate,
-        isRead: !bookToUpdate.isRead,
-      });
+        isRead,
+        readingStatus: isRead ? "lu" : "non_lu",
+        updatedAt: new Date().toISOString(),
+      };
+      const ref = doc(db, `users/${user.uid}/collection`, isbn);
+      await setDoc(ref, updatedBook);
 
       fetchCollection(user.uid);
+      if (selectedBook?.isbn === isbn) {
+        setSelectedBook(updatedBook);
+      }
     } catch (err) {
       console.error("Erreur mise à jour statut lecture:", err);
     }
@@ -1923,6 +1866,7 @@ function App() {
 
       const ref = doc(db, `users/${user.uid}/collection`, isbn);
       const docData = { ...bookToUpdate };
+      docData.updatedAt = new Date().toISOString();
 
       if (newCoverUrl) {
         docData.customCoverUrl = newCoverUrl;
@@ -1979,6 +1923,7 @@ function App() {
         title: updatedBook.title,
         authors: updatedBook.authors || [],
         addedAt: updatedBook.addedAt,
+        updatedAt: new Date().toISOString(),
         isRead: updatedBook.isRead,
         readingStatus:
           updatedBook.readingStatus || (updatedBook.isRead ? "lu" : "a_lire"),
@@ -2335,7 +2280,7 @@ function App() {
         statusLabels[status as keyof typeof statusLabels] || "",
         typeLabels[(book.bookType || "physique") as keyof typeof typeLabels] ||
           "",
-        book.personalNote || "",
+        book.personalNote || book.notes || "",
         libraryNames || "",
         formatDate(book.addedAt) || "",
       ];
@@ -2540,7 +2485,7 @@ function App() {
           book.categories?.join(", ") || "-",
           statusLabels[status] || "-",
           typeLabels[book.bookType || "physique"] || "-",
-          book.personalNote || "-",
+          book.personalNote || book.notes || "-",
           libraryNames || "-",
           formatDate(book.addedAt) || "-",
         ];
@@ -2705,22 +2650,15 @@ function App() {
 
       // Ajouter chaque livre à Firestore
       const promises = booksToAdd.map(async (googleBook) => {
-        const bookData = {
-          title: googleBook.title,
-          authors: googleBook.authors || [],
-          isbn: googleBook.isbn || "",
-          publisher: googleBook.publisher || "",
-          publishedDate: googleBook.publishedDate || "",
-          pageCount: googleBook.pageCount || 0,
-          categories: googleBook.categories || [],
-          imageLinks: googleBook.imageLinks,
-          addedAt: new Date().toISOString(),
-          status: "unread" as const,
-          customCoverUrl: "",
-          libraries: []
-        };
+        const bookData = createCollectionBookDocument(googleBook, {
+          readingStatus: "a_lire",
+        });
 
-        const docRef = doc(db, `users/${user.uid}/collection`, bookData.isbn);
+        const docRef = doc(
+          db,
+          `users/${user.uid}/collection`,
+          String(bookData.isbn),
+        );
         await setDoc(docRef, bookData);
       });
 
@@ -3729,7 +3667,9 @@ function App() {
             {/* Contenu */}
             <div
               ref={collectionModalScrollRef}
-              className="flex-1 overflow-y-auto p-6"
+              className={`flex-1 overflow-y-auto ${
+                selectedBook ? "p-0 sm:p-6" : "p-4 sm:p-6"
+              }`}
             >
               {collectionBooks.length === 0 ? (
                 <div className="text-center py-12">
@@ -3745,18 +3685,11 @@ function App() {
                 </div>
               ) : selectedBook ? (
                 /* Vue détaillée d'un livre */
-                <div className="mx-auto max-w-5xl">
+                <div className="w-full sm:mx-auto sm:max-w-5xl">
                   <CollectionBookCard
                     book={selectedBook}
                     onRemove={() => setBookPendingRemoval(selectedBook)}
-                    onToggleRead={() => {
-                      toggleReadStatus(selectedBook.isbn);
-                      // Mettre à jour selectedBook avec le nouveau statut
-                      setSelectedBook({
-                        ...selectedBook,
-                        isRead: !selectedBook.isRead,
-                      });
-                    }}
+                    onToggleRead={() => toggleReadStatus(selectedBook.isbn)}
                     onUpdateCover={(newCoverUrl) =>
                       updateBookCover(selectedBook.isbn, newCoverUrl)
                     }
@@ -4474,6 +4407,9 @@ function App() {
           title={scannedBookData.title}
           authors={scannedBookData.authors}
           publisher={scannedBookData.publisher}
+          publishedDate={scannedBookData.publishedDate}
+          description={scannedBookData.description}
+          pageCount={scannedBookData.pageCount}
           coverUrl={scannedBookData.coverUrl}
           onConfirm={handlePostScanConfirm}
           onCancel={handlePostScanCancel}
