@@ -66,6 +66,7 @@ import Footer from "./components/Footer";
 import UnifiedSearchBar from "./components/UnifiedSearchBar";
 import ScanModeSelector from "./components/ScanModeSelector";
 import ThemeSelector from "./components/ThemeSelector";
+import LibraryBadge from "./components/LibraryBadge";
 import { useBookFilters } from "./hooks/useBookFilters";
 import { useFocusTrap } from "./hooks/useFocusTrap";
 import type { UserLibrary } from "./types/library";
@@ -309,13 +310,12 @@ function CompactBookCard({
               {book.libraries.map((libId) => {
                 const library = userLibraries.find((lib) => lib.id === libId);
                 return library ? (
-                  <span
+                  <LibraryBadge
                     key={libId}
-                    className="px-1 py-0.5 rounded text-xs text-white font-medium"
-                    style={{ backgroundColor: library.color || "#3B82F6" }}
-                  >
-                    {renderLibraryIcon(library.icon || "BK", 16)} {library.name}
-                  </span>
+                    name={library.name}
+                    color={library.color}
+                    icon={library.icon}
+                  />
                 ) : null;
               })}
             </div>
@@ -350,13 +350,13 @@ function CompactBookCard({
               {book.libraries.map((libId) => {
                 const library = userLibraries.find((lib) => lib.id === libId);
                 return library ? (
-                  <span
+                  <LibraryBadge
                     key={libId}
-                    className="px-1 py-0.5 rounded text-xs text-white font-medium"
-                    style={{ backgroundColor: library.color || "#3B82F6" }}
-                  >
-                    {renderLibraryIcon(library.icon || "BK", 16)}
-                  </span>
+                    name={library.name}
+                    color={library.color}
+                    icon={library.icon}
+                    compact
+                  />
                 ) : null;
               })}
             </div>
@@ -731,17 +731,13 @@ function CollectionBookCard({
                 {book.libraries.map((libId) => {
                   const library = userLibraries.find((lib) => lib.id === libId);
                   return library ? (
-                    <button
+                    <LibraryBadge
                       key={libId}
-                      onClick={() => onLibraryToggle?.(libId)}
-                      className="px-2 py-1 rounded text-xs text-white transition-colors hover:opacity-80 cursor-pointer"
-                      style={{ backgroundColor: library.color || "#3B82F6" }}
-                      title={`Retirer de ${library.name}`}
-                      aria-label={`Retirer de ${library.name}`}
-                    >
-                      {renderLibraryIcon(library.icon || "BK", 16)}{" "}
-                      {library.name} <X size={12} />
-                    </button>
+                      name={library.name}
+                      color={library.color}
+                      icon={library.icon}
+                      onRemove={() => onLibraryToggle?.(libId)}
+                    />
                   ) : null;
                 })}
               </div>
