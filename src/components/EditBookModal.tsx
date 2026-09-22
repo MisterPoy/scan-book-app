@@ -16,6 +16,12 @@ import {
   DeviceMobile,
   X
 } from "phosphor-react";
+import {
+  BookTypeField,
+  ReadingStatusField,
+  type BookType,
+  type ReadingStatus,
+} from "./BookMetadata";
 
 interface CollectionBook {
   isbn: string;
@@ -29,8 +35,8 @@ interface CollectionBook {
   description?: string;
   pageCount?: number;
   isManualEntry?: boolean;
-  readingStatus?: 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne';
-  bookType?: 'physique' | 'numerique' | 'audio';
+  readingStatus?: ReadingStatus;
+  bookType?: BookType;
   genre?: string;
   tags?: string[];
   libraries?: string[];
@@ -56,8 +62,8 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     description: "",
     pageCount: "",
     customCoverUrl: "",
-    readingStatus: "a_lire" as 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne',
-    bookType: "physique" as 'physique' | 'numerique' | 'audio',
+    readingStatus: "a_lire" as ReadingStatus,
+    bookType: "physique" as BookType,
     genre: "",
     tags: "",
     libraries: [] as string[]
@@ -170,9 +176,9 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
     >
       <div
         ref={modalRef}
-        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+        className="kodeks-modal relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl md:max-h-[90vh] max-md:h-full max-md:max-h-full max-md:rounded-none"
       >
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 p-4 backdrop-blur md:p-6">
           <h2 id="modal-title" className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <PencilSimple size={24} weight="bold" />
             Modifier le livre
@@ -186,11 +192,15 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6">
           <InlineNotice message={formError} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
             {/* Colonne gauche - Informations */}
-            <div className="space-y-4">
+            <div className="kodeks-panel space-y-4 p-4 md:p-5">
+              <div className="rounded-xl bg-gray-50 px-3 py-2">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-gray-500">ISBN / identifiant</span>
+                <span className="mt-1 block break-all font-mono text-sm text-gray-800">{book.isbn}</span>
+              </div>
               <div>
                 <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-2">
                   Titre * (obligatoire)
@@ -285,18 +295,13 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                     <ChartBar size={16} weight="regular" className="inline mr-2" />
                     Statut de lecture
                   </label>
-                  <select
+                  <ReadingStatusField
                     id="edit-reading-status"
                     value={formData.readingStatus}
-                    onChange={(e) => setFormData(prev => ({ ...prev, readingStatus: e.target.value as 'lu' | 'non_lu' | 'a_lire' | 'en_cours' | 'abandonne' }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="non_lu">⭕ Non lu</option>
-                    <option value="a_lire">À lire</option>
-                    <option value="en_cours">En cours</option>
-                    <option value="lu">Lu</option>
-                    <option value="abandonne">Abandonné</option>
-                  </select>
+                    onChange={(readingStatus) =>
+                      setFormData((previous) => ({ ...previous, readingStatus }))
+                    }
+                  />
                 </div>
                 
                 <div>
@@ -304,16 +309,13 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
                     <DeviceMobile size={16} weight="regular" className="inline mr-2" />
                     Type de livre
                   </label>
-                  <select
+                  <BookTypeField
                     id="edit-book-type"
                     value={formData.bookType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, bookType: e.target.value as 'physique' | 'numerique' | 'audio' }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="physique">Physique</option>
-                    <option value="numerique">Numérique</option>
-                    <option value="audio">Audio</option>
-                  </select>
+                    onChange={(bookType) =>
+                      setFormData((previous) => ({ ...previous, bookType }))
+                    }
+                  />
                 </div>
               </div>
               
@@ -397,7 +399,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
             </div>
             
             {/* Colonne droite - Couverture */}
-            <div className="space-y-4">
+            <div className="kodeks-panel h-fit space-y-4 p-4 md:sticky md:top-24 md:p-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Couverture du livre
@@ -479,7 +481,7 @@ export default function EditBookModal({ book, isOpen, onClose, onSave, userLibra
           </div>
           
           {/* Boutons d'action */}
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t">
+          <div className="sticky bottom-0 -mx-4 mt-8 flex justify-end gap-3 border-t bg-white/95 px-4 py-4 backdrop-blur md:-mx-6 md:px-6">
             <button
               type="button"
               onClick={onClose}

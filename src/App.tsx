@@ -10,15 +10,12 @@ import {
 } from "react";
 import {
   Check,
-  Circle,
   X,
   Book,
   Books,
   Camera,
   Clock,
   PencilSimple,
-  DeviceMobile,
-  Headphones,
   ArrowClockwise,
   CaretUp,
   CaretDown,
@@ -103,6 +100,14 @@ import { deduplicateAndRankBooks } from "./utils/searchRanking";
 import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { deleteCurrentUserAccount } from "./services/accountDeletion";
+import {
+  BookTypeBadge,
+  BookTypeField,
+  ReadingStatusBadge,
+  ReadingStatusField,
+  type BookType,
+  type ReadingStatus,
+} from "./components/BookMetadata";
 
 interface CollectionBook {
   isbn: string;
@@ -119,8 +124,8 @@ interface CollectionBook {
   pageCount?: number;
   isManualEntry?: boolean; // Distinguer les livres manuels des scannés
   // Nouveaux champs pour les filtres (optionnels pour rétrocompatibilité)
-  readingStatus?: "lu" | "non_lu" | "a_lire" | "en_cours" | "abandonne";
-  bookType?: "physique" | "numerique" | "audio";
+  readingStatus?: ReadingStatus;
+  bookType?: BookType;
   genre?: string;
   tags?: string[];
   // Nouveau champ pour les bibliothèques personnalisées
@@ -237,6 +242,10 @@ function CompactBookCard({
     }
   };
 
+  const readingStatus =
+    book.readingStatus || (book.isRead ? "lu" : "non_lu");
+  const bookType = book.bookType || "physique";
+
   return (
     <div
       onClick={handleClick}
@@ -251,19 +260,19 @@ function CompactBookCard({
       aria-label={
         selectionMode ? `Sélectionner ${book.title}` : `Ouvrir ${book.title}`
       }
-      className={`bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-0.5 ${
+      className={`group overflow-hidden rounded-2xl border bg-white shadow-sm outline-none transition duration-200 motion-safe:hover:-translate-y-1 hover:shadow-xl focus-visible:ring-4 focus-visible:ring-blue-200 cursor-pointer ${
         isSelected
-          ? "border-blue-500 border-2 ring-2 ring-blue-200"
-          : "border-gray-200"
+          ? "border-blue-500 ring-2 ring-blue-200"
+          : "border-slate-200 hover:border-blue-300"
       }`}
     >
       {/* Desktop/Tablet : Layout vertical */}
       <div className="hidden md:block">
-        <div className="aspect-[2/3] bg-gray-100 overflow-hidden relative">
+        <div className="aspect-[2/3] bg-slate-100 overflow-hidden relative">
           <img
             src={coverSrc}
             alt={book.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition duration-300 motion-safe:group-hover:scale-[1.025]"
           />
           {/* Checkbox de sélection */}
           {selectionMode && (
@@ -279,12 +288,8 @@ function CompactBookCard({
             </div>
           )}
           {/* Badge de lecture en overlay (lecture seule) */}
-          <div
-            className={`absolute top-1 right-1 px-1.5 py-0.5 text-xs font-medium rounded-full ${
-              book.isRead ? "bg-green-500 text-white" : "bg-gray-500 text-white"
-            }`}
-          >
-            {book.isRead ? "Lu" : "Non lu"}
+          <div className="absolute right-2 top-2">
+            <ReadingStatusBadge status={readingStatus} compact />
           </div>
         </div>
         <div className="p-3">
@@ -294,82 +299,8 @@ function CompactBookCard({
           <p className="text-xs text-gray-600 line-clamp-1 mb-3">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
-          {/* Badges informatifs (lecture seule) */}
           <div className="flex flex-wrap gap-1.5">
-            {/* Badge statut de lecture */}
-            {(() => {
-              const status =
-                book.readingStatus || (book.isRead ? "lu" : "non_lu");
-              const statusConfig = {
-                lu: {
-                  icon: <Check size={16} weight="bold" />,
-                  label: "Lu",
-                  color: "bg-green-100 text-green-800",
-                },
-                non_lu: {
-                  icon: <Circle size={16} weight="regular" />,
-                  label: "Non lu",
-                  color: "bg-gray-100 text-gray-800",
-                },
-                a_lire: {
-                  icon: <Book size={16} weight="regular" />,
-                  label: "À lire",
-                  color: "bg-blue-100 text-blue-800",
-                },
-                en_cours: {
-                  icon: <Clock size={16} weight="regular" />,
-                  label: "En cours",
-                  color: "bg-yellow-100 text-yellow-800",
-                },
-                abandonne: {
-                  icon: <X size={16} weight="bold" />,
-                  label: "Abandonné",
-                  color: "bg-red-100 text-red-800",
-                },
-              };
-              const config =
-                statusConfig[status as keyof typeof statusConfig] ||
-                statusConfig.non_lu;
-              return (
-                <span
-                  className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
-                >
-                  {config.icon} {config.label}
-                </span>
-              );
-            })()}
-
-            {/* Badge type de livre */}
-            {(() => {
-              const type = book.bookType || "physique";
-              const typeConfig = {
-                physique: {
-                  icon: <Books size={16} weight="regular" />,
-                  label: "Physique",
-                  color: "bg-amber-100 text-amber-800",
-                },
-                numerique: {
-                  icon: <DeviceMobile size={16} weight="regular" />,
-                  label: "Numérique",
-                  color: "bg-indigo-100 text-indigo-800",
-                },
-                audio: {
-                  icon: <Headphones size={16} weight="regular" />,
-                  label: "Audio",
-                  color: "bg-purple-100 text-purple-800",
-                },
-              };
-              const config =
-                typeConfig[type as keyof typeof typeConfig] ||
-                typeConfig.physique;
-              return (
-                <span
-                  className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
-                >
-                  {config.icon} {config.label}
-                </span>
-              );
-            })()}
+            <BookTypeBadge type={bookType} />
           </div>
 
           {/* Bibliothèques (affichage simple) */}
@@ -393,102 +324,29 @@ function CompactBookCard({
       </div>
 
       {/* Mobile : Layout optimisé pleine largeur */}
-      <div className="flex md:hidden items-center p-4 relative">
-        <div className="w-20 h-28 bg-gray-100 rounded overflow-hidden flex-shrink-0 mr-4">
+      <div className="flex min-h-40 items-stretch gap-4 p-3 md:hidden">
+        <div className="w-24 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm">
           <img
             src={coverSrc}
             alt={book.title}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover transition duration-300 motion-safe:group-hover:scale-[1.025]"
           />
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-base mb-1 line-clamp-2 leading-tight">
+        <div className="flex min-w-0 flex-1 flex-col py-1">
+          <h3 className="mb-1 line-clamp-2 text-base font-bold leading-snug text-slate-950">
             {book.title}
           </h3>
-          <p className="text-sm text-gray-600 line-clamp-1 mb-2">
+          <p className="mb-3 line-clamp-2 text-sm text-slate-600">
             {book.authors?.join(", ") || "Auteur inconnu"}
           </p>
-          {/* Badges informatifs mobile (lecture seule) */}
           <div className="flex flex-wrap gap-1.5">
-            {/* Badge statut de lecture */}
-            {(() => {
-              const status =
-                book.readingStatus || (book.isRead ? "lu" : "non_lu");
-              const statusConfig = {
-                lu: {
-                  icon: <Check size={16} weight="bold" />,
-                  label: "Lu",
-                  color: "bg-green-100 text-green-800",
-                },
-                non_lu: {
-                  icon: <Circle size={16} weight="regular" />,
-                  label: "Non lu",
-                  color: "bg-gray-100 text-gray-800",
-                },
-                a_lire: {
-                  icon: <Book size={16} weight="regular" />,
-                  label: "À lire",
-                  color: "bg-blue-100 text-blue-800",
-                },
-                en_cours: {
-                  icon: <Clock size={16} weight="regular" />,
-                  label: "En cours",
-                  color: "bg-yellow-100 text-yellow-800",
-                },
-                abandonne: {
-                  icon: <X size={16} weight="bold" />,
-                  label: "Abandonné",
-                  color: "bg-red-100 text-red-800",
-                },
-              };
-              const config =
-                statusConfig[status as keyof typeof statusConfig] ||
-                statusConfig.non_lu;
-              return (
-                <span
-                  className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
-                >
-                  {config.icon}
-                </span>
-              );
-            })()}
-
-            {/* Badge type de livre */}
-            {(() => {
-              const type = book.bookType || "physique";
-              const typeConfig = {
-                physique: {
-                  icon: <Books size={16} weight="regular" />,
-                  label: "Physique",
-                  color: "bg-amber-100 text-amber-800",
-                },
-                numerique: {
-                  icon: <DeviceMobile size={16} weight="regular" />,
-                  label: "Numérique",
-                  color: "bg-indigo-100 text-indigo-800",
-                },
-                audio: {
-                  icon: <Headphones size={16} weight="regular" />,
-                  label: "Audio",
-                  color: "bg-purple-100 text-purple-800",
-                },
-              };
-              const config =
-                typeConfig[type as keyof typeof typeConfig] ||
-                typeConfig.physique;
-              return (
-                <span
-                  className={`text-xs px-1 py-0.5 rounded font-medium ${config.color}`}
-                >
-                  {config.icon}
-                </span>
-              );
-            })()}
+            <ReadingStatusBadge status={readingStatus} />
+            <BookTypeBadge type={bookType} />
           </div>
 
           {/* Bibliothèques mobile (affichage simple) */}
           {book.libraries && book.libraries.length > 0 && userLibraries && (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="mt-auto flex flex-wrap gap-1 pt-3">
               {book.libraries.map((libId) => {
                 const library = userLibraries.find((lib) => lib.id === libId);
                 return library ? (
@@ -503,14 +361,6 @@ function CompactBookCard({
               })}
             </div>
           )}
-        </div>
-        {/* Badge de lecture mobile (lecture seule) */}
-        <div
-          className={`ml-2 px-2 py-1 text-xs font-medium rounded-md flex-shrink-0 ${
-            book.isRead ? "bg-green-500 text-white" : "bg-gray-500 text-white"
-          }`}
-        >
-          {book.isRead ? "Lu" : "Non lu"}
         </div>
       </div>
     </div>
@@ -632,13 +482,17 @@ function CollectionBookCard({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-      <InlineNotice message={coverError} />
-      <div className="aspect-[3/4] bg-gray-100 overflow-hidden relative">
+    <article className="kodeks-panel group overflow-hidden md:grid md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.4fr)]">
+      {coverError && (
+        <div className="p-3 md:col-span-2">
+          <InlineNotice message={coverError} />
+        </div>
+      )}
+      <div className="relative aspect-[3/4] max-h-[32rem] overflow-hidden bg-slate-100 md:aspect-auto md:min-h-full">
         <img
           src={coverSrc}
           alt={book.title}
-          className="w-full h-full object-contain"
+          className="h-full w-full object-contain p-3 md:absolute md:inset-0"
         />
         {/* Badge de lecture en overlay - CLICKABLE */}
         <button
@@ -692,22 +546,22 @@ function CollectionBookCard({
           </div>
         )}
       </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-tight">
+      <div className="flex min-w-0 flex-col p-5 sm:p-6">
+        <h3 className="mb-1 text-xl font-bold leading-tight text-gray-900 sm:text-2xl">
           {book.title}
         </h3>
-        <p className="text-xs text-gray-600 mb-3 line-clamp-1">
+        <p className="mb-4 text-sm text-gray-600 sm:text-base">
           {book.authors?.join(", ") || "Auteur inconnu"}
         </p>
 
-        <div className="flex justify-between items-center mb-2">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4">
           <span className="text-xs text-gray-400">
             Ajouté le {new Date(book.addedAt).toLocaleDateString("fr-FR")}
           </span>
           <div className="flex gap-1">
             <button
               onClick={handleExpandToggle}
-              className="px-3 py-1.5 text-blue-600 hover:bg-blue-100 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium text-sm border border-blue-200 hover:border-blue-300"
+              className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
               title={expanded ? "Masquer les détails" : "Voir les détails"}
             >
               {expanded ? (
@@ -718,7 +572,7 @@ function CollectionBookCard({
               ) : (
                 <>
                   <CaretDown size={18} weight="bold" />
-                  Détails
+                  Informations
                 </>
               )}
             </button>
@@ -726,7 +580,7 @@ function CollectionBookCard({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-md transition-colors cursor-pointer"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-purple-700 transition-colors hover:bg-purple-50 cursor-pointer"
                 title="Modifier ce livre"
                 aria-label="Modifier ce livre"
               >
@@ -735,7 +589,7 @@ function CollectionBookCard({
             )}
             <button
               onClick={onRemove}
-              className="p-1.5 text-red-600 hover:bg-red-100 border border-red-300 hover:border-red-400 rounded-md transition-colors cursor-pointer"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-red-200 text-red-700 transition-colors hover:border-red-400 hover:bg-red-50 cursor-pointer"
               title="Supprimer définitivement de la collection"
               aria-label="Supprimer définitivement de la collection"
             >
@@ -745,39 +599,39 @@ function CollectionBookCard({
         </div>
 
         {/* Actions rapides de statut */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {/* Statut de lecture */}
           {onStatusChange && (
-            <select
-              value={book.readingStatus || (book.isRead ? "lu" : "non_lu")}
-              onChange={(e) => onStatusChange(e.target.value)}
-              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="non_lu">Non lu</option>
-              <option value="a_lire">À lire</option>
-              <option value="en_cours">En cours</option>
-              <option value="lu">Lu</option>
-              <option value="abandonne">Abandonné</option>
-            </select>
+            <div>
+              <label htmlFor={`detail-status-${book.isbn}`} className="mb-1.5 block text-xs font-semibold text-gray-600">
+                Statut de lecture
+              </label>
+              <ReadingStatusField
+                id={`detail-status-${book.isbn}`}
+                value={book.readingStatus || (book.isRead ? "lu" : "non_lu")}
+                onChange={onStatusChange}
+              />
+            </div>
           )}
 
           {/* Type de livre */}
           {onTypeChange && (
-            <select
-              value={book.bookType || "physique"}
-              onChange={(e) => onTypeChange(e.target.value)}
-              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="physique">Physique</option>
-              <option value="numerique">Numérique</option>
-              <option value="audio">Audio</option>
-            </select>
+            <div>
+              <label htmlFor={`detail-type-${book.isbn}`} className="mb-1.5 block text-xs font-semibold text-gray-600">
+                Type de livre
+              </label>
+              <BookTypeField
+                id={`detail-type-${book.isbn}`}
+                value={book.bookType || "physique"}
+                onChange={onTypeChange}
+              />
+            </div>
           )}
         </div>
 
         {/* Gestion des bibliothèques */}
         {userLibraries && userLibraries.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-3 mb-3">
+          <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <h4 className="text-sm font-medium text-gray-900 mb-2">
               <FolderOpen size={16} weight="regular" className="inline mr-2" />
               Bibliothèques
@@ -813,7 +667,7 @@ function CollectionBookCard({
                   onLibraryToggle?.(e.target.value);
                 }
               }}
-              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="kodeks-field text-sm"
             >
               <option value="">Ajouter à une bibliothèque...</option>
               {userLibraries
@@ -963,7 +817,7 @@ function CollectionBookCard({
           </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -984,6 +838,8 @@ interface GoogleBook {
   categories?: string[];
   source?: string;
   language?: string;
+  readingStatus?: ReadingStatus;
+  bookType?: BookType;
 }
 
 const EMPTY_MANUAL_BOOK = {
@@ -994,6 +850,8 @@ const EMPTY_MANUAL_BOOK = {
   description: "",
   pageCount: "",
   customCoverUrl: "",
+  readingStatus: "a_lire" as ReadingStatus,
+  bookType: "physique" as BookType,
 };
 
 function App() {
@@ -1612,19 +1470,13 @@ function App() {
         : undefined,
       isbn: `manual_${crypto.randomUUID()}`,
       customCoverUrl: manualBook.customCoverUrl || undefined,
+      readingStatus: manualBook.readingStatus,
+      bookType: manualBook.bookType,
     };
 
     setBook(book);
     setShowManualAdd(false);
-    setManualBook({
-      title: "",
-      authors: "",
-      publisher: "",
-      publishedDate: "",
-      description: "",
-      pageCount: "",
-      customCoverUrl: "",
-    });
+    setManualBook({ ...EMPTY_MANUAL_BOOK });
   };
 
   const handleManualCoverUpload = async (
@@ -1685,8 +1537,8 @@ function App() {
       }
 
       // Valeurs par défaut pour les nouveaux champs de filtre
-      docData.readingStatus = "a_lire"; // Par défaut "à lire"
-      docData.bookType = "physique"; // Par défaut "physique"
+      docData.readingStatus = book.readingStatus || "a_lire";
+      docData.bookType = book.bookType || "physique";
       if (book.genre) docData.genre = book.genre;
       if (book.tags && book.tags.length > 0) docData.tags = book.tags;
 
@@ -3828,7 +3680,7 @@ function App() {
                 </div>
               ) : selectedBook ? (
                 /* Vue détaillée d'un livre */
-                <div className="max-w-2xl mx-auto">
+                <div className="mx-auto max-w-5xl">
                   <CollectionBookCard
                     book={selectedBook}
                     onRemove={() => setBookPendingRemoval(selectedBook)}
@@ -4039,7 +3891,7 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4 md:gap-5">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5">
                         {collectionPageBooks.map((item) => (
                           <CompactBookCard
                             key={item.isbn}
@@ -4171,12 +4023,12 @@ function App() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
           <div
             ref={manualAddModalRef}
-            className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+            className="kodeks-modal relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl md:max-h-[90vh] max-md:h-full max-md:max-h-full max-md:rounded-none"
             role="dialog"
             aria-modal="true"
             aria-labelledby="manual-add-title"
           >
-            <div className="flex items-center justify-between p-6 border-b">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 p-4 backdrop-blur md:p-6">
               <h2
                 id="manual-add-title"
                 className="text-2xl font-bold text-gray-900"
@@ -4194,7 +4046,7 @@ function App() {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {!user && (
                 <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
                   <p className="font-semibold">Connexion nécessaire pour enregistrer</p>
@@ -4211,9 +4063,9 @@ function App() {
                   </button>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
                 {/* Colonne gauche - Informations */}
-                <div className="space-y-4">
+                <div className="kodeks-panel space-y-4 p-4 md:p-5">
                   <div>
                     <label
                       htmlFor="manual-title"
@@ -4358,10 +4210,49 @@ function App() {
                       placeholder="Résumé du livre..."
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="manual-reading-status"
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                      >
+                        Statut de lecture
+                      </label>
+                      <ReadingStatusField
+                        id="manual-reading-status"
+                        value={manualBook.readingStatus}
+                        onChange={(readingStatus) =>
+                          setManualBook((previous) => ({
+                            ...previous,
+                            readingStatus,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="manual-book-type"
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                      >
+                        Type de livre
+                      </label>
+                      <BookTypeField
+                        id="manual-book-type"
+                        value={manualBook.bookType}
+                        onChange={(bookType) =>
+                          setManualBook((previous) => ({
+                            ...previous,
+                            bookType,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Colonne droite - Couverture */}
-                <div className="space-y-4">
+                <div className="kodeks-panel h-fit space-y-4 p-4 md:sticky md:top-24 md:p-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Couverture personnalisée
@@ -4416,7 +4307,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+              <div className="sticky bottom-0 -mx-4 mt-6 flex justify-end gap-3 border-t bg-white/95 px-4 py-4 backdrop-blur md:-mx-6 md:px-6">
                 <button
                   onClick={closeManualAdd}
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
@@ -4453,6 +4344,14 @@ function App() {
       {/* Library Manager Modal */}
       <LibraryManager
         libraries={userLibraries}
+        bookCounts={Object.fromEntries(
+          userLibraries.map((library) => [
+            library.id,
+            collectionBooks.filter((item) =>
+              item.libraries?.includes(library.id),
+            ).length,
+          ]),
+        )}
         onCreateLibrary={createUserLibrary}
         onUpdateLibrary={updateUserLibrary}
         onDeleteLibrary={deleteUserLibrary}

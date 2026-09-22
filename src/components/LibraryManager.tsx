@@ -29,6 +29,7 @@ import ConfirmDialog from './ConfirmDialog';
 
 interface LibraryManagerProps {
   libraries: UserLibrary[];
+  bookCounts?: Record<string, number>;
   onCreateLibrary: (
     library: Omit<UserLibrary, "id" | "createdAt">
   ) => Promise<string | undefined>;
@@ -100,6 +101,7 @@ const renderIcon = (
 
 export default function LibraryManager({
   libraries,
+  bookCounts = {},
   onCreateLibrary,
   onUpdateLibrary,
   onDeleteLibrary,
@@ -245,12 +247,12 @@ export default function LibraryManager({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:p-4 max-md:p-0">
       <div
         ref={modalRef}
-        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto md:max-h-[90vh] md:rounded-lg max-md:rounded-none max-md:max-h-full max-md:h-full"
+        className="kodeks-modal relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl md:max-h-[90vh] max-md:h-full max-md:max-h-full max-md:rounded-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby="library-manager-title"
       >
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 p-4 backdrop-blur md:p-6">
           <h2
             id="library-manager-title"
             className="text-2xl font-bold text-gray-900 flex items-center gap-2"
@@ -267,10 +269,10 @@ export default function LibraryManager({
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <InlineNotice message={notice} />
           {/* Header avec bouton créer */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 Mes bibliothèques ({libraries.length})
@@ -281,7 +283,7 @@ export default function LibraryManager({
             </div>
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+              className="min-h-11 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700 cursor-pointer"
             >
               <span className="hidden sm:inline">Ajouter une nouvelle bibliothèque</span>
               <span className="sm:hidden">Nouvelle bibliothèque</span>
@@ -290,7 +292,7 @@ export default function LibraryManager({
 
           {/* Formulaire de création */}
           {showCreateForm && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+            <div className="kodeks-panel mb-6 bg-gray-50 p-4 md:p-5">
               <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                 {editingLibrary ? (
                   <PencilSimple size={20} weight="regular" />
@@ -353,7 +355,7 @@ export default function LibraryManager({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Icône
                     </label>
-                    <div className="grid grid-cols-8 gap-2">
+                    <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
                       {PRESET_ICONS.map((icon) => (
                         <button
                           key={icon}
@@ -361,7 +363,7 @@ export default function LibraryManager({
                           onClick={() =>
                             setNewLibrary((prev) => ({ ...prev, icon }))
                           }
-                          className={`flex cursor-pointer items-center justify-center rounded-md border-2 p-2 text-lg transition-all hover:scale-105 hover:bg-blue-50 hover:shadow-sm ${
+                          className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border-2 p-2 text-lg transition-all hover:scale-105 hover:bg-blue-50 hover:shadow-sm ${
                             newLibrary.icon === icon
                               ? "border-blue-500 bg-blue-50"
                               : "border-gray-200 hover:border-blue-400"
@@ -390,7 +392,7 @@ export default function LibraryManager({
                           onClick={() =>
                             setNewLibrary((prev) => ({ ...prev, color }))
                           }
-                          className={`h-8 w-8 cursor-pointer rounded-full border-2 transition-all hover:scale-110 hover:shadow-md ${
+                          className={`h-11 w-11 cursor-pointer rounded-full border-2 transition-all hover:scale-110 hover:shadow-md ${
                             newLibrary.color === color
                               ? "border-gray-800 scale-110"
                               : "border-gray-300 hover:border-gray-700"
@@ -483,11 +485,11 @@ export default function LibraryManager({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {libraries.map((library) => (
                 <div
                   key={library.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="kodeks-panel p-4 transition duration-200 hover:border-blue-300 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -503,6 +505,9 @@ export default function LibraryManager({
                         <h4 className="font-semibold text-gray-900">
                           {library.name}
                         </h4>
+                        <p className="mt-0.5 text-xs font-medium text-gray-500">
+                          {bookCounts[library.id] || 0} livre{(bookCounts[library.id] || 0) > 1 ? "s" : ""}
+                        </p>
                         {library.description && (
                           <p className="text-sm text-gray-600">
                             {library.description}
