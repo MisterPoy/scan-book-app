@@ -578,13 +578,13 @@ function CollectionBookCard({
         </p>
 
         {displayedDetails.description && (
-          <section className="mb-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-            <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-gray-900">
+          <section className="kodeks-summary mb-4 rounded-2xl p-4">
+            <h4 className="kodeks-summary-title mb-2 flex items-center gap-2 text-sm font-bold">
               <Book size={18} weight="regular" />
               Résumé
             </h4>
             <p
-              className={`text-sm leading-relaxed text-gray-700 ${
+              className={`kodeks-summary-text text-sm leading-relaxed ${
                 showFullDescription ? "" : "line-clamp-4"
               }`}
             >
@@ -594,7 +594,7 @@ function CollectionBookCard({
               <button
                 type="button"
                 onClick={() => setShowFullDescription((isVisible) => !isVisible)}
-                className="mt-2 inline-flex min-h-9 cursor-pointer items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
+                className="kodeks-summary-action mt-2 inline-flex min-h-9 cursor-pointer items-center text-sm font-semibold"
               >
                 {showFullDescription ? "Lire moins" : "Lire la suite"}
               </button>
@@ -2815,28 +2815,28 @@ function App() {
                   <div className="flex items-center gap-1 sm:gap-4">
                     <button
                       onClick={() => setShowCollectionModal(true)}
-                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      className="flex items-center gap-2 whitespace-nowrap rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 sm:px-3 sm:text-sm cursor-pointer"
                     >
                       <span className="hidden lg:inline">Ma Collection</span>
                       <span className="lg:hidden">
                         <Books size={18} weight="bold" />
                       </span>
                       {collectionBooks.length > 0 && (
-                        <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                        <span className="ml-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-bold tabular-nums text-white">
                           {collectionBooks.length}
                         </span>
                       )}
                     </button>
                     <button
                       onClick={() => setShowLibraryManager(true)}
-                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      className="flex items-center gap-2 whitespace-nowrap rounded-md border border-green-200 bg-green-50 px-2 py-2 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:px-3 sm:text-sm cursor-pointer"
                     >
                       <span className="hidden lg:inline">Bibliothèques</span>
                       <span className="lg:hidden">
                         <FolderOpen size={18} weight="bold" />
                       </span>
                       {userLibraries.length > 0 && (
-                        <span className="bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                        <span className="ml-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-green-600 px-1.5 text-xs font-bold tabular-nums text-white">
                           {userLibraries.length}
                         </span>
                       )}

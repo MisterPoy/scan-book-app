@@ -92,6 +92,32 @@ body {
   text-transform: uppercase;
 }
 
+.kodeks-summary {
+  border: 1px solid
+    color-mix(in srgb, var(--kodeks-primary) 34%, var(--kodeks-border-subtle));
+  background: color-mix(
+    in srgb,
+    var(--kodeks-primary) 9%,
+    var(--kodeks-surface)
+  );
+}
+
+.kodeks-summary-title {
+  color: var(--kodeks-text);
+}
+
+.kodeks-summary-text {
+  color: var(--kodeks-text-secondary);
+}
+
+.kodeks-summary-action {
+  color: var(--kodeks-primary);
+}
+
+.kodeks-summary-action:hover {
+  color: color-mix(in srgb, var(--kodeks-primary) 78%, var(--kodeks-text));
+}
+
 :where(.fixed.inset-0.bg-black, .fixed.inset-0.bg-black\/50) {
   background-color: var(--kodeks-overlay) !important;
 }
