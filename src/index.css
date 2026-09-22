@@ -118,6 +118,31 @@ body {
   color: color-mix(in srgb, var(--kodeks-primary) 78%, var(--kodeks-text));
 }
 
+.kodeks-library-badge {
+  border: 1px solid
+    color-mix(in srgb, var(--library-accent) 38%, var(--kodeks-border));
+  background: color-mix(
+    in srgb,
+    var(--library-accent) 9%,
+    var(--kodeks-surface-raised)
+  );
+  color: var(--kodeks-text);
+}
+
+.kodeks-library-badge-icon {
+  background: color-mix(in srgb, var(--library-accent) 15%, transparent);
+  color: var(--library-accent);
+}
+
+.kodeks-library-badge-accent {
+  background: var(--library-accent);
+}
+
+.kodeks-library-badge-remove {
+  background: color-mix(in srgb, var(--kodeks-text) 8%, transparent);
+  color: var(--kodeks-text-secondary);
+}
+
 :where(.fixed.inset-0.bg-black, .fixed.inset-0.bg-black\/50) {
   background-color: var(--kodeks-overlay) !important;
 }
