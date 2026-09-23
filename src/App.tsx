@@ -499,10 +499,7 @@ function CollectionBookCard({
   const displayedDetails = mergeBookDetails(book, bookDetails);
   const detailsAvailable = hasBookDetails(displayedDetails);
   const supplementaryDetailsAvailable = Boolean(
-    displayedDetails.genre ||
-      displayedDetails.tags?.length ||
-      displayedDetails.categories?.length ||
-      displayedDetails.personalNote,
+    displayedDetails.tags?.length || displayedDetails.categories?.length,
   );
 
   return (
@@ -641,6 +638,18 @@ function CollectionBookCard({
               </div>
             )}
           </dl>
+        )}
+
+        {displayedDetails.personalNote && (
+          <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <h4 className="mb-1.5 flex items-center gap-2 text-sm font-bold text-amber-900">
+              <PencilSimple size={17} weight="regular" aria-hidden="true" />
+              Note personnelle
+            </h4>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-900">
+              {displayedDetails.personalNote}
+            </p>
+          </section>
         )}
 
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4">
@@ -799,17 +808,6 @@ function CollectionBookCard({
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {displayedDetails.personalNote && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                    <h4 className="mb-1 text-xs font-semibold text-amber-900">
-                      Note personnelle
-                    </h4>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-900">
-                      {displayedDetails.personalNote}
-                    </p>
                   </div>
                 )}
 
