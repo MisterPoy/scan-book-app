@@ -17,7 +17,6 @@ import {
   Clock,
   PencilSimple,
   ArrowClockwise,
-  CaretUp,
   CaretDown,
   Trash,
   Warning,
@@ -28,7 +27,6 @@ import {
   MagnifyingGlass,
   ArrowsClockwise,
   Timer,
-  Hourglass,
   Megaphone,
   Gear,
   DownloadSimple,
@@ -99,7 +97,6 @@ import { deduplicateAndRankBooks } from "./utils/searchRanking";
 import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { deleteCurrentUserAccount } from "./services/accountDeletion";
-import { hasBookDetails, mergeBookDetails } from "./utils/bookDetails";
 import { createCollectionBookDocument } from "./utils/collectionBookDocument";
 import {
   BookTypeBadge,
@@ -391,18 +388,11 @@ function CollectionBookCard({
   onLibraryToggle?: (libraryId: string) => void;
 }) {
   const [coverSrc, setCoverSrc] = useState("");
-  const [expanded, setExpanded] = useState(false);
-  const [bookDetails, setBookDetails] = useState<CollectionBook | null>(null);
-  const [detailsRequested, setDetailsRequested] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
 
   useEffect(() => {
-    setBookDetails(null);
-    setDetailsRequested(false);
-    setExpanded(false);
     setShowFullDescription(false);
   }, [book.isbn]);
 
@@ -427,37 +417,6 @@ function CollectionBookCard({
     };
     testImage.onerror = () => setCoverSrc(fallback);
   }, [book.isbn, book.customCoverUrl]);
-
-  const fetchBookDetails = async () => {
-    if (detailsRequested || loadingDetails) return;
-
-    setLoadingDetails(true);
-    try {
-      const metadata = await fetchBookMetadata(book.isbn);
-      if (metadata) {
-        setBookDetails({
-          ...book,
-          description: metadata.description,
-          publisher: metadata.publisher,
-          publishedDate: metadata.publishedDate,
-          pageCount: metadata.pageCount,
-          categories: metadata.categories,
-        });
-      }
-    } catch (err) {
-      console.error("Erreur lors de la récupération des détails:", err);
-    } finally {
-      setDetailsRequested(true);
-      setLoadingDetails(false);
-    }
-  };
-
-  const handleExpandToggle = () => {
-    if (!expanded) {
-      fetchBookDetails();
-    }
-    setExpanded(!expanded);
-  };
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -496,9 +455,11 @@ function CollectionBookCard({
     onUpdateCover(null);
   };
 
-  const displayedDetails = mergeBookDetails(book, bookDetails);
-  const detailsAvailable = hasBookDetails(displayedDetails);
-  const supplementaryDetailsAvailable = Boolean(
+  const displayedDetails = {
+    ...book,
+    personalNote: book.personalNote || book.notes,
+  };
+  const classificationAvailable = Boolean(
     displayedDetails.tags?.length || displayedDetails.categories?.length,
   );
 
@@ -640,6 +601,49 @@ function CollectionBookCard({
           </dl>
         )}
 
+        {classificationAvailable && (
+          <section className="mb-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            {displayedDetails.tags && displayedDetails.tags.length > 0 && (
+              <div>
+                <h4 className="mb-2 flex items-center gap-2 text-xs font-semibold text-gray-700">
+                  <Tag size={16} weight="regular" aria-hidden="true" />
+                  Tags
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {displayedDetails.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {displayedDetails.categories &&
+              displayedDetails.categories.length > 0 && (
+                <div className={displayedDetails.tags?.length ? "mt-4" : ""}>
+                  <h4 className="mb-2 flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <Tag size={16} weight="regular" aria-hidden="true" />
+                    Catégories de la fiche
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {displayedDetails.categories.map((category) => (
+                      <span
+                        key={category}
+                        className="rounded-full bg-blue-100 px-2.5 py-1 text-xs text-blue-700"
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </section>
+        )}
+
         {displayedDetails.personalNote && (
           <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <h4 className="mb-1.5 flex items-center gap-2 text-sm font-bold text-amber-900">
@@ -657,23 +661,6 @@ function CollectionBookCard({
             Ajouté le {new Date(book.addedAt).toLocaleDateString("fr-FR")}
           </span>
           <div className="flex gap-1">
-            <button
-              onClick={handleExpandToggle}
-              className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-              title={expanded ? "Masquer les compléments" : "Rechercher des informations complémentaires"}
-            >
-              {expanded ? (
-                <>
-                  <CaretUp size={18} weight="bold" />
-                  Masquer
-                </>
-              ) : (
-                <>
-                  <CaretDown size={18} weight="bold" />
-                  Plus d'infos
-                </>
-              )}
-            </button>
             {/* Bouton modifier - pour tous les livres */}
             {onEdit && (
               <button
@@ -775,79 +762,6 @@ function CollectionBookCard({
           </div>
         )}
 
-        {/* Collapse Details */}
-        <div
-          className={`overflow-hidden transition-all duration-300 ${
-            expanded ? "max-h-[64rem] opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="border-t pt-3 mt-2">
-            {loadingDetails && (
-              <div className="text-center py-4">
-                <div className="text-blue-600">
-                  <Hourglass size={16} className="inline mr-2" />
-                  Recherche d'informations complémentaires...
-                </div>
-              </div>
-            )}
-            {supplementaryDetailsAvailable ? (
-              <div className="space-y-3">
-                {displayedDetails.tags && displayedDetails.tags.length > 0 && (
-                  <div>
-                    <h4 className="mb-1 text-xs font-medium text-gray-900">
-                      <Tag size={16} weight="regular" className="mr-2 inline" />
-                      Tags
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {displayedDetails.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {displayedDetails.categories &&
-                  displayedDetails.categories.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 text-xs mb-1">
-                        <Tag
-                          size={16}
-                          weight="regular"
-                          className="inline mr-2"
-                        />
-                        Catégories
-                      </h4>
-                      <div className="flex flex-wrap gap-1">
-                        {displayedDetails.categories
-                          .slice(0, 3)
-                          .map((category: string, index: number) => (
-                            <span
-                              key={index}
-                              className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full"
-                            >
-                              {category.split("/")[0]}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            ) : !loadingDetails && !detailsAvailable ? (
-              <div className="text-center py-2">
-                <p className="text-xs text-gray-500">Aucun détail disponible</p>
-              </div>
-            ) : !loadingDetails && detailsRequested ? (
-              <p className="py-2 text-center text-xs text-gray-500">
-                Aucune information complémentaire disponible
-              </p>
-            ) : null}
-          </div>
-        </div>
       </div>
     </article>
   );
@@ -872,6 +786,33 @@ interface GoogleBook {
   language?: string;
   readingStatus?: ReadingStatus;
   bookType?: BookType;
+}
+
+const canEnrichFromIsbn = (isbn?: string) =>
+  Boolean(isbn && !/^(manual_|google_|openlib_)/.test(isbn));
+
+async function enrichBookBeforeAdd(book: GoogleBook): Promise<GoogleBook> {
+  if (!canEnrichFromIsbn(book.isbn)) return book;
+
+  const metadata = await fetchBookMetadata(book.isbn as string);
+  if (!metadata) return book;
+
+  return {
+    ...book,
+    title: book.title || metadata.title,
+    authors: book.authors?.length ? book.authors : metadata.authors,
+    publisher: book.publisher || metadata.publisher,
+    publishedDate: book.publishedDate || metadata.publishedDate,
+    description: book.description || metadata.description,
+    pageCount: book.pageCount || metadata.pageCount,
+    categories: book.categories?.length
+      ? book.categories
+      : metadata.categories,
+    imageLinks:
+      book.imageLinks?.thumbnail || !metadata.thumbnail
+        ? book.imageLinks
+        : { thumbnail: metadata.thumbnail },
+  };
 }
 
 const EMPTY_MANUAL_BOOK = {
@@ -1538,8 +1479,9 @@ function App() {
     setAddMessage(null);
 
     try {
+      const enrichedBook = await enrichBookBeforeAdd(book);
       const ref = doc(db, `users/${user.uid}/collection`, book.isbn || "");
-      const docData = createCollectionBookDocument(book, {
+      const docData = createCollectionBookDocument(enrichedBook, {
         readingStatus: book.readingStatus || "a_lire",
         bookType: book.bookType || "physique",
         isManualEntry: book.isbn?.startsWith("manual_") || false,
@@ -2647,7 +2589,8 @@ function App() {
 
       // Ajouter chaque livre à Firestore
       const promises = booksToAdd.map(async (googleBook) => {
-        const bookData = createCollectionBookDocument(googleBook, {
+        const enrichedBook = await enrichBookBeforeAdd(googleBook);
+        const bookData = createCollectionBookDocument(enrichedBook, {
           readingStatus: "a_lire",
         });
 
