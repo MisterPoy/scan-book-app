@@ -99,6 +99,7 @@ export default function Confidentialite() {
               <p><strong>Authentification :</strong> Firebase Authentication</p>
               <p><strong>Frontend et statistiques optionnelles :</strong> Vercel</p>
               <p><strong>Métadonnées de livres :</strong> Google Books et OpenLibrary</p>
+              <p><strong>Analyse d'étagère réservée à l'administrateur :</strong> OpenAI, via une fonction serveur Vercel</p>
 
               <div className="mt-4 space-y-2">
                 <p className="font-semibold">Mesures de sécurité :</p>
@@ -171,6 +172,7 @@ export default function Confidentialite() {
               <p className="mt-2">Les seules données partagées sont :</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>Requêtes directes depuis votre navigateur vers Google Books et OpenLibrary pour rechercher les métadonnées et couvertures ; ces services reçoivent donc les informations techniques habituelles d’une requête web, notamment l’adresse IP.</li>
+                <li>Lorsque l'administrateur lance volontairement un import d'étagère, les photos sélectionnées sont recompressées sans métadonnées puis transmises à OpenAI par une fonction Vercel protégée. Elles servent uniquement à extraire une liste de livres, ne sont pas enregistrées dans Firestore et les réponses API ne sont pas conservées par Kodeks.</li>
                 <li>Base de données et authentification via Firebase, ainsi que l’hébergement frontend via Vercel.</li>
               </ul>
             </div>

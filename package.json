@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.1",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "npm run generate-icons && npm run clean && tsc -b && vite build",
@@ -20,6 +23,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "@vercel/analytics": "^1.6.1",
     "firebase": "^11.10.0",
+    "firebase-admin": "^14.4.0",
     "focus-trap-react": "^11.0.4",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

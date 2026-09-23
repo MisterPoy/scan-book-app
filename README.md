@@ -8,6 +8,8 @@ Cloud Functions ni Cloud Storage.
 
 - recherche texte et ISBN avec classement et déduplication ;
 - scan unitaire ou en lot, avec saisie ISBN de secours ;
+- import administrateur d'une étagère par une ou plusieurs photos, avec
+  vérification obligatoire avant l'ajout ;
 - ajout et édition manuels, statuts de lecture, tags et bibliothèques ;
 - couvertures personnalisées compressées dans le navigateur puis synchronisées
   avec le document Firestore du livre ;
@@ -20,11 +22,14 @@ Cloud Functions ni Cloud Storage.
 
 - React 19, TypeScript strict, Vite 7 et Tailwind CSS 4 ;
 - Firebase Authentication et Cloud Firestore sur le forfait Spark ;
-- Vercel pour le frontend ;
+- Vercel pour le frontend et une fonction serveur réservée à l'import photo ;
+- OpenAI Responses API pour lire les dos de livres, uniquement à la demande de
+  l'administrateur ;
 - Vitest, Testing Library et émulateur Firestore.
 
-Kodeks n'utilise ni Cloud Functions, ni Cloud Storage, ni notification push
-serveur. Il reste soumis aux quotas gratuits de Firestore et de Vercel.
+Kodeks n'utilise ni Firebase Cloud Functions, ni Cloud Storage, ni notification
+push serveur. L'import photo utilise une fonction Vercel et entraîne une
+consommation facturée sur le compte API OpenAI configuré.
 
 ## Installation
 
@@ -36,8 +41,11 @@ npm ci
 copy .env.example .env
 ```
 
-Renseigner les cinq variables Firebase obligatoires. `.env` reste local et ne
-doit jamais être commité.
+Renseigner les cinq variables Firebase obligatoires. Pour l'import photo
+administrateur, ajouter aussi `FIREBASE_PROJECT_ID` et `OPENAI_API_KEY` dans
+l'environnement serveur. La clé OpenAI ne doit jamais porter le préfixe
+`VITE_`, être exposée au navigateur ou être commitée. `OPENAI_VISION_MODEL`
+permet de remplacer le modèle par défaut `gpt-6-luna`.
 
 ## Commandes
 
@@ -69,6 +77,11 @@ Le claim Firebase Auth signé `admin: true` protège les annonces et la liste de
 utilisateurs. L'outil local dans `admin-tools/` attribue ce claim sans déployer
 de service payant. Voir `docs/firebase-admin-setup.md`.
 
+L'import d'étagère se trouve dans le menu **Admin**. La fonction Vercel vérifie
+elle aussi la signature du jeton Firebase et le claim `admin: true` avant tout
+appel OpenAI ; masquer le bouton dans l'interface n'est pas la mesure de
+sécurité principale.
+
 ## Confidentialité
 
 - les données privées sont isolées par propriétaire dans les règles Firestore ;
@@ -78,12 +91,17 @@ de service payant. Voir `docs/firebase-admin-setup.md`.
 - Vercel Analytics n'est chargé qu'après consentement ;
 - Google Books et OpenLibrary reçoivent les informations techniques normales
   des requêtes effectuées par le navigateur.
+- les photos d'étagère sont recompressées sans métadonnées dans le navigateur,
+  transmises ponctuellement à OpenAI via Vercel et ne sont pas enregistrées
+  dans Firestore.
 
 ## Limites connues
 
 - les images personnalisées augmentent la taille des documents Firestore ; leur
   taille encodée est plafonnée avant écriture ;
 - la collection est encore chargée intégralement côté client ;
+- la reconnaissance d'une étagère dépend de la netteté des dos et ne garantit
+  pas l'édition physique exacte ; les résultats doivent rester vérifiés ;
 - `App.tsx` reste volumineux et doit continuer à être découpé ;
 - les notifications push et programmées ne sont pas disponibles sur cette
   édition Spark ; les annonces restent visibles dans l'application ;

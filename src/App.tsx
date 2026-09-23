@@ -46,6 +46,7 @@ const UserManagement = lazy(() =>
     default: module.UserManagement,
   })),
 );
+const ShelfImportModal = lazy(() => import("./components/ShelfImportModal"));
 import BookCard from "./components/BookCard";
 import Login from "./components/login";
 import PostScanConfirm from "./components/PostScanConfirm";
@@ -894,6 +895,7 @@ function App() {
   const [showLibraryManager, setShowLibraryManager] = useState(false);
   const [showAnnouncementManager, setShowAnnouncementManager] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
+  const [showShelfImport, setShowShelfImport] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] =
@@ -1979,69 +1981,78 @@ function App() {
     setShowBulkConfirmModal(true);
   };
 
-  const handleBulkAddConfirm = async (
+  const addBooksByIsbn = async (
     isbns: string[],
     personalNotes: Record<string, string>,
     selectedLibraries?: string[],
-  ) => {
+  ): Promise<BulkAddResponse> => {
     if (!user) {
       setAddMessage({
         text: "Vous devez être connecté pour ajouter des livres",
         type: "error",
       });
-      return;
+      throw new Error("Vous devez être connecté pour ajouter des livres.");
     }
 
     if (!requireOnline("l'ajout par lot")) {
-      return;
+      throw new Error("Une connexion est nécessaire pour ajouter ces livres.");
     }
 
+    const response: BulkAddResponse = await bulkAddBooks(
+      isbns,
+      user.uid,
+      db,
+      collectionBooks,
+      personalNotes,
+      selectedLibraries,
+    );
+
+    // Recharger la collection depuis Firestore
+    const collectionRef = collection(db, `users/${user.uid}/collection`);
+    const snapshot = await getDocs(collectionRef);
+    const books = snapshot.docs.map(
+      (doc) => ({ ...doc.data() }) as CollectionBook,
+    );
+    setCollectionBooks(books);
+
+    // Afficher le feedback
+    const { added, duplicates, errors } = response;
+    let message = "";
+
+    if (added.length > 0) {
+      message += `${added.length} livre${added.length > 1 ? "s" : ""} ajouté${
+        added.length > 1 ? "s" : ""
+      } avec succès`;
+    }
+    if (duplicates.length > 0) {
+      message += message
+        ? ` • ${duplicates.length} doublon${
+            duplicates.length > 1 ? "s" : ""
+          } ignoré${duplicates.length > 1 ? "s" : ""}`
+        : `${duplicates.length} doublon${
+            duplicates.length > 1 ? "s" : ""
+          } ignoré${duplicates.length > 1 ? "s" : ""}`;
+    }
+    if (errors.length > 0) {
+      message += message
+        ? ` • ${errors.length} erreur${errors.length > 1 ? "s" : ""}`
+        : `${errors.length} erreur${errors.length > 1 ? "s" : ""}`;
+    }
+
+    setAddMessage({
+      text: message || "Opération terminée",
+      type: errors.length > 0 && added.length === 0 ? "error" : "success",
+    });
+    return response;
+  };
+
+  const handleBulkAddConfirm = async (
+    isbns: string[],
+    personalNotes: Record<string, string>,
+    selectedLibraries?: string[],
+  ) => {
     try {
-      const response: BulkAddResponse = await bulkAddBooks(
-        isbns,
-        user.uid,
-        db,
-        collectionBooks,
-        personalNotes,
-        selectedLibraries,
-      );
-
-      // Recharger la collection depuis Firestore
-      const collectionRef = collection(db, `users/${user.uid}/collection`);
-      const snapshot = await getDocs(collectionRef);
-      const books = snapshot.docs.map(
-        (doc) => ({ ...doc.data() }) as CollectionBook,
-      );
-      setCollectionBooks(books);
-
-      // Afficher le feedback
-      const { added, duplicates, errors } = response;
-      let message = "";
-
-      if (added.length > 0) {
-        message += `${added.length} livre${added.length > 1 ? "s" : ""} ajouté${
-          added.length > 1 ? "s" : ""
-        } avec succès`;
-      }
-      if (duplicates.length > 0) {
-        message += message
-          ? ` • ${duplicates.length} doublon${
-              duplicates.length > 1 ? "s" : ""
-            } ignoré${duplicates.length > 1 ? "s" : ""}`
-          : `${duplicates.length} doublon${
-              duplicates.length > 1 ? "s" : ""
-            } ignoré${duplicates.length > 1 ? "s" : ""}`;
-      }
-      if (errors.length > 0) {
-        message += message
-          ? ` • ${errors.length} erreur${errors.length > 1 ? "s" : ""}`
-          : `${errors.length} erreur${errors.length > 1 ? "s" : ""}`;
-      }
-
-      setAddMessage({
-        text: message || "Opération terminée",
-        type: errors.length > 0 && added.length === 0 ? "error" : "success",
-      });
+      await addBooksByIsbn(isbns, personalNotes, selectedLibraries);
 
       // Fermer la modale
       setShowBulkConfirmModal(false);
@@ -2053,6 +2064,23 @@ function App() {
         type: "error",
       });
       setTimeout(() => setAddMessage(null), 5000);
+    }
+  };
+
+  const handleShelfImportConfirm = async (
+    isbns: string[],
+    selectedLibraries?: string[],
+  ) => {
+    try {
+      await addBooksByIsbn(isbns, {}, selectedLibraries);
+      setShowShelfImport(false);
+    } catch (error) {
+      console.error("Erreur lors de l'import d'étagère:", error);
+      setAddMessage({
+        text: "Erreur lors de l'ajout des livres sélectionnés",
+        type: "error",
+      });
+      throw error;
     }
   };
 
@@ -2802,6 +2830,16 @@ function App() {
                             className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50"
                           >
                             <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  setShowShelfImport(true);
+                                  setShowAdminMenu(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 flex items-center gap-2"
+                              >
+                                <Camera size={16} weight="bold" />
+                                Importer une étagère
+                              </button>
                               <button
                                 onClick={() => {
                                   setShowAnnouncementManager(true);
@@ -4322,6 +4360,20 @@ function App() {
           <AnnouncementManager
             isOpen
             onClose={() => setShowAnnouncementManager(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Admin-only shelf photo import */}
+      {showShelfImport && user && isAdmin && (
+        <Suspense fallback={null}>
+          <ShelfImportModal
+            isOpen
+            user={user}
+            existingBooks={collectionBooks}
+            userLibraries={userLibraries}
+            onClose={() => setShowShelfImport(false)}
+            onConfirm={handleShelfImportConfirm}
           />
         </Suspense>
       )}
