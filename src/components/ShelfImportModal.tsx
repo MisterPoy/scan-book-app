@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { User } from "firebase/auth";
 import {
@@ -9,6 +9,7 @@ import {
   MagnifyingGlass,
   Plus,
   Trash,
+  VideoCamera,
   Warning,
   X,
 } from "phosphor-react";
@@ -30,6 +31,7 @@ import {
   getShelfDuplicateReason,
   searchShelfCatalogCandidates,
 } from "../utils/shelfCatalog";
+import { getCameraErrorMessage, stopMediaStream } from "../utils/camera";
 
 type ImportPhase = "capture" | "analyzing" | "review" | "submitting";
 
@@ -54,6 +56,41 @@ function selectedCandidate(row: ShelfReviewBook): ShelfCatalogCandidate | undefi
   return row.candidates.find((candidate) => candidate.isbn === row.selectedIsbn);
 }
 
+function captureVideoFrame(video: HTMLVideoElement): Promise<File> {
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (width < 1 || height < 1) {
+    return Promise.reject(new Error("La caméra n'est pas encore prête. Patientez un instant."));
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return Promise.reject(new Error("La capture photo n'est pas disponible sur ce navigateur."));
+  }
+  context.drawImage(video, 0, 0, width, height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("La photo n'a pas pu être créée. Réessayez."));
+          return;
+        }
+        resolve(
+          new File([blob], `etagere-${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`, {
+            type: "image/jpeg",
+          }),
+        );
+      },
+      "image/jpeg",
+      0.94,
+    );
+  });
+}
+
 const statusPresentation = {
   ready: { label: "Prêt", className: "bg-green-100 text-green-800" },
   review: { label: "À vérifier", className: "bg-amber-100 text-amber-800" },
@@ -71,7 +108,13 @@ export default function ShelfImportModal({
 }: ShelfImportModalProps) {
   const modalRef = useFocusTrap<HTMLDivElement>(isOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
   const [phase, setPhase] = useState<ImportPhase>("capture");
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraCapturing, setCameraCapturing] = useState(false);
   const [photos, setPhotos] = useState<PreparedShelfImage[]>([]);
   const [reviewBooks, setReviewBooks] = useState<ShelfReviewBook[]>([]);
   const [selectedLibraries, setSelectedLibraries] = useState<string[]>([]);
@@ -85,6 +128,21 @@ export default function ShelfImportModal({
     totalTokens: 0,
   });
   const [searchingRows, setSearchingRows] = useState<Set<string>>(new Set());
+
+  const closeCamera = useCallback(() => {
+    setCameraOpen(false);
+    setCameraStarting(false);
+    setCameraReady(false);
+    setCameraCapturing(false);
+    if (videoRef.current) videoRef.current.srcObject = null;
+    stopMediaStream(cameraStreamRef.current);
+    cameraStreamRef.current = null;
+  }, []);
+
+  const requestClose = useCallback(() => {
+    closeCamera();
+    onClose();
+  }, [closeCamera, onClose]);
 
   const selectedRows = useMemo(
     () =>
@@ -107,14 +165,79 @@ export default function ShelfImportModal({
     const modal = modalRef.current;
     if (!modal) return;
     const handleCloseRequest = () => {
-      if (phase !== "analyzing" && phase !== "submitting") onClose();
+      if (phase !== "analyzing" && phase !== "submitting") requestClose();
     };
     modal.addEventListener("modal-close-request", handleCloseRequest);
     return () => modal.removeEventListener("modal-close-request", handleCloseRequest);
-  }, [modalRef, onClose, phase]);
+  }, [modalRef, phase, requestClose]);
+
+  useEffect(() => {
+    if (!cameraOpen || !isOpen || phase !== "capture") return;
+
+    let cancelled = false;
+    let openedStream: MediaStream | null = null;
+
+    const openCamera = async () => {
+      setCameraStarting(true);
+      setCameraReady(false);
+      setError(null);
+
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("La caméra intégrée n'est pas prise en charge par ce navigateur.");
+        }
+        openedStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 2560 },
+            height: { ideal: 1440 },
+          },
+        });
+        if (cancelled) {
+          stopMediaStream(openedStream);
+          return;
+        }
+
+        const video = videoRef.current;
+        if (!video) throw new Error("L'aperçu de la caméra n'a pas pu être initialisé.");
+        cameraStreamRef.current = openedStream;
+        video.srcObject = openedStream;
+        await video.play();
+        if (!cancelled) setCameraReady(true);
+      } catch (cameraError) {
+        stopMediaStream(openedStream);
+        if (cancelled) return;
+        setError(
+          cameraError instanceof Error && cameraError.message.startsWith("La caméra")
+            ? cameraError.message
+            : getCameraErrorMessage(cameraError),
+        );
+        setCameraOpen(false);
+      } finally {
+        if (!cancelled) setCameraStarting(false);
+      }
+    };
+
+    void openCamera();
+    return () => {
+      cancelled = true;
+      stopMediaStream(openedStream);
+      if (cameraStreamRef.current === openedStream) cameraStreamRef.current = null;
+      if (videoRef.current?.srcObject === openedStream) videoRef.current.srcObject = null;
+    };
+  }, [cameraOpen, isOpen, phase]);
+
+  useEffect(
+    () => () => {
+      stopMediaStream(cameraStreamRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (isOpen) return;
+    closeCamera();
     setPhase("capture");
     setPhotos([]);
     setReviewBooks([]);
@@ -123,15 +246,12 @@ export default function ShelfImportModal({
     setWarnings([]);
     setProgressLabel("");
     setProgressValue(0);
-  }, [isOpen]);
+  }, [closeCamera, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
+  const prepareFiles = async (files: File[]) => {
     if (files.length === 0) return;
-
     const remainingSlots = MAX_PHOTOS - photos.length;
     if (remainingSlots <= 0) {
       setError(`Vous pouvez analyser jusqu'à ${MAX_PHOTOS} photos par session.`);
@@ -154,6 +274,45 @@ export default function ShelfImportModal({
     setPhotos((current) => [...current, ...prepared]);
   };
 
+  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    await prepareFiles(files);
+  };
+
+  const startCamera = () => {
+    if (photos.length >= MAX_PHOTOS) {
+      setError(`Vous pouvez analyser jusqu'à ${MAX_PHOTOS} photos par session.`);
+      return;
+    }
+    setError(null);
+    setCameraOpen(true);
+  };
+
+  const takePhoto = async () => {
+    const video = videoRef.current;
+    if (!video || cameraCapturing) return;
+    setCameraCapturing(true);
+    setError(null);
+    try {
+      const file = await captureVideoFrame(video);
+      const prepared = await prepareShelfImage(file);
+      setPhotos((current) =>
+        current.length < MAX_PHOTOS ? [...current, prepared] : current,
+      );
+      navigator.vibrate?.(60);
+      if (photos.length + 1 >= MAX_PHOTOS) closeCamera();
+    } catch (captureError) {
+      setError(
+        captureError instanceof Error
+          ? captureError.message
+          : "La photo n'a pas pu être prise.",
+      );
+    } finally {
+      setCameraCapturing(false);
+    }
+  };
+
   const removePhoto = (photoId: string) => {
     setPhotos((current) => current.filter((photo) => photo.id !== photoId));
     setError(null);
@@ -161,6 +320,7 @@ export default function ShelfImportModal({
 
   const runAnalysis = async () => {
     if (photos.length === 0) return;
+    closeCamera();
     setPhase("analyzing");
     setError(null);
     setWarnings([]);
@@ -324,7 +484,7 @@ export default function ShelfImportModal({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-2 sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && phase !== "analyzing" && phase !== "submitting") {
-          onClose();
+          requestClose();
         }
       }}
     >
@@ -333,15 +493,15 @@ export default function ShelfImportModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="shelf-import-title"
-        className="flex max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="shelf-import-modal flex max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-4 sm:px-6">
+        <div className="shelf-import-header flex items-start justify-between gap-4 border-b px-4 py-4 sm:px-6">
           <div>
             <div className="mb-1 flex items-center gap-2 text-indigo-700">
               <Camera size={22} weight="bold" aria-hidden="true" />
               <span className="text-xs font-bold uppercase tracking-wide">Fonction administrateur</span>
             </div>
-            <h2 id="shelf-import-title" className="text-xl font-bold text-gray-950 sm:text-2xl">
+            <h2 id="shelf-import-title" className="text-xl font-bold text-gray-900 sm:text-2xl">
               Importer une étagère
             </h2>
             <p className="mt-1 text-sm text-gray-600">
@@ -350,9 +510,9 @@ export default function ShelfImportModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={phase === "analyzing" || phase === "submitting"}
-            className="rounded-full p-2 text-gray-600 transition hover:bg-white hover:text-gray-950 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full p-2 text-gray-600 transition hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Fermer l'import d'étagère"
           >
             <X size={24} weight="bold" />
@@ -375,7 +535,7 @@ export default function ShelfImportModal({
                   ["2", "Photo bien droite", "Évitez les reflets et le flou."],
                   ["3", "Vérification obligatoire", "Les éditions ambiguës resteront à confirmer."],
                 ].map(([number, title, description]) => (
-                  <div key={number} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div key={number} className="shelf-import-guide rounded-xl border p-4">
                     <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
                       {number}
                     </div>
@@ -389,26 +549,102 @@ export default function ShelfImportModal({
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                capture="environment"
                 multiple
                 className="sr-only"
                 onChange={handleFiles}
                 disabled={phase === "analyzing"}
               />
 
-              {photos.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex min-h-56 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 px-6 text-center transition hover:border-indigo-500 hover:bg-indigo-50"
-                >
-                  <Camera size={48} weight="duotone" className="mb-3 text-indigo-600" />
-                  <span className="text-lg font-semibold text-gray-950">Prendre ou choisir des photos</span>
-                  <span className="mt-1 text-sm text-gray-600">
-                    JPEG, PNG ou WebP · jusqu'à {MAX_PHOTOS} photos
-                  </span>
-                </button>
-              ) : (
+              {phase === "capture" && cameraOpen && (
+                <section className="shelf-camera-panel mb-5 overflow-hidden rounded-2xl border" aria-label="Appareil photo">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">Photographier l'étagère</p>
+                      <p className="text-sm text-gray-600">Cadrez une seule rangée, puis déclenchez.</p>
+                    </div>
+                    <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                      {photos.length}/{MAX_PHOTOS} photo{photos.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="relative aspect-video overflow-hidden bg-black">
+                    <video
+                      ref={videoRef}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      muted
+                      playsInline
+                      aria-label="Aperçu de la caméra"
+                    />
+                    <div className="pointer-events-none absolute inset-[8%] rounded-xl border-2 border-white/80 shadow-[0_0_0_999px_rgb(0_0_0/0.16)]" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-4 text-center">
+                      <span className="rounded-full bg-black/65 px-3 py-1.5 text-xs font-medium text-white">
+                        Remplissez le cadre avec les dos des livres
+                      </span>
+                    </div>
+                    {cameraStarting && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white" role="status">
+                        <CircleNotch size={30} weight="bold" className="mr-3 animate-spin" />
+                        Ouverture de la caméra…
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col-reverse gap-2 px-4 py-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={closeCamera}
+                      className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                    >
+                      Terminer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={takePhoto}
+                      disabled={!cameraReady || cameraCapturing}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    >
+                      {cameraCapturing ? (
+                        <CircleNotch size={20} weight="bold" className="animate-spin" />
+                      ) : (
+                        <Camera size={20} weight="fill" />
+                      )}
+                      {cameraCapturing ? "Préparation…" : "Prendre la photo"}
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              {phase === "capture" && !cameraOpen && photos.length < MAX_PHOTOS && (
+                <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    className="shelf-import-source shelf-import-source-primary flex min-h-40 items-center gap-4 rounded-2xl border p-5 text-left transition"
+                  >
+                    <span className="shelf-import-source-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl">
+                      <VideoCamera size={30} weight="duotone" />
+                    </span>
+                    <span>
+                      <span className="block text-lg font-bold">Utiliser l'appareil photo</span>
+                      <span className="mt-1 block text-sm">Cadrez et prenez la photo sans quitter Kodeks.</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="shelf-import-source flex min-h-40 items-center gap-4 rounded-2xl border p-5 text-left transition"
+                  >
+                    <span className="shelf-import-source-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl">
+                      <Plus size={30} weight="bold" />
+                    </span>
+                    <span>
+                      <span className="block text-lg font-bold">Importer des photos</span>
+                      <span className="mt-1 block text-sm">Choisissez des fichiers JPEG, PNG ou WebP.</span>
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {photos.length > 0 && (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {photos.map((photo, index) => (
                     <div key={photo.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -417,7 +653,7 @@ export default function ShelfImportModal({
                         <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
                           Photo {index + 1}
                         </span>
-                        {phase !== "analyzing" && (
+                        {phase !== "analyzing" && !cameraOpen && (
                           <button
                             type="button"
                             onClick={() => removePhoto(photo.id)}
@@ -434,16 +670,6 @@ export default function ShelfImportModal({
                       </div>
                     </div>
                   ))}
-                  {photos.length < MAX_PHOTOS && phase !== "analyzing" && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex min-h-48 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-600 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700"
-                    >
-                      <Plus size={30} weight="bold" />
-                      <span className="mt-2 font-medium">Ajouter une photo</span>
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -654,7 +880,7 @@ export default function ShelfImportModal({
           )}
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t bg-gray-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="shelf-import-guide flex flex-col-reverse gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="text-sm text-gray-600">
             {phase === "review" || phase === "submitting" ? (
               <><strong>{selectedRows.length}</strong> livre{selectedRows.length > 1 ? "s" : ""} sélectionné{selectedRows.length > 1 ? "s" : ""}</>
@@ -665,7 +891,7 @@ export default function ShelfImportModal({
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={phase === "analyzing" || phase === "submitting"}
               className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
             >

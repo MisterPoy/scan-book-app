@@ -143,6 +143,58 @@ body {
   color: var(--kodeks-text-secondary);
 }
 
+.shelf-import-modal {
+  background: var(--kodeks-surface-raised);
+  color: var(--kodeks-text);
+}
+
+.shelf-import-modal :where(.text-gray-950, .text-indigo-950) {
+  color: var(--kodeks-text);
+}
+
+.shelf-import-header {
+  border-color: var(--kodeks-border-subtle);
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--kodeks-primary) 13%, var(--kodeks-surface-raised)),
+    var(--kodeks-surface-raised) 68%
+  );
+}
+
+.shelf-import-guide,
+.shelf-camera-panel {
+  border-color: var(--kodeks-border-subtle);
+  background: var(--kodeks-surface-muted);
+}
+
+.shelf-import-source {
+  border-color: var(--kodeks-border);
+  background: var(--kodeks-surface);
+  color: var(--kodeks-text);
+}
+
+.shelf-import-source > span:last-child > span:last-child {
+  color: var(--kodeks-text-secondary);
+}
+
+.shelf-import-source-primary {
+  border-color: color-mix(in srgb, var(--kodeks-primary) 62%, var(--kodeks-border));
+  background: color-mix(in srgb, var(--kodeks-primary) 10%, var(--kodeks-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kodeks-primary) 12%, transparent);
+}
+
+.shelf-import-source-icon {
+  background: color-mix(in srgb, var(--kodeks-primary) 14%, var(--kodeks-surface-muted));
+  color: var(--kodeks-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .shelf-import-source:hover {
+    border-color: color-mix(in srgb, var(--kodeks-primary) 68%, var(--kodeks-border));
+    background: color-mix(in srgb, var(--kodeks-primary) 8%, var(--kodeks-surface));
+  }
+}
+
 :where(.fixed.inset-0.bg-black, .fixed.inset-0.bg-black\/50) {
   background-color: var(--kodeks-overlay) !important;
 }
