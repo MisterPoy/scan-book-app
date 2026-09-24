@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ShelfDetectedBook } from "../types/shelfImport";
 import {
+  buildGoogleBooksUrl,
   deduplicateShelfDetections,
   getShelfDuplicateReason,
   normalizeShelfText,
@@ -8,6 +9,16 @@ import {
 } from "./shelfCatalog";
 
 describe("shelfCatalog", () => {
+  it("associe la clé configurée aux recherches Google Books", () => {
+    const url = new URL(
+      buildGoogleBooksUrl("intitle:Dune inauthor:Frank Herbert", "AIza-test-key"),
+    );
+
+    expect(url.searchParams.get("q")).toBe("intitle:Dune inauthor:Frank Herbert");
+    expect(url.searchParams.get("maxResults")).toBe("10");
+    expect(url.searchParams.get("key")).toBe("AIza-test-key");
+  });
+
   it("normalise les accents et la ponctuation pour comparer les livres", () => {
     expect(normalizeShelfText("  L'Étranger — Albert Camus! ")).toBe(
       "l etranger albert camus",

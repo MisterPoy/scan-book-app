@@ -29,6 +29,39 @@ interface OpenLibraryDocument {
   subject?: string[];
 }
 
+const GOOGLE_BOOKS_MAX_ATTEMPTS = 3;
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+export function buildGoogleBooksUrl(query: string, apiKey?: string): string {
+  const url = new URL("https://www.googleapis.com/books/v1/volumes");
+  url.searchParams.set("q", query);
+  url.searchParams.set("maxResults", "10");
+  if (apiKey?.trim()) url.searchParams.set("key", apiKey.trim());
+  return url.toString();
+}
+
+async function fetchGoogleBooksWithRetry(url: string): Promise<Response> {
+  let response: Response | null = null;
+
+  for (let attempt = 0; attempt < GOOGLE_BOOKS_MAX_ATTEMPTS; attempt += 1) {
+    response = await fetch(url);
+    if (response.status !== 429 || attempt === GOOGLE_BOOKS_MAX_ATTEMPTS - 1) {
+      return response;
+    }
+
+    const retryAfterSeconds = Number(response.headers.get("retry-after"));
+    const retryDelay = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? Math.min(retryAfterSeconds * 1000, 5000)
+      : 600 * 2 ** attempt;
+    await wait(retryDelay);
+  }
+
+  return response as Response;
+}
+
 export function normalizeShelfText(value: string | null | undefined): string {
   return (value || "")
     .normalize("NFD")
@@ -93,8 +126,8 @@ async function searchGoogleBooks(
   const query = [`intitle:${title}`, author ? `inauthor:${author}` : ""]
     .filter(Boolean)
     .join(" ");
-  const response = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`,
+  const response = await fetchGoogleBooksWithRetry(
+    buildGoogleBooksUrl(query, import.meta.env.VITE_GOOGLE_BOOKS_API_KEY),
   );
   if (!response.ok) throw new Error("Google Books indisponible");
   const data = (await response.json()) as {
@@ -259,7 +292,8 @@ export async function buildShelfReviewBooks(
   detections: ShelfDetectedBook[],
   existingBooks: ExistingShelfBook[],
 ): Promise<ShelfReviewBook[]> {
-  return mapWithConcurrency(detections, 3, async (detection) => {
+  return mapWithConcurrency(detections, 1, async (detection) => {
+    await wait(250);
     if (!detection.title || detection.status === "unreadable") {
       return {
         id: detection.id,
