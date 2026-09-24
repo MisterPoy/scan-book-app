@@ -80,7 +80,10 @@ function getHeader(request: ApiRequest, name: string): string | undefined {
 }
 
 function getProjectId(): string | undefined {
-  return process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  // The ID token is issued for the same Firebase project as the web app.
+  // Prefer that existing value so a stale server-only setting cannot reject
+  // every otherwise valid session.
+  return process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
 }
 
 function parseRequestBody(body: unknown): ShelfScanBody {
