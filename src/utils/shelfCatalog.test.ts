@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ShelfDetectedBook } from "../types/shelfImport";
+import { buildGoogleBooksUrl } from "./googleBooks";
 import {
-  buildGoogleBooksUrl,
   deduplicateShelfDetections,
   getShelfDuplicateReason,
   normalizeShelfText,
@@ -11,7 +11,7 @@ import {
 describe("shelfCatalog", () => {
   it("associe la clé configurée aux recherches Google Books", () => {
     const url = new URL(
-      buildGoogleBooksUrl("intitle:Dune inauthor:Frank Herbert", "AIza-test-key"),
+      buildGoogleBooksUrl("intitle:Dune inauthor:Frank Herbert", 10, "AIza-test-key"),
     );
 
     expect(url.searchParams.get("q")).toBe("intitle:Dune inauthor:Frank Herbert");

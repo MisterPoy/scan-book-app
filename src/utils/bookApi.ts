@@ -1,5 +1,6 @@
 import type { BookMetadata, ScannedBook } from '../types/bulkAdd';
 import type { Firestore } from 'firebase/firestore';
+import { fetchGoogleBooks } from './googleBooks';
 
 /**
  * Force une URL d'image à utiliser HTTPS au lieu de HTTP
@@ -17,9 +18,7 @@ function forceHttps(url: string | undefined): string | undefined {
 export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | null> {
   try {
     // 1. Essayer Google Books en premier
-    const googleRes = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
-    );
+    const googleRes = await fetchGoogleBooks(`isbn:${isbn}`);
     const googleData = await googleRes.json();
 
     if (googleData.items && googleData.items.length > 0) {

@@ -95,6 +95,7 @@ import { bulkAddBooks, fetchBookMetadata } from "./utils/bookApi";
 import type { BulkAddResponse } from "./types/bulkAdd";
 import { renderLibraryIcon } from "./utils/iconRenderer";
 import { deduplicateAndRankBooks } from "./utils/searchRanking";
+import { fetchGoogleBooks } from "./utils/googleBooks";
 import InlineNotice from "./components/InlineNotice";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { deleteCurrentUserAccount } from "./services/accountDeletion";
@@ -1233,11 +1234,7 @@ function App() {
 
     try {
       // 1. Recherche Google Books
-      const googleRes = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
-          query,
-        )}&maxResults=40`,
-      );
+      const googleRes = await fetchGoogleBooks(query, 40);
       const googleData = await googleRes.json();
       const googleBooks: GoogleBook[] =
         googleData.items?.map(

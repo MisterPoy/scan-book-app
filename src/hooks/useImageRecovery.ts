@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { fetchGoogleBooks } from '../utils/googleBooks';
 
 interface UseImageRecoveryOptions {
   isbn?: string;
@@ -126,9 +127,7 @@ function testImageLoad(url: string): Promise<boolean> {
  */
 async function fetchGoogleBookscover(isbn: string): Promise<string | null> {
   try {
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
-    );
+    const response = await fetchGoogleBooks(`isbn:${isbn}`);
 
     if (!response.ok) return null;
 
