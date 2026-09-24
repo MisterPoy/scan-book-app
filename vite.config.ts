@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'theme-init.js'],
       injectManifest: {
         globPatterns: [
           'index.html',
