@@ -1,5 +1,8 @@
-import { getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+import {
+  FirebaseIdTokenError,
+  FirebaseIdTokenServiceError,
+  verifyFirebaseIdToken,
+} from "../../src/server/firebaseIdToken";
 
 interface ApiRequest {
   method?: string;
@@ -80,15 +83,6 @@ function getProjectId(): string | undefined {
   return process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
 }
 
-function initializeFirebaseAdmin(): void {
-  if (getApps().length > 0) return;
-  const projectId = getProjectId();
-  if (!projectId) {
-    throw new Error("FIREBASE_PROJECT_ID_MISSING");
-  }
-  initializeApp({ projectId });
-}
-
 function parseRequestBody(body: unknown): ShelfScanBody {
   if (typeof body === "string") {
     try {
@@ -134,19 +128,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return;
   }
 
+  const projectId = getProjectId();
+  if (!projectId) {
+    sendError(response, 503, "SERVER_NOT_CONFIGURED", "La vérification Firebase n'est pas configurée.");
+    return;
+  }
+
   try {
-    initializeFirebaseAdmin();
-    const decodedToken = await getAuth().verifyIdToken(authorization.slice(7));
+    const decodedToken = await verifyFirebaseIdToken(authorization.slice(7), projectId);
     if (decodedToken.admin !== true) {
       sendError(response, 403, "ADMIN_REQUIRED", "Cette fonction est réservée à l'administrateur.");
       return;
     }
   } catch (error) {
-    if (error instanceof Error && error.message === "FIREBASE_PROJECT_ID_MISSING") {
-      sendError(response, 503, "SERVER_NOT_CONFIGURED", "La vérification Firebase n'est pas configurée.");
+    if (error instanceof FirebaseIdTokenServiceError) {
+      sendError(response, 503, "AUTH_SERVICE_UNAVAILABLE", "La vérification de session est momentanément indisponible.");
       return;
     }
-    sendError(response, 401, "INVALID_TOKEN", "Votre session doit être renouvelée.");
+    if (error instanceof FirebaseIdTokenError) {
+      sendError(response, 401, "INVALID_TOKEN", "Votre session doit être renouvelée.");
+      return;
+    }
+    sendError(response, 503, "AUTH_SERVICE_UNAVAILABLE", "La vérification de session est momentanément indisponible.");
     return;
   }
 
