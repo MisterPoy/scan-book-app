@@ -2,7 +2,7 @@ import {
   FirebaseIdTokenError,
   FirebaseIdTokenServiceError,
   verifyFirebaseIdToken,
-} from "../../src/server/firebaseIdToken";
+} from "../../src/server/firebaseIdToken.js";
 
 interface ApiRequest {
   method?: string;
